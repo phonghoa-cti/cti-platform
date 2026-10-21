@@ -1,0 +1,28 @@
+# Secret
+.env
+*.env
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+
+# Dữ liệu lớn hoặc nhạy cảm
+data/
+*.sqlite
+extractor/dataset/raw/
+deploy/volumes/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

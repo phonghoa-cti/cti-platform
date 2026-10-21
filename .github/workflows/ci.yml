@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Chạy gitleaks bằng Docker: gitleaks-action yêu cầu license riêng khi repo thuộc organization
+      - name: Scan secrets
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest dir /repo -v
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: pip install ruff pytest
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: Test
+        run: |
+          if find . -path ./node_modules -prune -o -name "test_*.py" -print | grep -q .; then
+            pip install -r requirements-dev.txt 2>/dev/null || true
+            pytest -q
+          else
+            echo "Chưa có test nào."
+          fi
