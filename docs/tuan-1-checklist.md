@@ -25,3 +25,9 @@
 ## Cuối tuần
 - [ ] Viết devlog tuần đầu tiên theo TEMPLATE.md.
 - [ ] Bản nháp đề cương (dựa trên tài liệu khung) gửi cả nhóm đọc.
+
+## Bổ sung (bản cập nhật 22/10)
+- [ ] Đưa bản cập nhật này lên GitHub bằng Pull Request đầu tiên (xem hướng dẫn trong chat).
+- [ ] Chạy thử `python scripts/create_issues.py --repo <org>/cti-platform`, đọc kỹ, rồi chạy lại với `--apply`.
+- [ ] Đưa `docs/wiki/Home.md` và `docs/wiki/Tu-dien-CTI.md` lên tab Wiki.
+- [ ] Cả nhóm đọc và sửa bản nháp đề cương, điền tên, MSSV, giảng viên.
