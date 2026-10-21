@@ -6,4 +6,4 @@ target-version = "py312"
 select = ["E", "F", "I", "B", "UP"]
 
 [lint.isort]
-known-first-party = ["phonghoa_core"]
+known-first-party = ["phonghoa_core", "phonghoa_extractor"]

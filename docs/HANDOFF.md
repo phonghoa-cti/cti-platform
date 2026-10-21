@@ -46,6 +46,10 @@ Agent nào tiếp quản: đọc file này, rồi `AGENTS.md`, `docs/LUONG-HE-TH
 > Đọc docs/specs/F01-thu-thap-feed.md và skill stix-connector. Liệt kê connector chính thức của OpenCTI khớp bảng nguồn,
 > chỉ ra nguồn nào phải tự viết. Chưa viết code; trình bày phương án để tôi duyệt.
 
+## Đã làm thêm (PR #2, nhánh feat/x01-nen-tang)
+- `extractor/phonghoa_extractor`: quét chèn lệnh (task 2), đối chiếu bằng chứng + kiểm mã ATT&CK + allowlist (task 4–5 phần kiểm tra), chấm P/R/F1 (task 7). 14 test mới, tổng 61.
+- Còn lại của X01: task 1 (tải văn bản), 3 (gọi LLM có schema), 6 (ghi bản nháp), và script chạy 4 cấu hình.
+
 ## Lưu ý kỹ thuật
 - Phiên Claude Code chỉ dùng được GitHub REST API (`gh api ...`), không dùng được GraphQL (`gh pr create` sẽ lỗi).
 - Mã CVE, điểm EPSS/CVSS, quốc gia/ASN trong mockup đều là dữ liệu minh họa.
