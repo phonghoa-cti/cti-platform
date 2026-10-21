@@ -31,10 +31,4 @@ jobs:
       - name: Lint
         run: ruff check . && ruff format --check .
       - name: Test
-        run: |
-          if find . -path ./node_modules -prune -o -name "test_*.py" -print | grep -q .; then
-            pip install -r requirements-dev.txt 2>/dev/null || true
-            pytest -q
-          else
-            echo "Chưa có test nào."
-          fi
+        run: pytest  # pytest.ini đã chỉ chỗ chứa code và test
