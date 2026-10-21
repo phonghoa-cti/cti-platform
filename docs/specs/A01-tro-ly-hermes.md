@@ -27,6 +27,7 @@ Telegram ⇄ Hermes (máy Ubuntu, user riêng "hermes") ⇄ MCP server "phonghoa
 | `extract_report(url)` | Tải bài, chạy AI extractor, tạo **bản nháp** chờ duyệt, trả link W05 | Tạo nháp |
 | `propose_block(value, reason)` | Tạo đề xuất chặn chờ duyệt | Tạo đề xuất |
 | `weekly_brief()` | Tóm tắt tuần cho lãnh đạo | Đọc |
+| `events_since(timestamp)` | Sự kiện mới cần chú ý từ lần kiểm tra trước (chế độ trực ca) | Đọc |
 Không có công cụ xóa, duyệt, sửa cấu hình hay chạy lệnh.
 
 ## Cài đặt (tóm tắt — chi tiết sẽ viết thành hướng dẫn 06 khi làm)
@@ -51,6 +52,29 @@ không chắc thì nói không chắc và gợi ý hỏi Analyst.
 |---|---|---|
 | 07:00 hằng ngày | Bản tin: mức đe dọa, việc cần chú ý, IOC mới liên quan tài sản | Nhóm Telegram IT + lãnh đạo |
 | 08:00 thứ Hai | Tóm tắt tuần (`weekly_brief`) | Lãnh đạo |
+
+## Chế độ trực ca chủ động (lấy ý tưởng Grok Bot)
+Grok Bot (xAI, 09/2026) là agent chạy liên tục trên máy riêng, tự làm việc nhiều bước và **dừng chờ người duyệt** trước thao tác nhạy cảm.
+Phong Hỏa áp dụng ý tưởng đó cho CTI, không dùng sản phẩm của xAI:
+
+1. **Thức dậy theo nhịp:** cron của Hermes chạy mỗi 15 phút, gọi công cụ MCP mới `events_since(last_check)` — IOC mới liên quan tài sản, cảnh báo Wazuh khớp blocklist, CVE KEV mới ảnh hưởng công nghệ đang dùng.
+2. **Tự điều tra nhiều bước** (không cần ai hỏi): tra IOC → làm giàu → tìm thực thể liên quan → viết tóm tắt 3 câu.
+3. **Dừng ở thao tác nhạy cảm:** muốn chặn, xuất dữ liệu hay đổi trạng thái thì chỉ tạo đề xuất (W05) và nhắn Telegram:
+   "Phát hiện X, đề nghị chặn — bấm để duyệt trên portal".
+4. **Bảng phân loại thao tác** (giống cách Grok Bot liệt kê):
+
+| Loại | Ví dụ | Agent được làm |
+|---|---|---|
+| Đọc | tra IOC, xem tổng quan, đọc báo cáo | Tự làm |
+| Soạn nháp | bản nháp STIX, tóm tắt, đề xuất | Tự làm, đánh dấu "chờ duyệt" |
+| Thay đổi | chặn, xuất blocklist, đổi trạng thái CVE, báo nhầm | **Chỉ đề xuất**, người duyệt ở W05 |
+| Cấm | xóa, đổi cấu hình, quản lý người dùng, nhập mật khẩu | Không có công cụ — không thể làm |
+
+5. **Giới hạn để không chạy loạn:** tối đa 10 lần điều tra mỗi giờ; cùng một IOC không điều tra lại trong 24 giờ; mọi lần chạy ghi nhật ký.
+
+Tiêu chí bổ sung:
+- [ ] Kịch bản demo: Red team dựng domain giả → feed báo → trong ≤ 15 phút Telegram nhận tin kèm đề xuất chặn → Analyst duyệt → blocklist cập nhật, không ai phải hỏi bot.
+- [ ] Đo: thời gian từ khi IOC xuất hiện đến khi có đề xuất (mục tiêu ≤ 15 phút); số đề xuất bị từ chối.
 
 ## Kịch bản demo
 1. "Kiểm tra giúp 45.137.21.9" → điểm, lý do, nguồn, gợi ý.
