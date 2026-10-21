@@ -24,11 +24,12 @@ Agent nào tiếp quản: đọc file này, rồi `AGENTS.md`, rồi `docs/PROGR
 
 ## Việc tiếp theo (theo thứ tự)
 1. Merge PR #1 (cần 1 người khác duyệt).
-1. Bật cài đặt bảo mật repo: Secret scanning, Push protection, Dependabot, tự xóa nhánh sau merge (issue "Bật các cài đặt bảo mật cho repo").
-2. `python scripts/create_issues.py --repo phonghoa-cti/cti-platform` (chạy thử) → đọc → thêm `--apply`.
+2. Bật cài đặt bảo mật repo: Secret scanning, Push protection, Dependabot, tự xóa nhánh sau merge (issue #43).
 3. Việc 2: cài OpenCTI (`docs/huong-dan/00-viec-2-cai-opencti.md`), rồi Việc 3 (`03-...`).
 4. Gửi đề cương trước 03/11.
 5. Dựng khung portal (P0) bằng prompt bên dưới.
+
+Đã xong 22/10: 42 issue + 5 milestone trên GitHub (chạy lại `scripts/create_issues.py` không tạo trùng).
 
 ## Prompt sẵn cho opencode (agent planner, rồi implementer)
 **P0 — khung portal:**
