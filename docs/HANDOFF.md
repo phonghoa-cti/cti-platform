@@ -39,6 +39,9 @@ Agent nào tiếp quản: đọc file này, rồi `AGENTS.md`, rồi `docs/PROGR
 > Giao diện chỉ gồm khung: sidebar + thanh trên theo mockup, 5 trang rỗng có tiêu đề. Frontend dùng dữ liệu giả theo api-portal.md.
 > Chia task ≤ 2 giờ, mỗi task có cách kiểm tra. Hỏi tôi trước khi cài gói. Làm theo chế độ học.
 
+**X01 — AI extractor (tháng 12):**
+> Đọc docs/specs/X01-ai-extractor.md và extractor/dataset/GUIDELINE.md. Bắt đầu từ task 1–2 (tải văn bản, quét chèn lệnh), test trước.
+
 **F01 — connector đầu tiên:**
 > Đọc docs/specs/F01-thu-thap-feed.md và skill stix-connector. Liệt kê connector chính thức của OpenCTI khớp bảng nguồn,
 > chỉ ra nguồn nào phải tự viết. Chưa viết code; trình bày phương án để tôi duyệt.
