@@ -1,6 +1,6 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 21/10/2026
+Cập nhật lần cuối: 22/10/2026
 
 ## Mốc
 | Mốc | Hạn | Trạng thái |
@@ -13,10 +13,13 @@ Cập nhật lần cuối: 21/10/2026
 | Nộp quyển | 27/02/2027 | Chưa |
 
 ## Đang làm
--
+- PR #1: bộ khởi động đầy đủ, chờ duyệt và merge
+- Việc 2: cài OpenCTI trên máy Ubuntu
 
 ## Đã xong gần đây
--
+- Tạo organization phonghoa-cti và repo cti-platform
+- Thư viện phonghoa_core (47 test), spec MVP + portal + Hermes, mockup 5 màn, đề cương nháp
+- Chi tiết bàn giao: docs/HANDOFF.md
 
 ## Vướng mắc
 -
