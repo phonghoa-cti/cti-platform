@@ -1,6 +1,6 @@
 # Bàn giao — trạng thái dự án Phong Hỏa (22/10/2026, 00:50)
 
-Agent nào tiếp quản: đọc file này, rồi `AGENTS.md`, rồi `docs/PROGRESS.md`.
+Agent nào tiếp quản: đọc file này, rồi `AGENTS.md`, `docs/LUONG-HE-THONG.md`, `docs/PROGRESS.md`.
 
 ## Tài liệu ngoài repo (bản chính)
 - Tài liệu khung đồ án (định hướng, phản biện, phân vai, lộ trình): https://claude.ai/artifact/97QDxdinyj3f65gtcsoVao
