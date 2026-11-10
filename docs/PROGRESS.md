@@ -32,8 +32,10 @@ Cập nhật lần cuối: 10/11/2026
   JSON tái hiện được theo báo cáo, micro và loại IOC; đây chỉ là smoke test, chưa phải đánh giá X01 trên dữ
   liệu thật
 - X01 bước 1 bản nháp ngoại tuyến: CLI `.txt` tạo JSON `status=pending`, mỗi IOC có quote/span nguyên văn,
-  SHA-256 nguồn, TLP mặc định AMBER, cảnh báo injection và allowlist; chưa lưu SQLite, chưa gọi model/lab và
-  chưa đánh giá TTP hay chất lượng trên dataset thật
+  SHA-256 nguồn, TLP mặc định AMBER, cảnh báo injection và allowlist
+- X01 bước 2 kho bản nháp ngoại tuyến: CLI lưu mỗi draft pending thành bản ghi SQLite mới và đọc lại nguyên
+  nội dung theo ID qua tiến trình khác; kiểm schema/hash/span, rollback, timeout khóa DB và chế độ đọc không tự
+  tạo DB; chưa có duyệt/từ chối, HTTP, xác thực, model hoặc kiểm lab
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
