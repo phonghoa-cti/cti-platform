@@ -36,3 +36,8 @@ ký tự ngoài Basic Multilingual Plane, ví dụ emoji.
 
 `injection_warning=true` chỉ có nghĩa bộ quét thấy dấu hiệu chèn lệnh. Giá trị `false` không chứng minh văn
 bản an toàn; draft vẫn luôn chờ người duyệt và regex không đánh giá TTP hay ngữ nghĩa attacker/victim.
+
+Hợp đồng dữ liệu đầy đủ để nối W05 nằm tại
+[`docs/specs/W05-draft-offline-contract.md`](../../docs/specs/W05-draft-offline-contract.md). Ba kết quả `get`
+SQLite bằng dữ liệu tổng hợp nằm trong [`examples/`](examples/README.md); đây là fixture UI/hợp đồng, không phải
+bằng chứng endpoint HTTP hay màn duyệt đã hoạt động.

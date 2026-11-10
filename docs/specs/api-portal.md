@@ -98,9 +98,20 @@ Body `{"status": "patching|patched|not_affected|open", "note": "..."}` → 200 i
 - POST `/api/actions/{id}/decision` `{"decision": "approve|reject", "note": "..."}` → 200. Người đề xuất không được tự duyệt (403 `self_approval`).
 
 ### Bản nháp AI
-- GET `/api/drafts?status=pending` · GET `/api/drafts/{id}` → `{"id", "source", "language", "tlp", "text", "items": [{"kind": "ioc|ttp|malware|actor", "type", "value", "span": [start, end], "keep": true, "warning": null}], "injection_warning": false, "model", "cost_tokens"}`
-- POST `/api/drafts/{id}/approve` `{"items": [...đã chỉnh...], "tlp": "TLP:GREEN"}` → `{"opencti_report_id": "..."}`
-- POST `/api/drafts/{id}/reject` `{"note": "..."}`
+
+**Trạng thái:** các endpoint dưới đây là đề xuất, chưa có HTTP/auth/approve/reject đang chạy. Payload offline 1.0
+đã kiểm bằng SQLite được mô tả đầy đủ tại [`W05-draft-offline-contract.md`](W05-draft-offline-contract.md);
+frontend/backend phải bảo toàn `schema_version`, source hash, evidence, findings và item status thay vì dùng ví dụ
+rút gọn làm mất trường.
+
+- Dự kiến GET `/api/drafts?status=pending` và GET `/api/drafts/{id}` trả hình dạng **draft đã lưu** trong phụ lục.
+  Danh sách/phân trang, lỗi và quyền Analyst/Admin còn phải đặc tả/triển khai.
+- Dự kiến POST `/api/drafts/{id}/approve` nhận chỉnh sửa đã kiểm schema và tạo kết quả OpenCTI; chưa triển khai.
+- Dự kiến POST `/api/drafts/{id}/reject` nhận lý do; chưa triển khai.
+- Biên API phải từ chối `kind`/`item.status` chưa hỗ trợ, xác minh danh tính phía backend, ghi audit và chống
+  người/agent tự duyệt đề xuất của chính mình.
+- Span 1.0 là khoảng code point Python `[start,end)` trên nguyên `text`; JavaScript không được dùng trực tiếp
+  offset UTF-16 mà không chuyển đổi/test.
 
 ### GET /api/blocklist.txt?type=ipv4|domain|url&min_score=60
 Văn bản thuần, mỗi dòng một giá trị (không defang), đã loại allowlist. Header `X-Generated-At`.
