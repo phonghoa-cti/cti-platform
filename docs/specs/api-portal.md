@@ -6,10 +6,13 @@ frontend dùng dữ liệu giả theo đúng hợp đồng, backend làm thật,
 Quy ước: tiền tố `/api`; JSON; thời gian dạng ISO 8601 có múi giờ; lỗi trả `{"error": {"code": "...", "message": "câu tiếng Việt"}}`.
 
 ## 1. Xác thực
-- Sau Cloudflare Access: backend đọc email từ header `Cf-Access-Authenticated-User-Email`, tra vai trò trong bảng `users` (SQLite).
-- Gọi từ máy (firewall, script): header `X-API-Key`; key gắn với một vai trò.
-- Phát triển trên máy: `DEV_USER_EMAIL=analyst@dev.local` (chỉ bật khi `ENV=dev`).
-- Email không có trong bảng → 403 "Tài khoản chưa được cấp quyền".
+
+Ba endpoint W05 đã triển khai cục bộ chỉ nhận JWT từ `Cf-Access-Jwt-Assertion`: RS256, chữ ký JWKS HTTPS,
+`iss`/`aud` chính xác và bắt buộc `exp`/`iss`/`aud`/`sub`. Role được tra theo `sub` trong cấu hình server;
+claim role/email, email header trần, API key, query và dev user không tạo danh tính cho W05. Thiếu cấu hình làm
+app từ chối khởi tạo; lỗi JWKS tạm thời fail closed.
+
+Các endpoint ngoài W05 trong tài liệu này vẫn là đề xuất lịch sử và chưa được triển khai/xác minh auth.
 
 ## 2. Ma trận quyền
 | Endpoint | Lãnh đạo | IT | Analyst | Admin |
@@ -99,20 +102,20 @@ Body `{"status": "patching|patched|not_affected|open", "note": "..."}` → 200 i
 
 ### Bản nháp AI
 
-**Trạng thái:** các endpoint dưới đây vẫn là đề xuất; chưa có HTTP hay authentication đang chạy. Lõi Python
-offline đã có approve/reject một lần, optimistic concurrency và atomic audit SQLite theo
+**Trạng thái:** ba endpoint dưới đây đã chạy/test in-process với SQLite và JWT RSA tổng hợp; chưa có listener,
+Cloudflare/lab hoặc browser thật. Lõi Python offline có approve/reject một lần, optimistic concurrency và audit
+SQLite nguyên tử theo
 [`W05-draft-offline-contract.md`](W05-draft-offline-contract.md). `Actor` trong lõi chỉ là policy testable do
 caller tin cậy cung cấp, không xác minh JWT và không được map trực tiếp từ email/header client tự khai.
 
-- Dự kiến GET `/api/drafts?status=pending` và GET `/api/drafts/{id}` trả hình dạng **draft đã lưu** trong phụ lục.
-  Danh sách/phân trang, lỗi và quyền Analyst/Admin còn phải đặc tả/triển khai.
-- GET tương lai phải trả riêng payload `status=pending` và `review.status/version`; danh sách chỉ gồm review
-  pending, còn GET chi tiết vẫn đọc được draft đã quyết định.
-- POST approve/reject tương lai phải truyền `expected_version`, dùng subject/role đã xác minh phía server và
-  gọi lõi offline. Approve hiện chỉ là **đã duyệt cục bộ**, không tạo kết quả OpenCTI.
-- Reject bắt buộc lý do; approve không nhận reason. Conflict stale/lặp cần mã lỗi HTTP ổn định nhưng chưa chốt.
-- Biên API phải từ chối `kind`/`item.status` chưa hỗ trợ, xác minh signature/issuer/audience hoặc API-key hash,
-  lookup role server-side và chống người/agent tự duyệt đề xuất của chính mình.
+- `GET /api/drafts?limit=20&before_id=` trả summary pending-review và cursor, không có report content.
+- `GET /api/drafts/{id}` trả payload `status=pending` và object `review`; đọc được draft đã quyết định.
+- `POST /api/drafts/{id}/decision` nhận `decision`, `expected_version`, `reason` khi reject; yêu cầu Origin chính
+  xác và `application/json`, rồi gọi core đúng một lần. Approve là **đã duyệt cục bộ**, không tạo OpenCTI.
+- Mã ổn định: 401 `authentication_required`, 403 `forbidden`, 404 `draft_not_found`, 409 `draft_conflict`,
+  415 `unsupported_media_type`, 422 `invalid_request`, 503 `review_unavailable`.
+- Biên response từ chối schema/item status ngoài contract thay vì trả dữ liệu một phần. Mọi response W05 có
+  `Cache-Control: no-store`; không bật CORS wildcard.
 - Span 1.0 là khoảng code point Python `[start,end)` trên nguyên `text`; JavaScript không được dùng trực tiếp
   offset UTF-16 mà không chuyển đổi/test.
 
