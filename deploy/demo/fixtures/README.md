@@ -5,7 +5,7 @@ nguồn CTI hoặc quan hệ ATT&CK có thật.
 
 - Domain dùng hậu tố dành riêng `.example`.
 - IP `198.51.100.42` thuộc TEST-NET-2 dành cho tài liệu.
-- Tên/description và external reference đều ghi rõ nguồn tổng hợp.
+- Tên/description ghi rõ dữ liệu tổng hợp; external reference của report ghi rõ nguồn fixture cục bộ.
 - ID/timestamp cố định để fixture tái hiện được; không lấy ID từ hệ thống thật.
 - Marking dùng STIX 2.1 TLP:WHITE chuẩn, tương ứng nhãn chia sẻ công khai TLP:CLEAR hiện hành. Analyst vẫn phải
   duyệt quyền dữ liệu và policy trước khi nhập.

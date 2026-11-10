@@ -28,7 +28,7 @@ bundle STIX 2.1 đã được analyst duyệt. OTX phải chạy thật và có 
 | **CISA KEV** — lỗ hổng đã bị khai thác | [`external-import/cisa-known-exploited-vulnerabilities`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/cisa-known-exploited-vulnerabilities), [README](https://github.com/OpenCTI-Platform/connectors/blob/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/cisa-known-exploited-vulnerabilities/README.md). | Mã Apache-2.0. Điều khoản của [CISA KEV catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) vẫn phải được xác minh trước khi phân phối lại. | Dùng catalog công khai; auth/quota/chu kỳ chính xác phải lấy từ README và endpoint của bộ version được chốt trước khi chạy. | **Dùng connector chính thức, không tự viết.** Ưu tiên khi bắt đầu F11; giữ CVE ID, dateAdded, due date, required action và URL nguồn. Tương thích runtime/TLP chưa kiểm chứng. |
 | **CVE/NVD** — dữ liệu lỗ hổng | [`external-import/cve`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/cve). | Mã Apache-2.0. Điều khoản CVE/NVD phải đối chiếu riêng; [NVD developer](https://nvd.nist.gov/developers/start-here) là nguồn kỹ thuật, chưa đủ để chốt quyền phân phối lại. | Dự án dự kiến `NVD_API_KEY`; quota có/không key phải kiểm tra theo tài liệu hiện hành. Đề xuất 24 giờ, nhập tăng dần theo `lastModified`. | **Dùng sẵn sau khi chốt version.** Không backfill toàn bộ NVD trên lab 16 GB. Giữ CVE ID, nguồn, published/lastModified, CVSS/CPE và references. |
 | **abuse.ch Feodo Tracker** — botnet C2 | Không thấy connector Feodo chính thức tại ref nghiên cứu; [Feodo blocklist](https://feodotracker.abuse.ch/blocklist/) có CSV/JSON/IP list. | Chưa có mã chính thức được xác nhận để kế thừa. Blocklist dẫn [abuse.ch Terms of Use](https://abuse.ch/terms-of-use/); phạm vi phân phối lại/thương mại vẫn phải xác minh. | Danh sách tải không yêu cầu Auth-Key; nguồn tạo lại mỗi 5 phút và khuyên cập nhật mỗi 15 phút (tốt nhất 5 phút). Quota HTTP chưa xác minh; chỉ dùng recommended/active, không dùng aggressive vì rủi ro false positive. | **Chưa quyết định tự viết.** Kiểm XTM Hub/official release và schema trước; chỉ khi không có lựa chọn phù hợp mới kế thừa [`templates/external-import`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/templates/external-import) + `phonghoa_core.normalize`. |
-| **ImportFileStix** — nạp bundle, không phải feed | [`internal-import-file/import-file-stix`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/internal-import-file/import-file-stix). | Mã Apache-2.0. Quyền dữ liệu phụ thuộc từng bundle; mỗi bundle phải có nguồn và notice riêng. | Không có API key nguồn; cần token OpenCTI riêng cho connector. Không có quota/chu kỳ feed. | **Dùng sẵn cho demo mẫu.** Analyst duyệt trước nhập. `validate_before_import=true` chỉ kiểm cấu trúc, không chứng minh nội dung đúng hoặc có quyền sử dụng. |
+| **ImportFileStix** — nạp bundle, không phải feed | [`internal-import-file/import-file-stix`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/internal-import-file/import-file-stix). | Mã Apache-2.0. Quyền dữ liệu phụ thuộc từng bundle; mỗi bundle phải có nguồn và notice riêng. | Không có API key nguồn; cần token OpenCTI riêng cho connector. Không có quota/chu kỳ feed. | **Dùng sẵn cho demo mẫu.** `validate_before_import=true` gửi bundle vào luồng chờ analyst duyệt, khác validator STIX cục bộ. Mặc định release là mode `draft`; chỉ vào knowledge base sau review/phê duyệt, không bypass. |
 
 ## Ranh giới dữ liệu và AI
 
@@ -52,11 +52,14 @@ pull, runtime tương thích, service khỏe, import thành công hoặc giới 
 ## Demo nhỏ nhất và tiêu chí quan sát
 
 1. Analyst xem nguồn, notice, TLP và nội dung bundle STIX 2.1; chỉ bundle được duyệt mới được nhập.
-2. Bật MITRE từ connector chính thức; nhập bundle bằng `ImportFileStix`.
-3. Quan sát được ít nhất một ATT&CK technique, một relationship và một object từ bundle; mỗi object mẫu có
-   `created_by`, marking/TLP phù hợp và external reference.
+2. Bật MITRE từ connector chính thức. Với bundle, analyst upload tại vùng nhập chung; nếu `AUTO=false` chưa tạo
+   work thì chọn/chạy ImportFileStix thủ công, chờ xử lý, rồi review/phê duyệt bản nháp mặc định. Chỉ dùng tên
+   workbench nếu lab chọn mode đó; không bypass. Ghi người duyệt, work ID và trạng thái trước/sau.
+3. Chỉ sau phê duyệt mới kiểm knowledge base: có ít nhất một ATT&CK technique, relationship và object fixture.
+   Mọi object hỗ trợ marking có marking phù hợp; indicator/relationship/report có `created_by_ref`; report có
+   external reference nguồn tổng hợp; IPv4/domain truy nguyên qua `report.object_refs` và relationship.
 4. Chạy nhập lặp để kiểm tra không tăng object trùng; ghi số entity/relationship, work thành công/thất bại,
-   thời gian, lỗi và provenance.
+   thời gian, lỗi và provenance. Capability upload/review/approve đúng mode còn phải kiểm trên lab.
 5. Sau khi có key và chấp nhận điều khoản OTX, chạy một Pulse với mốc bắt đầu gần hiện tại. #10 chỉ đạt khi
    Report/Indicator từ OTX xuất hiện, giữ author/reference/TLP và lần chạy kế tiếp không nhân bản dữ liệu.
 

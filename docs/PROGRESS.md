@@ -26,7 +26,10 @@ Cập nhật lần cuối: 10/11/2026
   `ImportFileStix` là đường nhập mẫu và không tính là feed
 - Chuẩn bị `deploy/demo/` với OpenCTI LTS `7.260811.0-lts.2`, 8 image ghim digest và fixture STIX tổng hợp;
   Compose lõi/MITRE/ImportFileStix đã parse, thiếu secret bị từ chối
+- Xử lý QA-01–03 cho gói demo: preflight kiểm UUIDv4/Base64/token không lộ input; quy trình ImportFileStix dùng
+  bản nháp mặc định và analyst phê duyệt; tiêu chí provenance khớp từng loại object STIX
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
+- Capability upload/review/approve, work ID, trạng thái draft trước/sau và quyền thực tế chưa kiểm trên lab
 - Chưa gọi feed hoặc LLM, chưa có key/điều khoản OTX, chưa đo RAM/queue và chưa xác minh demo MITRE + OTX (#10)
