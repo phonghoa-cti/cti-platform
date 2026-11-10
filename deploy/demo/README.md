@@ -15,6 +15,11 @@ Không có OTX, XTM One, XTM Composer, Docker socket, AI, host network hoặc pr
 được publish tại `127.0.0.1`; các dependency chỉ ở mạng Compose. Connector có giới hạn cấu hình 256 MB,
 nhưng khả năng chạy đủ trong giới hạn này vẫn **UNVERIFIED** cho tới khi đo trên lab.
 
+Cấu hình bộ nhớ ứng viên dành 4 GB cho container Elasticsearch nhưng chỉ đặt heap JVM 2 GB, theo khuyến nghị
+[heap không vượt quá 50% RAM khả dụng](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/advanced-configuration.html).
+Container OpenCTI có giới hạn 3 GB và Node.js `--max-old-space-size=2048` MiB để chừa bộ nhớ ngoài V8 heap.
+Đây là giá trị chuẩn bị để thử, chưa phải bằng chứng mức RAM phù hợp hoặc runtime ổn định trên lab.
+
 ## Nguồn cấu hình và phiên bản
 
 - OpenCTI/worker: LTS `7.260811.0-lts.2`, source commit
