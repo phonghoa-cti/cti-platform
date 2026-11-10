@@ -4,9 +4,10 @@ Nền tảng Threat Intelligence cho doanh nghiệp vừa và nhỏ, xây trên 
 
 ## Bắt đầu từ đây
 1. [Từ điển CTI cho người mới](Tu-dien-CTI) — đọc trước tiên.
-2. `AGENTS.md` trong repo — quy ước làm việc cho người và AI agent.
-3. `docs/tuan-1-checklist.md` — việc của tuần đầu.
-4. `deploy/README.md` — dựng lab.
+2. [Nguồn dữ liệu F01](Nguon-du-lieu-F01) — connector có thể tái sử dụng, quyền dữ liệu và phạm vi demo.
+3. `AGENTS.md` trong repo — quy ước làm việc cho người và AI agent.
+4. `docs/tuan-1-checklist.md` — việc của tuần đầu.
+5. `deploy/README.md` — dựng lab.
 
 ## Tài liệu thiết kế
 - Spec tính năng: `docs/specs/` (F01–F08 cho MVP)
@@ -25,4 +26,5 @@ Nền tảng Threat Intelligence cho doanh nghiệp vừa và nhỏ, xây trên 
 
 ## Cách đưa trang này lên GitHub Wiki
 Vào tab *Wiki* của repo → *Create the first page* → dán nội dung file này. Tạo thêm trang
-"Tu-dien-CTI" từ `docs/wiki/Tu-dien-CTI.md`. Bản gốc vẫn giữ trong `docs/wiki/` để agent đọc được.
+"Tu-dien-CTI" từ `docs/wiki/Tu-dien-CTI.md` và "Nguon-du-lieu-F01" từ
+`docs/wiki/Nguon-du-lieu-F01.md`. Bản gốc vẫn giữ trong `docs/wiki/` để agent đọc được.
