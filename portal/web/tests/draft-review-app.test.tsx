@@ -119,6 +119,37 @@ describe("draft review application states", () => {
     expect(draftApi.detail).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps the decided draft selected while its decision and refresh are in flight", async () => {
+    const user = userEvent.setup();
+    const decision = deferred<{ draft_id: number; status: "approved"; version: 1; decided_by_subject: string; decided_at: string; reason: null }>();
+    const secondSummary = { ...summary, id: 2, source: { ...summary.source, name: "second.txt" } };
+    const secondDetail = { ...pendingDetail, id: 2, source: { ...pendingDetail.source, name: "second.txt" } };
+    const approvedFirst = {
+      ...pendingDetail,
+      review: { ...pendingDetail.review, status: "approved" as const, version: 1, decided_by_subject: "analyst-sub", decided_at: "2026-11-11T01:02:03+00:00" },
+    };
+    const detail = vi.fn((id: number) => Promise.resolve(id === 2 ? secondDetail : detail.mock.calls.length > 1 ? approvedFirst : pendingDetail));
+    const draftApi = api({
+      list: vi.fn().mockResolvedValue({ items: [summary, secondSummary], next_before_id: 2 }),
+      detail,
+      decide: vi.fn().mockReturnValue(decision.promise),
+    });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+    await screen.findByRole("button", { name: "Duyệt bản nháp" });
+
+    await user.click(screen.getByRole("button", { name: "Duyệt bản nháp" }));
+    const secondRow = screen.getByRole("button", { name: /second\.txt/i });
+    expect(secondRow).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tải thêm" })).toBeDisabled();
+    await user.click(secondRow);
+    expect(screen.getByText(pendingDetail.source.name, { selector: "dd" })).toBeInTheDocument();
+
+    decision.resolve({ draft_id: regular.id, status: "approved", version: 1, decided_by_subject: "analyst-sub", decided_at: "2026-11-11T01:02:03+00:00", reason: null });
+    expect(await screen.findByText("Đã duyệt")).toBeInTheDocument();
+    expect(screen.getByText(pendingDetail.source.name, { selector: "dd" })).toBeInTheDocument();
+    expect(screen.queryByText("second.txt", { selector: "dd" })).not.toBeInTheDocument();
+  });
+
   it("requires a trimmed rejection reason and sends it with expected version", async () => {
     const user = userEvent.setup();
     const draftApi = api({

@@ -177,6 +177,7 @@ button:focus-visible, input:focus-visible, [tabindex="-1"]:focus-visible {
   cursor: pointer;
 }
 .queue-row:hover { background: #182332; }
+.queue-row:disabled { cursor: wait; opacity: .72; }
 .queue-row.is-selected { background: #162944; box-shadow: inset 3px 0 var(--interactive); }
 .queue-id { grid-row: 1 / span 3; color: var(--text-helper); font-family: "IBM Plex Mono", monospace; }
 .queue-source { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }

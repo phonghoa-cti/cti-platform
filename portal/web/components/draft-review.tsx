@@ -43,7 +43,7 @@ export function DraftReview({ draft, locale, mode = "sample", sending = false, d
   const evidenceRef = useRef<HTMLElement>(null);
   const activeSpan = activeItem === null ? null : draft.items[activeItem]?.span;
   const review = "review" in draft ? draft.review : null;
-  const canDecide = mode === "api" && review?.status === "pending" && !sending && !decisionBlocked;
+  const canDecide = mode === "api" && review?.status === "pending" && !sending && !decisionBlocked && decisionSuccess === null;
 
   useEffect(() => {
     if (activeSpan) evidenceRef.current?.focus();

@@ -50,7 +50,8 @@ Cập nhật lần cuối: 11/11/2026
   đạt. Trình duyệt thật đạt ở 1280 px từ lượt trước; viewport 360/1440 vẫn chưa được công cụ hỗ trợ kiểm trực tiếp.
 - WEB-W05-API-CLIENT: `/duyet` gọi ba route `/api/drafts*` tương đối cùng origin với parser runtime tách summary,
   detail và decision; phân trang cursor 20 dòng, tải chi tiết có chống response cũ, keep chỉ đọc, quyết định dùng
-  `expected_version` và xử lý lỗi an toàn. `/duyet/mau` giữ fixture tổng hợp có nhãn và không POST. 47 test
+  `expected_version` và xử lý lỗi an toàn; khóa đổi draft/tải thêm trong lúc gửi và guard kết quả theo draft đang
+  chọn để không gắn decision cũ lên draft khác. `/duyet/mau` giữ fixture tổng hợp có nhãn và không POST. 48 test
   unit/UI, typecheck, lint và production build đạt cục bộ; fetch được giả ở biên test, chưa kiểm browser nối
   FastAPI/auth/routing thật và chưa kiểm trực tiếp viewport 360/1440.
 

@@ -58,6 +58,8 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   const [sending, setSending] = useState(false);
   const [decisionBlocked, setDecisionBlocked] = useState(false);
   const decisionLock = useRef(false);
+  const submittedVersionRef = useRef<string | null>(null);
+  const selectedIdRef = useRef<number | null>(null);
   const messages = locale === "vi" ? vi : en;
 
   const loadQueue = useCallback(async (reset: boolean) => {
@@ -65,13 +67,21 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
       const drafts = await loadDrafts();
       setSampleDetails(drafts);
       setQueue(drafts.map(sampleSummary)); setNextBeforeId(null);
-      setSelectedId((current) => current ?? drafts[0]?.id ?? null);
+      setSelectedId((current) => {
+        const next = current ?? drafts[0]?.id ?? null;
+        selectedIdRef.current = next;
+        return next;
+      });
       setDetail((current) => current ?? drafts[0] ?? null);
       return;
     }
     const page = await api.list();
     setQueue(page.items); setNextBeforeId(page.next_before_id);
-    if (reset) setSelectedId((current) => current ?? page.items[0]?.id ?? null);
+    if (reset) setSelectedId((current) => {
+      const next = current ?? page.items[0]?.id ?? null;
+      selectedIdRef.current = next;
+      return next;
+    });
   }, [api, loadDrafts, mode]);
 
   useEffect(() => {
@@ -99,16 +109,22 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   }, [api, detailAttempt, mode, selectedId]);
 
   const retryQueue = () => {
+    selectedIdRef.current = null;
+    submittedVersionRef.current = null;
     setQueue(null); setQueueError(null); setSelectedId(null); setDetail(null); setDetailError(null);
     setDecisionError(null); setDecisionSuccess(null); setDecisionBlocked(false);
     setQueueAttempt((value) => value + 1);
   };
   const selectDraft = (id: number) => {
+    if (decisionLock.current) return;
+    selectedIdRef.current = id;
+    submittedVersionRef.current = null;
     setDetail(null); setDetailError(null); setDecisionError(null); setDecisionSuccess(null); setDecisionBlocked(false);
     setSelectedId(id);
     if (mode === "sample") setDetail(sampleDetails.find((draft) => draft.id === id) ?? null);
   };
   const retryDetail = () => {
+    submittedVersionRef.current = null;
     setDetail(null); setDetailError(null); setDecisionError(null); setDecisionSuccess(null); setDecisionBlocked(false);
     setDetailAttempt((value) => value + 1);
   };
@@ -125,13 +141,22 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
 
   const decide = async (request: DecisionRequest) => {
     if (mode !== "api" || !detail || !("review" in detail) || detail.review.status !== "pending" || decisionLock.current) return;
+    const decisionDraftId = detail.id;
+    const submittedVersion = `${decisionDraftId}:${detail.review.version}`;
+    if (submittedVersionRef.current === submittedVersion) return;
+    submittedVersionRef.current = submittedVersion;
     decisionLock.current = true; setSending(true); setDecisionError(null); setDecisionSuccess(null);
     try {
-      const result = await api.decide(detail.id, request);
-      setDecisionSuccess(result.status);
-      const [freshDetail, freshPage] = await Promise.all([api.detail(detail.id), api.list()]);
-      setDetail(freshDetail); setQueue(freshPage.items); setNextBeforeId(freshPage.next_before_id);
+      const result = await api.decide(decisionDraftId, request);
+      if (result.draft_id !== decisionDraftId) throw new ApiClientError("service");
+      const [freshDetail, freshPage] = await Promise.all([api.detail(decisionDraftId), api.list()]);
+      setQueue(freshPage.items); setNextBeforeId(freshPage.next_before_id);
+      if (selectedIdRef.current === decisionDraftId) {
+        setDetail(freshDetail);
+        setDecisionSuccess(result.status);
+      }
     } catch (error) {
+      submittedVersionRef.current = null;
       setDecisionError(safeErrorMessage(error, "decision", locale));
       if (error instanceof ApiClientError && error.status === 409) setDecisionBlocked(true);
     } finally { decisionLock.current = false; setSending(false); }
@@ -160,11 +185,11 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
         {queue && queue.length > 0 && <div className="workspace-grid">
           <section className="panel queue-panel" aria-labelledby="queue-title">
             <header className="panel-header"><h2 id="queue-title">{messages.queueTitle}</h2><span>{queue.length} {messages.loadedDrafts}</span></header>
-            <div className="queue-list">{queue.map((draft) => <button type="button" key={draft.id} className={`queue-row ${draft.id === selectedId ? "is-selected" : ""}`} aria-pressed={draft.id === selectedId} aria-label={`${messages.draftNumber} ${draft.id}: ${draft.source.name}`} onClick={() => selectDraft(draft.id)}>
+            <div className="queue-list">{queue.map((draft) => <button type="button" key={draft.id} disabled={sending} className={`queue-row ${draft.id === selectedId ? "is-selected" : ""}`} aria-pressed={draft.id === selectedId} aria-label={`${messages.draftNumber} ${draft.id}: ${draft.source.name}`} onClick={() => selectDraft(draft.id)}>
               <span className="queue-id">#{draft.id}</span><span className="queue-source">{draft.source.name}</span><span className="queue-meta">{draft.item_count} {messages.items} · {draft.tlp}</span>
               <span className={`queue-status ${draft.injection_warning ? "has-warning" : ""}`}>{draft.injection_warning ? messages.injectionShort : messages.pending}</span>
             </button>)}</div>
-            {nextBeforeId !== null && <button className="load-more" type="button" disabled={loadingMore} onClick={() => void loadMore()}>{loadingMore ? messages.loadingMore : messages.loadMore}</button>}
+            {nextBeforeId !== null && <button className="load-more" type="button" disabled={loadingMore || sending} onClick={() => void loadMore()}>{loadingMore ? messages.loadingMore : messages.loadMore}</button>}
           </section>
           <div className="detail-state">
             {mode === "api" && selectedId !== null && !detail && !detailError && <div className="state-panel" role="status" aria-live="polite">{messages.detailLoading}</div>}
