@@ -40,6 +40,7 @@
   "noEvidence": "No evidence span",
   "copyOriginal": "Copy original IOC",
   "copied": "Copied",
+  "copyError": "Could not copy the IOC. Try again.",
   "selected": "Selected",
   "notSelected": "Not selected",
   "statusOk": "Grounded",

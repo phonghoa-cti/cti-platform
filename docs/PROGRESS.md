@@ -1,6 +1,6 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 10/11/2026
+Cập nhật lần cuối: 11/11/2026
 
 ## Mốc
 | Mốc | Hạn | Trạng thái |
@@ -45,8 +45,9 @@ Cập nhật lần cuối: 10/11/2026
   timeout sai trước khi mở SQLite; dữ liệu hỏng không ghi đè output, chưa mở rộng sang HTTP, quyền hoặc UI
 - WEB-W05-PREVIEW: portal Next.js cục bộ có `/duyet`, hàng đợi ba fixture tổng hợp, metadata/text-only,
   allowlist/rejected/injection, evidence span Unicode, VI/EN và trạng thái loading/empty/error; mọi thao tác duyệt
-  bị vô hiệu, chưa có HTTP, auth hoặc OpenCTI. Unit/UI test, typecheck, lint và production build đạt; trình duyệt
-  thật đạt ở 1280 px, còn viewport 360/1440 chưa được công cụ hỗ trợ kiểm trực tiếp.
+  bị vô hiệu, chưa có HTTP, auth hoặc OpenCTI. Thao tác sao chép xử lý cả Clipboard API không có và quyền bị từ
+  chối, chỉ báo thành công sau khi ghi xong và cho phép thử lại; 13 unit/UI test, typecheck, lint và production build
+  đạt. Trình duyệt thật đạt ở 1280 px từ lượt trước; viewport 360/1440 vẫn chưa được công cụ hỗ trợ kiểm trực tiếp.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

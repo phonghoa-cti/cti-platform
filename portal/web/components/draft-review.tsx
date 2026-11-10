@@ -20,6 +20,7 @@ export function DraftReview({ draft, locale }: { draft: Draft; locale: Locale })
   const [activeItem, setActiveItem] = useState<number | null>(null);
   const [kept, setKept] = useState(() => draft.items.map((item) => item.keep));
   const [copiedItem, setCopiedItem] = useState<number | null>(null);
+  const [copyErrorItem, setCopyErrorItem] = useState<number | null>(null);
   const evidenceRef = useRef<HTMLElement>(null);
   const activeSpan = activeItem === null ? null : draft.items[activeItem]?.span;
 
@@ -28,8 +29,20 @@ export function DraftReview({ draft, locale }: { draft: Draft; locale: Locale })
   }, [activeItem, activeSpan]);
 
   const copyIoc = async (value: string, index: number) => {
-    await navigator.clipboard.writeText(value);
-    setCopiedItem(index);
+    setCopiedItem(null);
+    setCopyErrorItem(null);
+
+    if (!navigator.clipboard?.writeText) {
+      setCopyErrorItem(index);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedItem(index);
+    } catch {
+      setCopyErrorItem(index);
+    }
   };
 
   const sourceBody = () => {
@@ -124,6 +137,10 @@ export function DraftReview({ draft, locale }: { draft: Draft; locale: Locale })
                       {copiedItem === index ? messages.copied : messages.copyOriginal}
                     </button>
                   </div>
+                  {copyErrorItem === index && <p role="alert">{messages.copyError}</p>}
+                  {copiedItem === index && (
+                    <p role="status" aria-label={messages.copied}>{messages.copied}</p>
+                  )}
                 </article>
               ))}
             </div>

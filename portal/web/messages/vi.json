@@ -40,6 +40,7 @@
   "noEvidence": "Không có span bằng chứng",
   "copyOriginal": "Sao chép IOC gốc",
   "copied": "Đã sao chép",
+  "copyError": "Không thể sao chép IOC. Hãy thử lại.",
   "selected": "Đang chọn",
   "notSelected": "Bỏ chọn",
   "statusOk": "Khớp nguồn",

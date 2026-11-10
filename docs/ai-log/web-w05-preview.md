@@ -26,3 +26,21 @@ Ngày kiểm: 10/11/2026. Phạm vi: `portal/web/**`, chỉ đọc ba fixture t�
   kiểm bằng CSS responsive/static review, chưa có ảnh trình duyệt thật nên ghi **UNVERIFIED**.
 
 Không có request ghi, auth giả, OpenCTI giả, `dangerouslySetInnerHTML`, endpoint API hay secret.
+
+## Rework R1 — lỗi sao chép (11/11/2026)
+
+- [MDN Clipboard.writeText](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText): Promise chỉ
+  resolve sau khi clipboard đã được cập nhật; API chỉ dùng trong secure context và có thể từ chối bằng
+  `NotAllowedError`.
+- [W3C Clipboard API, writeText](https://www.w3.org/TR/clipboard-apis/#dom-clipboard-writetext): thuật toán từ
+  chối Promise bằng `NotAllowedError` khi kiểm tra quyền ghi thất bại.
+- TDD đỏ: `frontend-evidence/clipboard-red-test.log` — 2/5 test thất bại và Vitest bắt 2 unhandled rejection
+  khi API không có hoặc quyền bị từ chối, exit 1.
+- TDD xanh: `frontend-evidence/clipboard-green-test.log` — 5/5 test đạt, exit 0. Test kiểm API không có,
+  Promise reject, chỉ báo thành công sau resolve, thử lại thành công và không gọi clipboard trước click.
+- Hồi quy: `npm test` đạt 4 file/13 test; `npm run typecheck`, `npm run lint`, `npm run build` đều exit 0.
+  Log: `clipboard-full-test.log`, `clipboard-typecheck.log`, `clipboard-lint.log`, `clipboard-build.log`.
+- Không log IOC/lỗi thô, không đọc clipboard, không tự điều hướng và không thêm fallback. Lỗi dùng `role=alert`,
+  thành công dùng `role=status`; thông báo có bản VI/EN.
+- **UNVERIFIED:** không chạy lại trình duyệt vì test tự động đã tái hiện trực tiếp boundary Clipboard API còn
+  bề mặt browser không cung cấp cách tái hiện permission reject hoặc resize; viewport thật 360/1440 vẫn chưa kiểm.
