@@ -76,6 +76,8 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   const selectedIdRef = useRef<number | null>(null);
   const generationRef = useRef(0);
   const queueRequestRef = useRef(0);
+  const paginationRequestRef = useRef(0);
+  const activePaginationRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const freshnessRef = useRef<Freshness | null>(null);
   const missingDraftRef = useRef(false);
@@ -114,7 +116,7 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; generationRef.current += 1; queueRequestRef.current += 1; };
+    return () => { mountedRef.current = false; generationRef.current += 1; queueRequestRef.current += 1; paginationRequestRef.current += 1; activePaginationRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -139,26 +141,29 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
 
   const retryQueue = () => {
     if (navigationLocked || operationLock.current) return;
-    generationRef.current += 1; setQueue(null); setQueueError(null); setDetail(null); selectedIdRef.current = null; setSelectedId(null); resetActionState(); setQueueAttempt((value) => value + 1);
+    generationRef.current += 1; paginationRequestRef.current += 1; activePaginationRef.current = null; setLoadingMore(false);
+    setQueue(null); setQueueError(null); setDetail(null); selectedIdRef.current = null; setSelectedId(null); resetActionState(); setQueueAttempt((value) => value + 1);
   };
   const selectDraft = (id: number) => {
     if (navigationLocked || selectedIdRef.current === id) return;
-    generationRef.current += 1; selectedIdRef.current = id; setSelectedId(id); setDetail(null); setDetailError(null); resetActionState();
+    generationRef.current += 1; paginationRequestRef.current += 1; activePaginationRef.current = null; setLoadingMore(false);
+    selectedIdRef.current = id; setSelectedId(id); setDetail(null); setDetailError(null); resetActionState();
     if (mode === "sample") setDetail(sampleDetails.find((draft) => draft.id === id) ?? null);
   };
   const retryDetail = () => { if (navigationLocked) return; setDetail(null); setDetailError(null); resetActionState(); setDetailAttempt((value) => value + 1); };
   const loadMore = async () => {
-    if (mode !== "api" || nextBeforeId === null || loadingMore || navigationLocked) return;
+    if (mode !== "api" || nextBeforeId === null || activePaginationRef.current !== null || loadingMore || navigationLocked) return;
     const generation = generationRef.current; const expectedId = selectedIdRef.current;
+    const request = ++paginationRequestRef.current; activePaginationRef.current = request;
     setLoadingMore(true); setQueueError(null);
     try {
       const page = await api.list(nextBeforeId);
-      if (!mountedRef.current || generationRef.current !== generation || selectedIdRef.current !== expectedId) return;
+      if (!mountedRef.current || activePaginationRef.current !== request || generationRef.current !== generation || selectedIdRef.current !== expectedId) return;
       setQueue((current) => [...(current ?? []), ...page.items]); setNextBeforeId(page.next_before_id);
     } catch {
-      if (mountedRef.current && generationRef.current === generation && selectedIdRef.current === expectedId) setQueueError(safeReadError("queue", locale));
+      if (mountedRef.current && activePaginationRef.current === request && generationRef.current === generation && selectedIdRef.current === expectedId) setQueueError(safeReadError("queue", locale));
     } finally {
-      if (mountedRef.current && generationRef.current === generation && selectedIdRef.current === expectedId) setLoadingMore(false);
+      if (mountedRef.current && activePaginationRef.current === request) { activePaginationRef.current = null; setLoadingMore(false); }
     }
   };
 

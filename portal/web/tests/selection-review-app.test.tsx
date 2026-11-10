@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DraftReviewApp } from "@/components/draft-review-app";
-import { ApiClientError, parseDraftDetailV1, type DraftApi, type DraftDetail, type SelectionView } from "@/data/api-client";
+import { ApiClientError, parseDraftDetailV1, type DraftApi, type DraftDetail, type DraftPage, type SelectionView } from "@/data/api-client";
 import regular from "@/data/fixtures/01-regular.json";
 
 const hash0 = "a".repeat(64);
@@ -256,5 +256,50 @@ describe("W05 saved and editing selection UI", () => {
     await waitFor(() => expect(draftApi.detail).toHaveBeenCalled());
     expect(screen.queryByText("second.txt", { selector: "dd" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Duyệt bản nháp" })).not.toBeInTheDocument();
+  });
+
+  it.each(["success", "error"])("ends an old pagination lifecycle after selecting another draft on %s", async (outcome) => {
+    const user = userEvent.setup();
+    const pending = deferred<DraftPage>();
+    const summaryFor = (id: number) => ({ ...summary, id, source: { ...summary.source, name: `draft-${id}.txt` } });
+    const detailFor = (id: number) => ({ ...detail(), id, source: { ...detail().source, name: `draft-${id}.txt` } });
+    const list = vi.fn().mockResolvedValueOnce({ items: [summaryFor(3), summaryFor(2)], next_before_id: 2 })
+      .mockReturnValueOnce(pending.promise).mockResolvedValue({ items: [summaryFor(1)], next_before_id: null });
+    const draftApi = api({ list, detail: vi.fn(async (id: number) => detailFor(id)) });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+    await screen.findByText("draft-3.txt", { selector: "dd" });
+    await user.click(screen.getByRole("button", { name: "Tải thêm" }));
+    await user.click(screen.getByRole("button", { name: /draft-2\.txt/ }));
+    await screen.findByText("draft-2.txt", { selector: "dd" });
+    await act(async () => {
+      if (outcome === "success") pending.resolve({ items: [], next_before_id: 2 });
+      else pending.reject(new ApiClientError("network"));
+      await Promise.resolve();
+    });
+    const loadMore = screen.getByRole("button", { name: "Tải thêm" });
+    expect(loadMore).toBeEnabled();
+    await user.click(loadMore);
+    await screen.findByRole("button", { name: /draft-1\.txt/ });
+    expect(screen.getByText("draft-2.txt", { selector: "dd" })).toBeInTheDocument();
+  });
+
+  it("does not let an old pagination callback unlock the current pagination request", async () => {
+    const user = userEvent.setup();
+    const oldRequest = deferred<DraftPage>(); const currentRequest = deferred<DraftPage>();
+    const summaryFor = (id: number) => ({ ...summary, id, source: { ...summary.source, name: `draft-${id}.txt` } });
+    const detailFor = (id: number) => ({ ...detail(), id, source: { ...detail().source, name: `draft-${id}.txt` } });
+    const list = vi.fn().mockResolvedValueOnce({ items: [summaryFor(3), summaryFor(2)], next_before_id: 2 })
+      .mockReturnValueOnce(oldRequest.promise).mockReturnValueOnce(currentRequest.promise);
+    render(<DraftReviewApp mode="api" api={api({ list, detail: vi.fn(async (id: number) => detailFor(id)) })} />);
+    await screen.findByText("draft-3.txt", { selector: "dd" });
+    await user.click(screen.getByRole("button", { name: "Tải thêm" }));
+    await user.click(screen.getByRole("button", { name: /draft-2\.txt/ }));
+    await screen.findByText("draft-2.txt", { selector: "dd" });
+    await user.click(screen.getByRole("button", { name: "Tải thêm" }));
+    await act(async () => { oldRequest.resolve({ items: [], next_before_id: 2 }); await Promise.resolve(); });
+    expect(screen.getByRole("button", { name: "Đang tải thêm…" })).toBeDisabled();
+    await act(async () => { currentRequest.resolve({ items: [summaryFor(1)], next_before_id: null }); await Promise.resolve(); });
+    await screen.findByRole("button", { name: /draft-1\.txt/ });
+    expect(screen.getByText("draft-2.txt", { selector: "dd" })).toBeInTheDocument();
   });
 });
