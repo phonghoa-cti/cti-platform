@@ -1,8 +1,8 @@
 # Hợp đồng bản nháp ngoại tuyến X01 → W05
 
-Trạng thái: hợp đồng cho dữ liệu **đã chạy cục bộ**, chưa phải API HTTP đang hoạt động. Phiên bản dữ liệu hiện
-tại là `1.0`; `extractor/phonghoa_extractor/drafts.py` tạo payload và
-`extractor/phonghoa_extractor/store.py` kiểm/lưu payload.
+Trạng thái: hợp đồng cho dữ liệu **đã chạy cục bộ**, chưa phải API HTTP đang hoạt động. Phiên bản payload hiện
+tại là `1.0`; schema kho SQLite review là `PRAGMA user_version=1`. `drafts.py` tạo payload bất biến, còn
+`store.py` kiểm/lưu payload và ghi quyết định review tách riêng.
 
 Mục tiêu của tài liệu này là để người làm W05 đọc đúng dữ liệu hiện có mà không làm mất bằng chứng, cảnh báo
 hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/examples/`](../../extractor/draft/examples/README.md).
@@ -10,8 +10,8 @@ hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/
 ## Hai hình dạng dữ liệu
 
 - **Draft mới tạo:** đúng các trường của schema 1.0, chưa có `id` và `created_at`; đây là đầu vào của `save`.
-- **Draft đã lưu:** toàn bộ payload ban đầu không đổi, cộng `id` và `created_at` do store tạo; đây là dữ liệu W05
-  cần đọc. Không đưa hai trường này trở lại lệnh `save`.
+- **Draft đã lưu:** toàn bộ payload ban đầu không đổi, cộng `id`, `created_at` và object `review` do store quản
+  lý; đây là dữ liệu W05 cần đọc. Không đưa các metadata này trở lại lệnh `save`.
 
 ### Trường cấp draft
 
@@ -19,6 +19,7 @@ hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/
 |---|---|---:|---:|---|---|
 | `id` | integer dương, không null | — | ✓ | Store | Khóa bản ghi cục bộ; mỗi lần lưu tạo ID mới. |
 | `created_at` | string ISO 8601 có múi giờ, không null | — | ✓ | Store | Thời điểm lưu UTC, ví dụ `...+00:00`. |
+| `review` | object, không null | — | ✓ | Store | Metadata quyết định cục bộ, tách khỏi payload; xem phần dưới. |
 | `schema_version` | string, không null | ✓ | ✓ | Builder | Hiện chỉ nhận `"1.0"`. |
 | `status` | string, không null | ✓ | ✓ | Builder | Hiện chỉ nhận `"pending"`; đây là trạng thái **draft**. |
 | `source` | object, không null | ✓ | ✓ | Builder | Tên nguồn và hash của text được lưu; xem bảng dưới. |
@@ -30,6 +31,17 @@ hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/
 | `findings` | array, không null | ✓ | ✓ | Bộ quét | Chi tiết quy tắc cảnh báo; có thể rỗng. |
 | `model` | string không rỗng | ✓ | ✓ | Builder | Hiện là `regex-C1`; tên này không chứng minh có LLM. |
 | `cost_tokens` | integer ≥ 0 | ✓ | ✓ | Builder | C1 hiện là `0`. |
+
+### Metadata `review`
+
+| Trường | Kiểu / nullable | Ý nghĩa |
+|---|---|---|
+| `status` | `pending \| approved \| rejected` | Trạng thái review cục bộ; `approved` **không** có nghĩa đã nhập OpenCTI. |
+| `version` | integer ≥ 0 | Phiên bản optimistic concurrency; pending ban đầu là 0, quyết định cuối là 1. |
+| `created_by_subject` | string không rỗng hoặc null | Subject opaque do caller tin cậy cung cấp khi lưu; null là legacy/không rõ tác giả. |
+| `decided_by_subject` | string không rỗng hoặc null | Subject đã quyết định; chỉ có sau approve/reject. |
+| `decided_at` | ISO 8601 có múi giờ hoặc null | Thời điểm quyết định UTC. |
+| `reason` | string hoặc null | Bắt buộc, được trim khi reject; approve luôn null. |
 
 ### `source`
 
@@ -65,16 +77,16 @@ hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/
 2. Khi `span` khác null, `text[start:end] == evidence`. IOC `keep=true` còn phải nằm nguyên token trong chính
    span đó sau chuẩn hóa và đúng `type`.
 3. Item rejected có thể có `span=null`, `evidence=""`, `keep=false`; W05 không tạo liên kết tô sáng cho item này.
-4. Hiện store chỉ nhận draft `pending`; chưa có chuyển trạng thái, cập nhật hay ghi đè.
+4. Store chỉ nhận payload `pending`; quyết định không sửa `payload_json` mà đổi metadata review trong cùng
+   transaction với một audit metadata.
 5. Builder C1 hiện chỉ tạo IOC. Ví dụ API cũ có `ttp|malware|actor` là hướng tương lai, không phải dữ liệu đã chạy.
 6. Ngoài kiểm tra quan hệ type/value/span cho `kind=ioc` được giữ, store chưa giới hạn đầy đủ tập
    `kind`/`item.status` của dữ liệu tự khai. Biên API tương lai phải có allowlist schema và từ chối loại/trạng
    thái chưa hỗ trợ trước khi đưa dữ liệu cho W05.
 7. `tlp` và `injection_warning` chỉ là dữ liệu hiển thị/kiểm soát; chúng không phải phép gửi cloud và cũng không
    chứng minh nội dung an toàn.
-8. `get` và mỗi hàng `list` được trả phải kiểm lại payload, schema/status/hash ở cột SQLite, ID và
-   `created_at` có múi giờ trước khi trả dữ liệu. Hàng `list` đã bị lọc ngoài trang hoặc không còn `pending`
-   không nằm trong lần kiểm này.
+8. `get` và mỗi hàng `list` được trả phải kiểm lại payload, schema/status/hash ở cột SQLite, ID, thời gian và
+   metadata review. Hàng `list` đã bị lọc ngoài trang hoặc không còn review pending không nằm trong lần kiểm này.
 9. `save`, `get` và `list` chỉ nhận timeout kiểu `int`/`float` hữu hạn, không âm và không nhận boolean; giá trị
    sai phải bị từ chối trước khi mở SQLite.
 
@@ -126,13 +138,30 @@ Hàm chỉ đọc các draft có trạng thái cột SQLite là `pending`, sắp
 }
 ```
 
+Mỗi summary còn có `review_status: "pending"` và `review_version: 0`; `status` trong cùng summary vẫn là trạng
+thái payload `pending` để hai lớp trạng thái không bị nhập nhằng.
+
 - Summary không chứa `text`, `items`, `evidence`, `findings` hoặc excerpt nguồn.
 - `limit` là integer thật trong `[1,100]`; `before_id` là null hoặc integer dương trong miền SQLite.
 - Trang sau dùng `id < before_id`, không dùng OFFSET. Cursor không cần trùng một ID đang tồn tại.
 - `next_before_id` là ID cuối trang khi còn ít nhất một dòng phía sau; hết dữ liệu hoặc trang rỗng trả null.
 - Insert mới giữa hai lần đọc không làm lặp/mất ID cũ ở các trang tiếp theo; tải lại trang đầu mới thấy ID mới.
   Đây không phải snapshot chung qua nhiều lần đọc.
-- Lệnh list dùng SQLite `mode=ro`, timeout hữu hạn, không tạo DB/table và không chuyển trạng thái.
+- Lệnh list dùng SQLite `mode=ro`, timeout hữu hạn, không tạo DB/table, không migration và không chuyển trạng thái.
+
+## Migration và quyết định review cục bộ
+
+- `migrate_store()` nâng database legacy user version 0 trong một transaction, backfill creator null,
+  `review_status=pending`, `review_version=0`, rồi mới đặt user version 1. Chạy lại không đổi row/audit.
+- `get_draft()` và `list_drafts()` nhận cả schema legacy hợp lệ nhưng chỉ đọc và trả review mặc định pending/0;
+  schema tương lai hoặc hỏng bị từ chối. `decide_draft()` yêu cầu database đã migrate và không tự tạo file.
+- `save_draft(..., created_by_subject=...)` giữ tương thích caller cũ; draft mới cần subject để có thể approve.
+  Subject là định danh opaque do caller tin cậy cung cấp, không phải email/header đã được core xác thực.
+- `Actor(subject, roles)` chỉ thực thi policy offline: chỉ `analyst`/`admin`, không tự approve, creator null không
+  approve, reject bắt buộc lý do. Admin không được bypass tự duyệt; creator được reject draft của mình.
+- Update state/version và insert `draft_audit` metadata cùng `BEGIN IMMEDIATE`; stale/lặp trả conflict, không thêm
+  audit. Audit SQLite là trace vận hành, không chống người có quyền sửa file database.
+- Approve chỉ nhận các item kept có `kind=ioc`; không gọi mạng, LLM, OpenCTI và không tạo Report/STIX/outbox.
 - CLI ghi JSON summary ra file riêng; output trùng/equivalent/samefile với DB phải bị từ chối.
 
 ## Khoảng trống trước khi W05 chạy thật
@@ -143,9 +172,9 @@ Hàm chỉ đọc các draft có trạng thái cột SQLite là `pending`, sắp
 | Đọc chi tiết | Chỉ có CLI/API Python `get_draft` | Endpoint đọc một draft, lỗi 404/422 rõ và payload giữ đủ trường. |
 | Xác thực/quyền | Chưa có | Danh tính phải do backend xác minh; chỉ Analyst/Admin, không tin header email do client tự gửi. |
 | Schema ở biên API | Store chưa siết mọi `kind/status` | Từ chối loại/trạng thái chưa hỗ trợ và trường thừa/thiếu trước khi render. |
-| Sửa/lưu nháp | Chưa có update | Quy tắc optimistic concurrency hoặc phiên bản, audit before/after. |
-| Duyệt/từ chối | Chưa có | Chuyển trạng thái có transaction, lý do từ chối và chống tự duyệt. |
-| Người đề xuất/người duyệt | Chưa lưu | Định danh, vai trò, thời gian và quy tắc hai người khi cần. |
+| Sửa/lưu nháp | Chưa có chỉnh item | Cần contract sửa item và số liệu bỏ/thêm/sửa riêng. |
+| Duyệt/từ chối | Có lõi Python offline + atomic audit | Cần adapter HTTP/auth thật trước khi portal gọi. |
+| Người đề xuất/người duyệt | Có subject opaque do caller cung cấp | Cần xác thực danh tính và lookup role server-side. |
 | Đo sửa đổi | Chưa có | Số mục gốc/bỏ/thêm/sửa để đánh giá extractor. |
 | OpenCTI | Chưa nối | Chỉ ghi sau quyết định hợp lệ; lưu ID/kết quả/lỗi và cho phép retry an toàn. |
 | Offset frontend | Chỉ code point Python | Dùng `Array.from` hoặc chuyển đổi có test với emoji/chữ ghép. |

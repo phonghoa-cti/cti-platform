@@ -20,6 +20,8 @@ SUMMARY_KEYS = {
     "tlp",
     "item_count",
     "injection_warning",
+    "review_status",
+    "review_version",
 }
 
 
@@ -86,7 +88,10 @@ def test_empty_exact_multiple_single_page_missing_cursor_and_non_pending_rows(tm
 
     connection = sqlite3.connect(db)
     try:
-        connection.execute("UPDATE drafts SET status = 'approved'")
+        connection.execute(
+            "UPDATE drafts SET review_status = 'approved', review_version = 1, "
+            "decided_by_subject = 'reviewer', decided_at = '2026-11-10T12:00:00+00:00'"
+        )
         connection.commit()
     finally:
         connection.close()

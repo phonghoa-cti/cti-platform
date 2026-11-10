@@ -43,9 +43,33 @@ là chuỗi thuộc tập giá trị hỗ trợ. Với IOC được giữ, đún
 database nếu đường dẫn không tồn tại. `id` cùng `created_at` UTC do kho quản lý, không được phép chèn sẵn
 trong draft đầu vào.
 
+Kho review dùng `PRAGMA user_version=1`. `get` trả object `review`; stdout của `get` ghi riêng
+`payload_status`, `review_status` và `review_version`. `list` chỉ lấy review pending và summary có
+`review_status`/`review_version`, nhưng không lộ text/items/evidence/findings. Hai lệnh đọc mở `mode=ro`, không
+migration và không làm đổi byte database; schema legacy hợp lệ được đọc như creator null, pending/version 0.
+
+API Python cho caller tin cậy có thể lưu tác giả và quyết định cục bộ:
+
+```python
+from phonghoa_extractor.store import Actor, decide_draft, migrate_store, save_draft
+
+draft_id = save_draft(db, draft, created_by_subject="opaque-author-subject")
+result = decide_draft(
+    db,
+    draft_id,
+    actor=Actor("opaque-reviewer-subject", frozenset({"analyst"})),
+    decision="approve",
+    expected_version=0,
+)
+```
+
+Database legacy phải gọi `migrate_store(db)` rõ ràng trước khi quyết định. CLI không có cờ actor tự khai vì
+đó sẽ không phải đăng nhập; draft lưu bằng CLI không có creator nên không thể approve. Lõi chỉ kiểm policy
+offline, không xác minh JWT/header. Approve nghĩa là đã duyệt cục bộ, không gọi mạng hay nhập OpenCTI.
+
 Ba lệnh chỉ nhận `timeout` là số hữu hạn không âm; giá trị sai bị từ chối trước khi mở SQLite.
 
-`list` chỉ đọc draft `pending`, sắp xếp ID giảm dần và dùng cursor `before_id` thay vì OFFSET. Summary chỉ có
+`list` chỉ đọc review `pending`, sắp xếp ID giảm dần và dùng cursor `before_id` thay vì OFFSET. Summary chỉ có
 ID/thời gian/trạng thái/source/ngôn ngữ/TLP/số item/cờ injection; không chứa toàn văn, evidence hoặc findings.
 `next_before_id` là ID cuối trang khi còn dữ liệu, nếu hết thì là `null`. Insert mới chỉ xuất hiện khi tải lại
 trang đầu, không làm lặp/mất các ID cũ ở trang sau; đây không phải snapshot chung qua nhiều lần đọc.

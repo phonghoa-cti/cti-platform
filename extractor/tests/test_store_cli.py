@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from phonghoa_extractor.drafts import build_regex_draft
-from phonghoa_extractor.store import get_draft, save_draft
+from phonghoa_extractor.store import Actor, decide_draft, get_draft, save_draft
 
 REPO_ROOT = Path(__file__).parents[2]
 DRAFT_SCRIPT = REPO_ROOT / "extractor" / "draft" / "run.py"
@@ -64,7 +64,11 @@ def test_cli_text_to_draft_save_and_get_across_processes(tmp_path: Path):
     stored = json.loads(stored_json.read_text(encoding="utf-8"))
     assert stored["id"] == 1
     assert stored["created_at"].endswith("+00:00")
-    assert {key: value for key, value in stored.items() if key not in {"id", "created_at"}} == original
+    assert {
+        key: value for key, value in stored.items() if key not in {"id", "created_at", "review"}
+    } == original
+    assert stored["review"]["status"] == "pending"
+    assert stored["review"]["version"] == 0
     assert "evil.example" not in saved.stdout + saved.stderr + loaded.stdout + loaded.stderr
 
 
@@ -150,6 +154,42 @@ def test_cli_get_rejects_corrupt_row_without_overwriting_existing_output(tmp_pat
     assert "tampered-local-copy" not in result.stdout + result.stderr
     assert output.read_text(encoding="utf-8") == "KEEP THIS"
     assert hashlib.sha256(db.read_bytes()).hexdigest() == before_hash
+
+
+def test_cli_get_stdout_distinguishes_payload_and_approved_review_status(tmp_path: Path):
+    db = tmp_path / "drafts.sqlite"
+    draft_id = save_draft(
+        db,
+        build_regex_draft("Synthetic evil.example", source="synthetic.txt", language="en"),
+        created_by_subject="author",
+    )
+    decide_draft(
+        db,
+        draft_id,
+        actor=Actor("reviewer", frozenset({"analyst"})),
+        decision="approve",
+        expected_version=0,
+    )
+    output = tmp_path / "approved.json"
+
+    result = run(
+        str(STORE_SCRIPT),
+        "get",
+        "--db",
+        str(db),
+        "--id",
+        str(draft_id),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 0
+    assert json.loads(result.stdout) == {
+        "id": draft_id,
+        "payload_status": "pending",
+        "review_status": "approved",
+        "review_version": 1,
+    }
 
 
 @pytest.mark.parametrize("command", ["save", "get", "list"])

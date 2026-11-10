@@ -19,7 +19,7 @@ def make_draft(text: str = "😀 Dòng một.\nContact evil[.]example; value ');
 
 
 def payload_of(stored: dict) -> dict:
-    return {key: value for key, value in stored.items() if key not in {"id", "created_at"}}
+    return {key: value for key, value in stored.items() if key not in {"id", "created_at", "review"}}
 
 
 def test_save_closes_and_reopen_returns_exact_payload_with_store_metadata(tmp_path: Path):

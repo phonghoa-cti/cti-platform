@@ -43,6 +43,10 @@ Cập nhật lần cuối: 10/11/2026
   chứa toàn văn; có thể chọn ID từ trang để đọc chi tiết, chưa có HTTP, quyền, duyệt/từ chối hoặc UI
 - X01 QA kho/hàng đợi: `get` và `list` dùng chung kiểm payload/metadata khi đọc; `save/get/list` cùng từ chối
   timeout sai trước khi mở SQLite; dữ liệu hỏng không ghi đè output, chưa mở rộng sang HTTP, quyền hoặc UI
+- W05-B review ngoại tuyến: schema SQLite migration version 1 giữ nguyên payload 1.0, tác giả subject cho draft
+  mới, policy Actor analyst/admin, approve/reject đúng một lần với optimistic concurrency và atomic audit;
+  get/list vẫn chỉ đọc kể cả schema legacy, approve không gọi OpenCTI. Đây chưa phải xác thực HTTP/JWT, UI,
+  chỉnh item, ingestion OpenCTI hoặc audit chống sửa file database.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

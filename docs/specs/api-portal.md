@@ -99,17 +99,20 @@ Body `{"status": "patching|patched|not_affected|open", "note": "..."}` → 200 i
 
 ### Bản nháp AI
 
-**Trạng thái:** các endpoint dưới đây là đề xuất, chưa có HTTP/auth/approve/reject đang chạy. Payload offline 1.0
-đã kiểm bằng SQLite được mô tả đầy đủ tại [`W05-draft-offline-contract.md`](W05-draft-offline-contract.md);
-frontend/backend phải bảo toàn `schema_version`, source hash, evidence, findings và item status thay vì dùng ví dụ
-rút gọn làm mất trường.
+**Trạng thái:** các endpoint dưới đây vẫn là đề xuất; chưa có HTTP hay authentication đang chạy. Lõi Python
+offline đã có approve/reject một lần, optimistic concurrency và atomic audit SQLite theo
+[`W05-draft-offline-contract.md`](W05-draft-offline-contract.md). `Actor` trong lõi chỉ là policy testable do
+caller tin cậy cung cấp, không xác minh JWT và không được map trực tiếp từ email/header client tự khai.
 
 - Dự kiến GET `/api/drafts?status=pending` và GET `/api/drafts/{id}` trả hình dạng **draft đã lưu** trong phụ lục.
   Danh sách/phân trang, lỗi và quyền Analyst/Admin còn phải đặc tả/triển khai.
-- Dự kiến POST `/api/drafts/{id}/approve` nhận chỉnh sửa đã kiểm schema và tạo kết quả OpenCTI; chưa triển khai.
-- Dự kiến POST `/api/drafts/{id}/reject` nhận lý do; chưa triển khai.
-- Biên API phải từ chối `kind`/`item.status` chưa hỗ trợ, xác minh danh tính phía backend, ghi audit và chống
-  người/agent tự duyệt đề xuất của chính mình.
+- GET tương lai phải trả riêng payload `status=pending` và `review.status/version`; danh sách chỉ gồm review
+  pending, còn GET chi tiết vẫn đọc được draft đã quyết định.
+- POST approve/reject tương lai phải truyền `expected_version`, dùng subject/role đã xác minh phía server và
+  gọi lõi offline. Approve hiện chỉ là **đã duyệt cục bộ**, không tạo kết quả OpenCTI.
+- Reject bắt buộc lý do; approve không nhận reason. Conflict stale/lặp cần mã lỗi HTTP ổn định nhưng chưa chốt.
+- Biên API phải từ chối `kind`/`item.status` chưa hỗ trợ, xác minh signature/issuer/audience hoặc API-key hash,
+  lookup role server-side và chống người/agent tự duyệt đề xuất của chính mình.
 - Span 1.0 là khoảng code point Python `[start,end)` trên nguyên `text`; JavaScript không được dùng trực tiếp
   offset UTF-16 mà không chuyển đổi/test.
 
