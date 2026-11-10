@@ -43,6 +43,9 @@ Cập nhật lần cuối: 10/11/2026
   chứa toàn văn; có thể chọn ID từ trang để đọc chi tiết, chưa có HTTP, quyền, duyệt/từ chối hoặc UI
 - X01 QA kho/hàng đợi: `get` và `list` dùng chung kiểm payload/metadata khi đọc; `save/get/list` cùng từ chối
   timeout sai trước khi mở SQLite; dữ liệu hỏng không ghi đè output, chưa mở rộng sang HTTP, quyền hoặc UI
+- X01 adapter C2/C3 ngoại tuyến: provider giả lập chỉ `fake_offline`/không egress, kiểm schema/TLP/metadata,
+  retry một lần rồi fallback C1; C2 chỉ đánh giá, C3 dùng grounding/evidence hiện có. Đây là mock tổng hợp,
+  chưa gọi hoặc đo model thật và không ghi SQLite/W05.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -50,3 +53,5 @@ Cập nhật lần cuối: 10/11/2026
 - Chưa gọi feed hoặc LLM, chưa có key/điều khoản OTX, chưa đo RAM/queue và chưa xác minh demo MITRE + OTX (#10)
 - X01 còn thiếu dataset báo cáo thật được hai người gán nhãn và các cấu hình C2–C4; smoke C1 không chứng minh
   chất lượng extractor hoặc TTP
+- Adapter mới chỉ chứng minh hợp đồng C2/C3 bằng response giả lập; chưa chọn provider/model, chưa có run model
+  thật, token/chi phí/độ trễ, corpus hai người gán nhãn hoặc đánh giá TTP/C4
