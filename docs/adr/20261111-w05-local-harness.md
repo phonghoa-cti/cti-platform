@@ -16,7 +16,8 @@ The reviewed UI snapshot uses same-origin `/api/drafts*` requests. The backend's
 - Run Uvicorn 0.54.0 on a random `127.0.0.1` port, a production Next build on a second loopback port, and the Node same-origin gateway on a third. All processes are owned by `LocalRun` and have a TTL.
 - Generate an ephemeral RSA key and signed JWT in memory. The API verifies signature, issuer, audience, expiry and subject through the real `AccessJwtVerifier`; roles remain server-side. The gateway removes caller-supplied authorization and injects only the scenario token.
 - Preserve the browser's Origin. Never synthesize or rewrite it. Proxy only the reviewed `/api/drafts*` routes, strip hop-by-hop headers, buffer a bounded request body, preserve end-to-end response headers including repeated `Set-Cookie`, never retry, and return a sanitized `503` on timeout/upstream failure.
-- Use a fresh temporary SQLite database and four synthetic drafts for each run. Scenarios are a fixed allowlist. Cleanup stops only owned child handles, stops the in-process API server, and removes only the run's temporary directory.
+- Reject an invalid request target with a sanitized `400`. If an upstream fails before response headers, return a sanitized `503`; if it fails after headers, close the incomplete downstream response. Client disconnects destroy the one owned upstream request. No path retries a POST.
+- Use a fresh temporary SQLite database and four synthetic drafts for each run. Scenarios are a fixed allowlist. Cleanup attempts each owned child and API resource independently, removes the run's temporary directory only after the API thread has stopped, reports aggregated failures, and leaves unfinished resources retryable by a later `close()` call.
 
 ## Consequences
 

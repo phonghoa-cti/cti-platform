@@ -43,6 +43,7 @@ function cleanResponseHeaders(upstream) {
 }
 
 function safeError(response, status, code) {
+  if (response.destroyed || response.writableEnded) return;
   if (response.headersSent) return response.destroy();
   const body = JSON.stringify({ error: { code, message: "Dịch vụ tích hợp cục bộ chưa sẵn sàng" } });
   response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store", "Content-Length": Buffer.byteLength(body) });
@@ -59,6 +60,7 @@ function readBody(request, limit) {
       else chunks.push(chunk);
     });
     request.on("end", () => resolve(Buffer.concat(chunks)));
+    request.on("aborted", () => reject(new Error("request aborted")));
     request.on("error", reject);
   });
 }
@@ -73,7 +75,12 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
   const server = http.createServer(async (request, response) => {
     const ownPort = server.address()?.port;
     if (request.headers.host !== `127.0.0.1:${ownPort}`) return safeError(response, 400, "invalid_host");
-    const url = new URL(request.url ?? "/", `http://127.0.0.1:${ownPort}`);
+    let url;
+    try {
+      url = new URL(request.url ?? "/", `http://127.0.0.1:${ownPort}`);
+    } catch {
+      return safeError(response, 400, "invalid_request_target");
+    }
     const isApi = url.pathname.startsWith("/api/");
     if (isApi && !API_PATH.test(url.pathname)) return safeError(response, 404, "not_found");
     if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") return safeError(response, 503, "synthetic_refresh_failure");
@@ -86,15 +93,31 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     }
     const targetPort = isApi ? apiPort : uiPort;
     const headers = cleanRequestHeaders(request.headers, isApi ? jwt : null, body.length);
+    let responseComplete = false;
+    let failureHandled = false;
+    const failUpstream = () => {
+      if (responseComplete || failureHandled) return;
+      failureHandled = true;
+      safeError(response, 503, "upstream_unavailable");
+    };
     const upstream = http.request({ host: "127.0.0.1", port: targetPort, method: request.method, path: `${url.pathname}${url.search}`, headers, timeout: requestTimeoutMs }, (upstreamResponse) => {
       if (isApi && failRefreshAfterPost && request.method === "POST" && (upstreamResponse.statusCode ?? 500) < 300) postRecorded = true;
+      upstreamResponse.once("end", () => { responseComplete = true; });
+      upstreamResponse.once("aborted", failUpstream);
+      upstreamResponse.once("error", failUpstream);
+      upstreamResponse.once("close", () => {
+        if (!upstreamResponse.complete) failUpstream();
+      });
       response.writeHead(upstreamResponse.statusCode ?? 502, cleanResponseHeaders(upstreamResponse));
       upstreamResponse.pipe(response);
     });
-    let finished = false;
-    upstream.on("response", () => { finished = true; });
     upstream.on("timeout", () => upstream.destroy(new Error("timeout")));
-    upstream.on("error", () => { if (!finished) safeError(response, 503, "upstream_unavailable"); });
+    upstream.on("error", failUpstream);
+    response.once("close", () => {
+      if (!response.writableEnded && !responseComplete && !upstream.destroyed) {
+        upstream.destroy(new Error("downstream closed"));
+      }
+    });
     if (body.length) upstream.write(body);
     upstream.end();
   });

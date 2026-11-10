@@ -253,31 +253,87 @@ class LocalRun:
             self._timer.daemon = True
             self._timer.start()
             return self
-        except Exception:
-            self.close()
+        except Exception as start_error:
+            try:
+                self.close()
+            except ExceptionGroup as cleanup_error:
+                raise ExceptionGroup(
+                    "khởi động và cleanup local integration đều thất bại", [start_error, cleanup_error]
+                ) from None
             raise
 
     def close(self) -> None:
         with self._lock:
             if self._closed:
                 return
-            self._closed = True
+            errors: list[Exception] = []
             if self._timer is not None:
-                self._timer.cancel()
-            for process in (self._gateway_process, self._ui_process):
-                if process is not None and process.poll() is None:
-                    process.terminate()
-                    try:
-                        process.wait(timeout=3)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        process.wait(timeout=2)
+                try:
+                    self._timer.cancel()
+                    self._timer = None
+                except Exception as exc:
+                    errors.append(RuntimeError("không hủy được TTL timer"))
+                    errors[-1].__cause__ = exc
+            for attribute, label in (("_gateway_process", "gateway"), ("_ui_process", "UI")):
+                process = getattr(self, attribute)
+                if process is None:
+                    continue
+                try:
+                    if process.poll() is None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=3)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait(timeout=2)
+                    setattr(self, attribute, None)
+                except Exception as exc:
+                    error = RuntimeError(f"không dừng được process {label} do run sở hữu")
+                    error.__cause__ = exc
+                    errors.append(error)
+
+            api_stopped = self._api_thread is None
             if self._api_server is not None:
-                self._api_server.should_exit = True
+                try:
+                    self._api_server.should_exit = True
+                except Exception as exc:
+                    error = RuntimeError("không gửi được tín hiệu dừng API")
+                    error.__cause__ = exc
+                    errors.append(error)
             if self._api_thread is not None:
-                self._api_thread.join(timeout=3)
-            if self._temporary is not None:
-                self._temporary.cleanup()
+                try:
+                    self._api_thread.join(timeout=3)
+                    if self._api_thread.is_alive():
+                        raise RuntimeError("API thread còn chạy sau deadline")
+                    self._api_thread = None
+                    self._api_server = None
+                    api_stopped = True
+                except Exception as exc:
+                    error = RuntimeError("không xác nhận được API đã dừng")
+                    error.__cause__ = exc
+                    errors.append(error)
+
+            if api_stopped and self._temporary is not None:
+                try:
+                    self._temporary.cleanup()
+                    self._temporary = None
+                except Exception as exc:
+                    error = RuntimeError("không xóa được temp root do run sở hữu")
+                    error.__cause__ = exc
+                    errors.append(error)
+
+            self._closed = all(
+                resource is None
+                for resource in (
+                    self._timer,
+                    self._gateway_process,
+                    self._ui_process,
+                    self._api_thread,
+                    self._temporary,
+                )
+            )
+            if errors:
+                raise ExceptionGroup("cleanup local integration chưa hoàn tất", errors)
 
     def __enter__(self) -> LocalRun:
         return self.start()

@@ -28,6 +28,25 @@ function request(port, path, options = {}) {
   });
 }
 
+function requestOutcome(port, path, options = {}) {
+  let req;
+  const result = new Promise((resolve) => {
+    req = http.request({ host: "127.0.0.1", port, path, method: options.method ?? "GET" }, (res) => {
+      res.resume();
+      res.once("end", () => resolve("end"));
+      res.once("aborted", () => resolve("aborted"));
+      res.once("error", () => resolve("response-error"));
+    });
+    req.once("error", () => resolve("request-error"));
+    req.end();
+  });
+  return { result, destroy: () => req.destroy() };
+}
+
+function deadline(ms) {
+  return new Promise((resolve) => setTimeout(() => resolve("deadline"), ms));
+}
+
 test("API proxy preserves status/body/security headers/cookies and replaces caller JWT", async () => {
   let seen;
   const api = await listen((req, res) => {
@@ -85,5 +104,97 @@ test("gateway timeout returns sanitized 503 once without retry", async () => {
     assert.doesNotMatch(result.body, /token|header|127\.0\.0\.1/i);
   } finally {
     await close(gateway); await close(api); await close(ui);
+  }
+});
+
+test("malformed request target returns 400 and gateway serves the next request", async () => {
+  const api = await listen((_req, res) => res.end("ok"));
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: null });
+  try {
+    const malformed = await request(gateway.address().port, "http://[");
+    assert.equal(malformed.status, 400);
+    assert.equal(malformed.headers["cache-control"], "no-store");
+    assert.deepEqual(JSON.parse(malformed.body), {
+      error: { code: "invalid_request_target", message: "Dịch vụ tích hợp cục bộ chưa sẵn sàng" },
+    });
+    assert.equal((await request(gateway.address().port, "/api/drafts")).status, 200);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
+test("headers then stall closes downstream by timeout and gateway remains usable", async () => {
+  let hits = 0;
+  const api = await listen((_req, res) => {
+    hits += 1;
+    if (hits === 1) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.flushHeaders();
+      return;
+    }
+    res.end("ok");
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: null, requestTimeoutMs: 40 });
+  const stalled = requestOutcome(gateway.address().port, "/api/drafts");
+  try {
+    assert.notEqual(await Promise.race([stalled.result, deadline(500)]), "deadline");
+    assert.equal((await request(gateway.address().port, "/api/drafts")).status, 200);
+    assert.equal(hits, 2);
+  } finally {
+    stalled.destroy(); await close(gateway); await close(api); await close(ui);
+  }
+});
+
+test("upstream abort closes downstream and gateway remains usable", async () => {
+  let hits = 0;
+  const api = await listen((_req, res) => {
+    hits += 1;
+    if (hits === 1) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.flushHeaders();
+      return res.destroy();
+    }
+    res.end("ok");
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: null });
+  const aborted = requestOutcome(gateway.address().port, "/api/drafts");
+  try {
+    assert.notEqual(await Promise.race([aborted.result, deadline(500)]), "deadline");
+    assert.equal((await request(gateway.address().port, "/api/drafts")).status, 200);
+  } finally {
+    aborted.destroy(); await close(gateway); await close(api); await close(ui);
+  }
+});
+
+test("client abort destroys upstream without retry and gateway remains usable", async () => {
+  let hits = 0;
+  let firstArrived;
+  const firstArrivedPromise = new Promise((resolve) => { firstArrived = resolve; });
+  let firstClosed;
+  const firstClosedPromise = new Promise((resolve) => { firstClosed = resolve; });
+  const api = await listen((req, res) => {
+    hits += 1;
+    if (hits === 1) {
+      req.once("close", firstClosed);
+      firstArrived();
+      return;
+    }
+    res.end("ok");
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: null, requestTimeoutMs: 1000 });
+  const abandoned = requestOutcome(gateway.address().port, "/api/drafts");
+  try {
+    assert.notEqual(await Promise.race([firstArrivedPromise.then(() => "arrived"), deadline(500)]), "deadline");
+    abandoned.destroy();
+    assert.notEqual(await Promise.race([firstClosedPromise.then(() => "closed"), deadline(500)]), "deadline");
+    assert.equal(hits, 1);
+    assert.equal((await request(gateway.address().port, "/api/drafts")).status, 200);
+    assert.equal(hits, 2);
+  } finally {
+    abandoned.destroy(); await close(gateway); await close(api); await close(ui);
   }
 });
