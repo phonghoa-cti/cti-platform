@@ -37,11 +37,22 @@ export interface Draft {
   cost_tokens: number;
 }
 
+export const supportedTlp = ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"] as const;
+export type Tlp = (typeof supportedTlp)[number];
+
 function record(value: unknown, field: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`${field} phải là object`);
   }
   return value as Record<string, unknown>;
+}
+
+function exactKeys(value: Record<string, unknown>, expected: readonly string[], field: string) {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    throw new Error(`${field} có trường không đúng hợp đồng`);
+  }
 }
 
 function string(value: unknown, field: string, allowEmpty = false): string {
@@ -52,7 +63,7 @@ function string(value: unknown, field: string, allowEmpty = false): string {
 }
 
 function integer(value: unknown, field: string, minimum = 0): number {
-  if (!Number.isInteger(value) || (value as number) < minimum) {
+  if (!Number.isSafeInteger(value) || (value as number) < minimum) {
     throw new Error(`${field} phải là số nguyên >= ${minimum}`);
   }
   return value as number;
@@ -69,22 +80,30 @@ function parseSpan(value: unknown, field: string): EvidenceSpan | null {
 
 function parseItem(value: unknown, index: number): DraftItem {
   const item = record(value, `items[${index}]`);
+  exactKeys(item, ["kind", "type", "value", "span", "evidence", "keep", "warning", "status"], `items[${index}]`);
   if (typeof item.keep !== "boolean") throw new Error(`items[${index}].keep phải là boolean`);
   const warning = item.warning === null ? null : string(item.warning, `items[${index}].warning`, true);
+  const status = string(item.status, `items[${index}].status`);
+  if (!(["ok", "allowlist", "bia"] as string[]).includes(status)) {
+    throw new Error(`items[${index}].status không được hỗ trợ`);
+  }
+  const kind = string(item.kind, `items[${index}].kind`);
+  if (item.keep && kind !== "ioc") throw new Error(`items[${index}].kind không được hỗ trợ`);
   return {
-    kind: string(item.kind, `items[${index}].kind`),
+    kind,
     type: string(item.type, `items[${index}].type`),
     value: string(item.value, `items[${index}].value`, true),
     span: parseSpan(item.span, `items[${index}].span`),
     evidence: string(item.evidence, `items[${index}].evidence`, true),
     keep: item.keep,
     warning,
-    status: string(item.status, `items[${index}].status`),
+    status,
   };
 }
 
 function parseFinding(value: unknown, index: number): DraftFinding {
   const finding = record(value, `findings[${index}]`);
+  exactKeys(finding, ["paragraph", "rule", "excerpt"], `findings[${index}]`);
   return {
     paragraph: integer(finding.paragraph, `findings[${index}].paragraph`, 1),
     rule: string(finding.rule, `findings[${index}].rule`),
@@ -94,7 +113,9 @@ function parseFinding(value: unknown, index: number): DraftFinding {
 
 export function parseDraft(value: unknown): Draft {
   const draft = record(value, "draft");
+  exactKeys(draft, ["id", "created_at", "schema_version", "status", "source", "language", "tlp", "text", "items", "injection_warning", "findings", "model", "cost_tokens"], "draft");
   const source = record(draft.source, "source");
+  exactKeys(source, ["name", "sha256"], "source");
   if (!Array.isArray(draft.items)) throw new Error("items phải là mảng");
   if (!Array.isArray(draft.findings)) throw new Error("findings phải là mảng");
   if (typeof draft.injection_warning !== "boolean") throw new Error("injection_warning phải là boolean");
@@ -114,7 +135,11 @@ export function parseDraft(value: unknown): Draft {
     status: "pending",
     source: { name: string(source.name, "source.name"), sha256 },
     language,
-    tlp: string(draft.tlp, "tlp"),
+    tlp: (() => {
+      const tlp = string(draft.tlp, "tlp");
+      if (!(supportedTlp as readonly string[]).includes(tlp)) throw new Error("tlp không được hỗ trợ");
+      return tlp;
+    })(),
     text: string(draft.text, "text", true),
     items: draft.items.map(parseItem),
     injection_warning: draft.injection_warning,

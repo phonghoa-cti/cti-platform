@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Phong Hỏa · Duyệt bản nháp",
-  description: "Bản xem thử hàng đợi bản nháp CTI ngoại tuyến",
+  description: "Hàng đợi duyệt bản nháp CTI Phong Hỏa",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

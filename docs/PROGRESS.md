@@ -48,10 +48,17 @@ Cập nhật lần cuối: 11/11/2026
   bị vô hiệu, chưa có HTTP, auth hoặc OpenCTI. Thao tác sao chép xử lý cả Clipboard API không có và quyền bị từ
   chối, chỉ báo thành công sau khi ghi xong và cho phép thử lại; 13 unit/UI test, typecheck, lint và production build
   đạt. Trình duyệt thật đạt ở 1280 px từ lượt trước; viewport 360/1440 vẫn chưa được công cụ hỗ trợ kiểm trực tiếp.
+- WEB-W05-API-CLIENT: `/duyet` gọi ba route `/api/drafts*` tương đối cùng origin với parser runtime tách summary,
+  detail và decision; phân trang cursor 20 dòng, tải chi tiết có chống response cũ, keep chỉ đọc, quyết định dùng
+  `expected_version` và xử lý lỗi an toàn. `/duyet/mau` giữ fixture tổng hợp có nhãn và không POST. 47 test
+  unit/UI, typecheck, lint và production build đạt cục bộ; fetch được giả ở biên test, chưa kiểm browser nối
+  FastAPI/auth/routing thật và chưa kiểm trực tiếp viewport 360/1440.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
 - Capability upload/review/approve, work ID, trạng thái draft trước/sau và quyền thực tế chưa kiểm trên lab
+- Routing cùng origin `/api/drafts*` tới FastAPI, phiên JWT tổng hợp và luồng duyệt browser end-to-end chưa được
+  Engineer cấu hình/kiểm; client không tự thêm proxy, token hoặc danh tính phát triển.
 - Chưa gọi feed hoặc LLM, chưa có key/điều khoản OTX, chưa đo RAM/queue và chưa xác minh demo MITRE + OTX (#10)
 - X01 còn thiếu dataset báo cáo thật được hai người gán nhãn và các cấu hình C2–C4; smoke C1 không chứng minh
   chất lượng extractor hoặc TTP
