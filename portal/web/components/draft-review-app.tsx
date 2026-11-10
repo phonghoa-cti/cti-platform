@@ -10,6 +10,7 @@ import vi from "@/messages/vi.json";
 type Locale = "vi" | "en";
 type Loader = () => Promise<Draft[]>;
 type Mode = "api" | "sample";
+type Freshness = { draftId: number; reviewVersion: number; selectionVersion: number; status: DraftDetail["review"]["status"]; selectedIndices: number[]; selectedSha256: string };
 
 function sameIndices(left: readonly number[], right: readonly number[]) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
@@ -74,24 +75,47 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   const operationLock = useRef(false);
   const selectedIdRef = useRef<number | null>(null);
   const generationRef = useRef(0);
+  const queueRequestRef = useRef(0);
+  const mountedRef = useRef(true);
+  const freshnessRef = useRef<Freshness | null>(null);
+  const missingDraftRef = useRef(false);
   const messages = locale === "vi" ? vi : en;
   const dirty = useMemo(() => !!savedSelection && !sameIndices(savedSelection.selected_indices, editingIndices), [editingIndices, savedSelection]);
   const navigationLocked = dirty || phase !== "idle";
 
   const resetActionState = () => {
+    freshnessRef.current = null; missingDraftRef.current = false;
     setSavedSelection(null); setEditingIndices([]); setPhase("idle"); setSelectionError(null); setSelectionNotice(null); setDecisionSuccess(null);
   };
-  const applyDetail = (result: DraftDetail) => {
+  const applyDetail = (result: DraftDetail, expectedId: number) => {
+    if (result.id !== expectedId || selectedIdRef.current !== expectedId) throw new ApiClientError("service");
+    const floor = freshnessRef.current;
+    if (floor?.draftId === expectedId) {
+      if (result.review.version < floor.reviewVersion || result.selection.selection_version < floor.selectionVersion) throw new ApiClientError("service");
+      if (result.selection.selection_version === floor.selectionVersion &&
+        (result.selection.selected_sha256 !== floor.selectedSha256 || !sameIndices(result.selection.selected_indices, floor.selectedIndices))) throw new ApiClientError("service");
+      if (result.review.version === floor.reviewVersion && result.review.status !== floor.status) throw new ApiClientError("service");
+    }
     setDetail(result); setSavedSelection(result.selection); setEditingIndices([...result.selection.selected_indices]);
+    freshnessRef.current = { draftId: result.id, reviewVersion: result.review.version, selectionVersion: result.selection.selection_version,
+      status: result.review.status, selectedIndices: [...result.selection.selected_indices], selectedSha256: result.selection.selected_sha256 };
   };
   const loadQueue = useCallback(async () => {
+    const request = ++queueRequestRef.current;
     if (mode === "sample") {
-      const drafts = await loadDrafts(); setSampleDetails(drafts); setQueue(drafts.map(sampleSummary)); setNextBeforeId(null);
+      const drafts = await loadDrafts(); if (!mountedRef.current || request !== queueRequestRef.current) return;
+      setSampleDetails(drafts); setQueue(drafts.map(sampleSummary)); setNextBeforeId(null);
       const first = drafts[0]?.id ?? null; selectedIdRef.current = first; setSelectedId(first); setDetail(drafts[0] ?? null); return;
     }
-    const page = await api.list(); setQueue(page.items); setNextBeforeId(page.next_before_id);
+    const page = await api.list(); if (!mountedRef.current || request !== queueRequestRef.current) return;
+    setQueue(page.items); setNextBeforeId(page.next_before_id);
     const first = page.items[0]?.id ?? null; selectedIdRef.current = first; setSelectedId(first);
   }, [api, loadDrafts, mode]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; generationRef.current += 1; queueRequestRef.current += 1; };
+  }, []);
 
   useEffect(() => {
     let active = true; void Promise.resolve().then(loadQueue).catch(() => { if (active) setQueueError(safeReadError("queue", locale)); });
@@ -104,7 +128,7 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
     if (mode === "sample" || selectedId === null) return;
     const controller = new AbortController(); const generation = ++generationRef.current; let active = true;
     api.detail(selectedId, controller.signal).then((result) => {
-      if (active && selectedIdRef.current === selectedId && generationRef.current === generation) applyDetail(result);
+      if (active && selectedIdRef.current === selectedId && generationRef.current === generation) applyDetail(result, selectedId);
     }).catch((error: unknown) => {
       if (active && !(error instanceof DOMException && error.name === "AbortError")) setDetailError(safeReadError("detail", locale));
     });
@@ -113,7 +137,10 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, detailAttempt, mode, selectedId]);
 
-  const retryQueue = () => { setQueue(null); setQueueError(null); setDetail(null); selectedIdRef.current = null; setSelectedId(null); resetActionState(); setQueueAttempt((value) => value + 1); };
+  const retryQueue = () => {
+    if (navigationLocked || operationLock.current) return;
+    generationRef.current += 1; setQueue(null); setQueueError(null); setDetail(null); selectedIdRef.current = null; setSelectedId(null); resetActionState(); setQueueAttempt((value) => value + 1);
+  };
   const selectDraft = (id: number) => {
     if (navigationLocked || selectedIdRef.current === id) return;
     generationRef.current += 1; selectedIdRef.current = id; setSelectedId(id); setDetail(null); setDetailError(null); resetActionState();
@@ -122,9 +149,17 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   const retryDetail = () => { if (navigationLocked) return; setDetail(null); setDetailError(null); resetActionState(); setDetailAttempt((value) => value + 1); };
   const loadMore = async () => {
     if (mode !== "api" || nextBeforeId === null || loadingMore || navigationLocked) return;
+    const generation = generationRef.current; const expectedId = selectedIdRef.current;
     setLoadingMore(true); setQueueError(null);
-    try { const page = await api.list(nextBeforeId); setQueue((current) => [...(current ?? []), ...page.items]); setNextBeforeId(page.next_before_id); }
-    catch { setQueueError(safeReadError("queue", locale)); } finally { setLoadingMore(false); }
+    try {
+      const page = await api.list(nextBeforeId);
+      if (!mountedRef.current || generationRef.current !== generation || selectedIdRef.current !== expectedId) return;
+      setQueue((current) => [...(current ?? []), ...page.items]); setNextBeforeId(page.next_before_id);
+    } catch {
+      if (mountedRef.current && generationRef.current === generation && selectedIdRef.current === expectedId) setQueueError(safeReadError("queue", locale));
+    } finally {
+      if (mountedRef.current && generationRef.current === generation && selectedIdRef.current === expectedId) setLoadingMore(false);
+    }
   };
 
   const toggleSelection = (index: number) => {
@@ -135,10 +170,10 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   };
   const discardSelection = () => { if (phase === "idle" && savedSelection) { setEditingIndices([...savedSelection.selected_indices]); setSelectionError(null); setSelectionNotice(null); } };
 
-  const refreshAfterWrite = async (draftId: number, minimumSelectionVersion: number) => {
+  const refreshAfterWrite = async (draftId: number, generation: number) => {
     const [freshDetail, freshPage] = await Promise.all([api.detail(draftId), api.list()]);
-    if (freshDetail.id !== draftId || freshDetail.selection.selection_version < minimumSelectionVersion) throw new ApiClientError("service");
-    if (selectedIdRef.current === draftId) applyDetail(freshDetail);
+    if (!mountedRef.current || selectedIdRef.current !== draftId || generationRef.current !== generation) throw new ApiClientError("service");
+    applyDetail(freshDetail, draftId);
     setQueue(freshPage.items); setNextBeforeId(freshPage.next_before_id);
   };
 
@@ -152,12 +187,16 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
       if (selectedIdRef.current !== draftId || generationRef.current !== generation || !sameIndices(result.selected_indices, request.selected_indices) || result.review_version !== request.expected_version + increment || result.selection_version !== request.expected_version + increment) throw new ApiClientError("service");
       setSavedSelection(result); setEditingIndices([...result.selected_indices]);
       setDetail((current) => current && "selection" in current && current.id === draftId ? { ...current, selection: result, review: { ...current.review, version: result.review_version } } : current);
+      freshnessRef.current = { draftId, reviewVersion: result.review_version, selectionVersion: result.selection_version, status: "pending",
+        selectedIndices: [...result.selected_indices], selectedSha256: result.selected_sha256 };
       setSelectionNotice(result.changed ? messages.selectionSaved : messages.selectionNoop); setPhase("refreshing-save");
-      try { await refreshAfterWrite(draftId, result.selection_version); setPhase("idle"); }
+      try { await refreshAfterWrite(draftId, generation); setPhase("idle"); }
       catch { setPhase("save-refresh-failed"); setSelectionError(messages.selectionRefreshFailed); }
     } catch (error) {
       setSelectionError(writeError(error, locale, "save"));
-      setPhase(knownHttp(error) ? ([404, 409, 422].includes((error as ApiClientError).status ?? 0) ? "reload-required" : "idle") : "save-unknown");
+      const status = error instanceof ApiClientError ? error.status : undefined;
+      missingDraftRef.current = status === 404;
+      setPhase(knownHttp(error) ? ([404, 409, 422].includes(status ?? 0) ? "reload-required" : "idle") : "save-unknown");
     } finally { operationLock.current = false; }
   };
 
@@ -169,27 +208,40 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   const decide = async (request: DecisionRequest) => {
     if (mode !== "api" || operationLock.current || phase !== "idle" || dirty || !savedSelection || !detail || !("selection" in detail) || detail.review.status !== "pending") return;
     if (request.decision === "approve" && savedSelection.selected_indices.length === 0) return;
-    const draftId = detail.id; const pinned = savedSelection; const body: DecisionRequest = request.decision === "approve" ? { decision: "approve", expected_version: pinned.review_version } : { decision: "reject", expected_version: pinned.review_version, reason: request.reason.trim() };
+    const draftId = detail.id; const generation = generationRef.current; const pinned = savedSelection; const body: DecisionRequest = request.decision === "approve" ? { decision: "approve", expected_version: pinned.review_version } : { decision: "reject", expected_version: pinned.review_version, reason: request.reason.trim() };
     operationLock.current = true; setPhase("deciding"); setSelectionError(null); setSelectionNotice(null);
     try {
       const result = await api.decide(draftId, body, pinned);
-      if (!validateDecision(result, body, pinned, draftId)) throw new ApiClientError("service");
+      if (!mountedRef.current || selectedIdRef.current !== draftId || generationRef.current !== generation || !validateDecision(result, body, pinned, draftId)) throw new ApiClientError("service");
       setDecisionSuccess(result.status); setDetail((current) => current && "selection" in current && current.id === draftId ? { ...current, review: { ...current.review, status: result.status, version: result.version, decided_by_subject: result.decided_by_subject, decided_at: result.decided_at, reason: result.reason } } : current);
-      try { await refreshAfterWrite(draftId, pinned.selection_version); setPhase("idle"); }
+      freshnessRef.current = { draftId, reviewVersion: result.version, selectionVersion: result.selection_version, status: result.status,
+        selectedIndices: [...result.selected_indices], selectedSha256: result.selected_sha256 };
+      try { await refreshAfterWrite(draftId, generation); setPhase("idle"); }
       catch { setPhase("decision-refresh-failed"); setSelectionError(messages.decisionRefreshFailed); }
     } catch (error) {
       setSelectionError(writeError(error, locale, "decision"));
-      setPhase(knownHttp(error) ? ([404, 409, 422].includes((error as ApiClientError).status ?? 0) ? "reload-required" : "idle") : "decision-unknown");
+      const status = error instanceof ApiClientError ? error.status : undefined;
+      missingDraftRef.current = status === 404;
+      setPhase(knownHttp(error) ? ([404, 409, 422].includes(status ?? 0) ? "reload-required" : "idle") : "decision-unknown");
     } finally { operationLock.current = false; }
   };
 
   const recover = async () => {
     if (mode !== "api" || operationLock.current || selectedIdRef.current === null) return;
-    const draftId = selectedIdRef.current; operationLock.current = true; setSelectionError(null);
+    const draftId = selectedIdRef.current; const generation = generationRef.current; const missingDraft = missingDraftRef.current;
+    operationLock.current = true; setSelectionError(null);
     try {
+      if (missingDraft) {
+        const freshPage = await api.list();
+        if (!mountedRef.current || selectedIdRef.current !== draftId || generationRef.current !== generation) throw new ApiClientError("service");
+        generationRef.current += 1; const first = freshPage.items[0]?.id ?? null;
+        setQueue(freshPage.items); setNextBeforeId(freshPage.next_before_id); setDetail(null); setDetailError(null);
+        resetActionState(); selectedIdRef.current = first; setSelectedId(first); setSelectionNotice(null);
+        return;
+      }
       const [freshDetail, freshPage] = await Promise.all([api.detail(draftId), api.list()]);
-      if (freshDetail.id !== draftId) throw new ApiClientError("service");
-      applyDetail(freshDetail); setQueue(freshPage.items); setNextBeforeId(freshPage.next_before_id); setPhase("idle"); setSelectionNotice(null);
+      if (!mountedRef.current || selectedIdRef.current !== draftId || generationRef.current !== generation) throw new ApiClientError("service");
+      applyDetail(freshDetail, draftId); setQueue(freshPage.items); setNextBeforeId(freshPage.next_before_id); setPhase("idle"); setSelectionNotice(null);
     } catch { setSelectionError(safeReadError("detail", locale)); }
     finally { operationLock.current = false; }
   };
@@ -199,7 +251,7 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
     <main className="main-content"><header className="topbar"><span>{messages.section} / {messages.navReview}</span><div className="locale-switch" aria-label={messages.language}><button type="button" aria-pressed={locale === "vi"} onClick={() => setLocale("vi")}>{messages.vietnamese}</button><button type="button" aria-pressed={locale === "en"} onClick={() => setLocale("en")}>{messages.english}</button></div></header>
       <div className="page-content"><div className="page-heading"><div><h1>{messages.pageTitle}</h1><p>{mode === "sample" ? messages.pageDescription : messages.apiPageDescription}</p></div><div className="source-labels"><span className={`tag ${mode === "sample" ? "sample-tag" : "api-tag"}`}>{mode === "sample" ? messages.sampleData : messages.liveData}</span><span>{mode === "sample" ? messages.sourceState : messages.apiSourceState}</span></div></div>
         {queue === null && !queueError && <div className="state-panel" role="status" aria-live="polite"><span className="loading-bar" aria-hidden="true" />{messages.loading}</div>}
-        {queueError && <div className="state-panel error-panel" role="alert"><strong>{queueError}</strong><button type="button" onClick={retryQueue}>{messages.retry}</button></div>}
+        {queueError && <div className="state-panel error-panel" role="alert"><strong>{queueError}</strong><button type="button" disabled={navigationLocked} onClick={retryQueue}>{messages.retry}</button></div>}
         {queue && queue.length === 0 && !(decisionSuccess && detail) && <div className="state-panel">{mode === "sample" ? messages.emptyQueue : messages.emptyApiQueue}</div>}
         {queue && (queue.length > 0 || (decisionSuccess && detail)) && <div className="workspace-grid"><section className="panel queue-panel" aria-labelledby="queue-title"><header className="panel-header"><h2 id="queue-title">{messages.queueTitle}</h2><span>{queue.length} {messages.loadedDrafts}</span></header><div className="queue-list">{queue.map((draft) => <button type="button" key={draft.id} disabled={navigationLocked} className={`queue-row ${draft.id === selectedId ? "is-selected" : ""}`} aria-pressed={draft.id === selectedId} aria-label={`${messages.draftNumber} ${draft.id}: ${draft.source.name}`} onClick={() => selectDraft(draft.id)}><span className="queue-id">#{draft.id}</span><span className="queue-source">{draft.source.name}</span><span className="queue-meta">{draft.item_count} {messages.items} · {draft.tlp}</span><span className={`queue-status ${draft.injection_warning ? "has-warning" : ""}`}>{draft.injection_warning ? messages.injectionShort : messages.pending}</span></button>)}</div>{nextBeforeId !== null && <button className="load-more" type="button" disabled={loadingMore || navigationLocked} onClick={() => void loadMore()}>{loadingMore ? messages.loadingMore : messages.loadMore}</button>}</section>
           <div className="detail-state">{mode === "api" && selectedId !== null && !detail && !detailError && <div className="state-panel" role="status" aria-live="polite">{messages.detailLoading}</div>}{detailError && <div className="state-panel error-panel" role="alert"><strong>{detailError}</strong><button type="button" onClick={retryDetail}>{messages.retry}</button></div>}{detail && <DraftReview key={detail.id} draft={detail} locale={locale} mode={mode} selection={savedSelection ?? undefined} editingIndices={editingIndices} selectionPhase={phase} selectionError={selectionError} selectionNotice={selectionNotice} decisionSuccess={decisionSuccess} onToggleSelection={toggleSelection} onSaveSelection={saveSelection} onDiscardSelection={discardSelection} onRecover={recover} onDecide={decide} />}</div>

@@ -199,7 +199,14 @@ export function createDraftApi(fetcher: Fetcher = globalThis.fetch.bind(globalTh
       const cursor = beforeId === undefined ? "" : `&before_id=${safeInteger(beforeId, 1)}`;
       return requestJson(fetcher, `/api/v1/drafts?limit=20${cursor}`, { ...common, signal }, parseDraftPageV1);
     },
-    detail(id, signal) { return requestJson(fetcher, `/api/v1/drafts/${safeInteger(id, 1)}`, { ...common, signal }, parseDraftDetailV1); },
+    detail(id, signal) {
+      const draftId = safeInteger(id, 1);
+      return requestJson(fetcher, `/api/v1/drafts/${draftId}`, { ...common, signal }, (value) => {
+        const parsed = parseDraftDetailV1(value);
+        if (parsed.id !== draftId) throw new ApiClientError("service");
+        return parsed;
+      });
+    },
     saveSelection(id, rawRequest) {
       const request = normalizeSelectionRequest(rawRequest);
       return requestJson(fetcher, `/api/v1/drafts/${safeInteger(id, 1)}/selection`, { method: "POST", ...common, headers: { "Content-Type": "application/json" }, body: JSON.stringify(request) }, (value) => validateSaveResponse(value, request));
@@ -217,7 +224,20 @@ export function createDraftApi(fetcher: Fetcher = globalThis.fetch.bind(globalTh
 // Legacy parsers stay strict and separate so v1 payloads are never accepted accidentally.
 export function parseDraftPage(value: unknown) {
   const page = object(value); exact(page, ["items", "next_before_id"]); if (!Array.isArray(page.items)) throw new ApiClientError("service");
-  const items = page.items.map((entry) => { const item = object(entry); exact(item, ["id", "created_at", "status", "source", "language", "tlp", "item_count", "injection_warning", "review_status", "review_version"]); if (typeof item.injection_warning !== "boolean" || safeInteger(item.review_version) !== 0) throw new ApiClientError("service"); return { ...item, id: safeInteger(item.id, 1), source: source(item.source) }; });
+  const items = page.items.map((entry) => {
+    const item = object(entry);
+    exact(item, ["id", "created_at", "status", "source", "language", "tlp", "item_count", "injection_warning", "review_status", "review_version"]);
+    if (typeof item.injection_warning !== "boolean") throw new ApiClientError("service");
+    const createdAt = text(item.created_at);
+    if (!createdAt || safeInteger(item.review_version) !== 0) throw new ApiClientError("service");
+    return {
+      id: safeInteger(item.id, 1), created_at: createdAt, status: enumValue(item.status, ["pending"] as const),
+      source: source(item.source), language: enumValue(item.language, ["vi", "en"] as const),
+      tlp: enumValue(item.tlp, supportedTlp), item_count: safeInteger(item.item_count), injection_warning: item.injection_warning,
+      review_status: enumValue(item.review_status, ["pending"] as const), review_version: 0 as const,
+    };
+  });
+  if (new Set(items.map((item) => item.id)).size !== items.length) throw new ApiClientError("service");
   return { items, next_before_id: page.next_before_id === null ? null : safeInteger(page.next_before_id, 1) };
 }
 export function parseDraftDetail(value: unknown) {
@@ -225,8 +245,10 @@ export function parseDraftDetail(value: unknown) {
   const { review, ...draft } = raw; const parsedReview = parseReviewV1(review); if (parsedReview.version > 1) throw new ApiClientError("service"); return { ...parseDraft(draft), review: parsedReview };
 }
 export function parseDecision(value: unknown) {
-  const raw = object(value); exact(raw, ["draft_id", "status", "version", "decided_by_subject", "decided_at", "reason"]); if (safeInteger(raw.version) !== 1) throw new ApiClientError("service");
-  return { draft_id: safeInteger(raw.draft_id, 1), status: enumValue(raw.status, ["approved", "rejected"] as const), version: 1, decided_by_subject: text(raw.decided_by_subject), decided_at: text(raw.decided_at), reason: text(raw.reason, true) };
+  const raw = object(value); exact(raw, ["draft_id", "status", "version", "decided_by_subject", "decided_at", "reason"]);
+  const decidedBy = text(raw.decided_by_subject); const decidedAt = text(raw.decided_at);
+  if (safeInteger(raw.version) !== 1 || !decidedBy || !decidedAt) throw new ApiClientError("service");
+  return { draft_id: safeInteger(raw.draft_id, 1), status: enumValue(raw.status, ["approved", "rejected"] as const), version: 1, decided_by_subject: decidedBy, decided_at: decidedAt, reason: text(raw.reason, true) };
 }
 
 export const draftApi = createDraftApi();

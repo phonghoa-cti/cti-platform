@@ -62,6 +62,24 @@ function api(overrides: Partial<DraftApi> = {}): DraftApi {
 }
 
 describe("W05 saved and editing selection UI", () => {
+  it.each(["dirty", "saving"])("does not let queue retry reset %s selection state", async (state) => {
+    const user = userEvent.setup();
+    const pending = deferred<SelectionView>();
+    const list = vi.fn().mockResolvedValueOnce({ items: [summary], next_before_id: 1 })
+      .mockRejectedValueOnce(new ApiClientError("network"))
+      .mockResolvedValue({ items: [summary], next_before_id: null });
+    const draftApi = api({ list, saveSelection: vi.fn().mockReturnValue(pending.promise) });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+    await screen.findByRole("checkbox", { name: /evil\.example/i });
+    await user.click(screen.getByRole("button", { name: "Tải thêm" }));
+    const retry = await screen.findByRole("button", { name: "Thử lại" });
+    await user.click(screen.getByRole("checkbox", { name: /evil\.example/i }));
+    if (state === "saving") await user.click(screen.getByRole("button", { name: "Lưu lựa chọn" }));
+    await user.click(retry);
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("checkbox", { name: /evil\.example/i })).not.toBeChecked();
+  });
+
   it("keeps a read selection above 1024 intact and lets the analyst deselect to the save limit", async () => {
     const user = userEvent.setup();
     const items = Array.from({ length: 1025 }, (_, index) => ({ ...regular.items[0], value: `ioc-${index}.example`, span: null, evidence: "" }));
@@ -182,7 +200,7 @@ describe("W05 saved and editing selection UI", () => {
     const user = userEvent.setup();
     const saved = selection({ review_version: 1, selection_version: 1, selected_indices: [], selected_sha256: hash1, changed: true, human_deselected_count: 1, selection_save_count: 1 });
     const saveSelection = vi.fn().mockResolvedValue(saved);
-    const detailRequest = vi.fn().mockResolvedValueOnce(detail()).mockRejectedValueOnce(new ApiClientError("network")).mockResolvedValueOnce(detail(saved));
+    const detailRequest = vi.fn().mockResolvedValueOnce(detail()).mockRejectedValueOnce(new ApiClientError("network")).mockResolvedValueOnce(detail());
     const draftApi = api({ saveSelection, detail: detailRequest });
     render(<DraftReviewApp mode="api" api={draftApi} />);
     await user.click(await screen.findByRole("checkbox", { name: /evil\.example/i }));
@@ -193,5 +211,50 @@ describe("W05 saved and editing selection UI", () => {
     await user.click(screen.getByRole("button", { name: "Tải lại trạng thái" }));
     await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(3));
     expect(saveSelection).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("checkbox", { name: /evil\.example/i })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /evil\.example/i })).toBeDisabled();
+  });
+
+  it("does not roll a confirmed decision back to pending during refresh", async () => {
+    const user = userEvent.setup();
+    const decide = vi.fn().mockResolvedValue({ draft_id: regular.id, status: "approved", version: 1, decided_by_subject: "analyst", decided_at: "2026-11-11T01:02:00Z", reason: null, selection_version: 0, selected_indices: [0], selected_sha256: hash0 });
+    const draftApi = api({ decide });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+    await user.click(await screen.findByRole("button", { name: "Duyệt bản nháp" }));
+    await waitFor(() => expect(draftApi.detail).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Đã duyệt", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /evil\.example/i })).toBeDisabled();
+    expect(decide).toHaveBeenCalledTimes(1);
+  });
+
+  it("escapes a missing draft to the remaining queue after explicit discard", async () => {
+    const user = userEvent.setup();
+    const secondSummary = { ...summary, id: 2, source: { ...summary.source, name: "second.txt" } };
+    const secondDetail = { ...detail(), id: 2, source: { ...detail().source, name: "second.txt" } };
+    const details = vi.fn().mockResolvedValueOnce(detail()).mockImplementation(async (id: number) => {
+      if (id === regular.id) throw new ApiClientError("http", 404);
+      return secondDetail;
+    });
+    const draftApi = api({
+      list: vi.fn().mockResolvedValueOnce({ items: [summary, secondSummary], next_before_id: null }).mockResolvedValue({ items: [secondSummary], next_before_id: null }),
+      detail: details,
+      saveSelection: vi.fn().mockRejectedValue(new ApiClientError("http", 404)),
+    });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+    await user.click(await screen.findByRole("checkbox", { name: /evil\.example/i }));
+    await user.click(screen.getByRole("button", { name: "Lưu lựa chọn" }));
+    await user.click(await screen.findByRole("button", { name: "Bỏ thay đổi cục bộ và tải lại trạng thái" }));
+    const second = await screen.findByRole("button", { name: /second\.txt/i });
+    expect(second).toBeEnabled();
+    await user.click(second);
+    expect(await screen.findByText("second.txt", { selector: "dd" })).toBeInTheDocument();
+  });
+
+  it("does not apply mismatched detail from an injected API", async () => {
+    const draftApi = api({ detail: vi.fn().mockResolvedValue({ ...detail(), id: 2, source: { ...detail().source, name: "second.txt" } }) });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+    await waitFor(() => expect(draftApi.detail).toHaveBeenCalled());
+    expect(screen.queryByText("second.txt", { selector: "dd" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Duyệt bản nháp" })).not.toBeInTheDocument();
   });
 });

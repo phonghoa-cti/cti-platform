@@ -88,6 +88,22 @@ describe("W05 runtime parsers", () => {
   ])("rejects %s", (_name, value, parser) => {
     expect(() => parser(value)).toThrow();
   });
+
+  it.each([
+    ["empty created_at", { created_at: "" }],
+    ["invalid status", { status: "approved" }],
+    ["invalid language", { language: "fr" }],
+    ["invalid TLP", { tlp: "INVALID" }],
+    ["negative item_count", { item_count: -1 }],
+    ["invalid review_status", { review_status: "approved" }],
+  ])("keeps the legacy summary strict for %s", (_name, change) => {
+    expect(() => parseDraftPage({ items: [{ ...summary, ...change }], next_before_id: null })).toThrow(ApiClientError);
+  });
+
+  it("keeps legacy duplicate IDs and empty decision actors invalid", () => {
+    expect(() => parseDraftPage({ items: [summary, summary], next_before_id: null })).toThrow(ApiClientError);
+    expect(() => parseDecision({ draft_id: 1, status: "approved", version: 1, decided_by_subject: "", decided_at: "2026-11-11T00:00:00Z", reason: null })).toThrow(ApiClientError);
+  });
 });
 
 describe("same-origin draft API client", () => {

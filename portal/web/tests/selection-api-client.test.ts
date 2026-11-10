@@ -93,6 +93,11 @@ describe("W05 v1 selection contract", () => {
     });
   });
 
+  it("rejects a detail response associated with another requested draft", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse({ ...detail, id: regular.id + 1 }));
+    await expect(createDraftApi(fetcher).detail(regular.id)).rejects.toBeInstanceOf(ApiClientError);
+  });
+
   it("rejects save input over 1024 before fetch but accepts exactly 1024", async () => {
     const fetcher = vi.fn().mockResolvedValue(jsonResponse({ ...selection, selected_indices: Array.from({ length: 1024 }, (_, index) => index), ai_eligible_count: 1024 }));
     const api = createDraftApi(fetcher);
