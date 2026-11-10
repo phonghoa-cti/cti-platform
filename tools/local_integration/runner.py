@@ -2,17 +2,26 @@
 
 from __future__ import annotations
 
+# ruff: noqa: E402, I001 -- standalone runner exposes repository packages before imports
+
 import argparse
 import base64
 import os
 import socket
 import subprocess
+import sys
 import tempfile
 import threading
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[2]
+EXTRACTOR_ROOT = ROOT / "extractor"
+for source_root in (ROOT / "core", EXTRACTOR_ROOT):
+    if str(source_root) not in sys.path:
+        sys.path.insert(0, str(source_root))
 
 import jwt
 import uvicorn
