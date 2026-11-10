@@ -43,6 +43,10 @@ Cập nhật lần cuối: 10/11/2026
   chứa toàn văn; có thể chọn ID từ trang để đọc chi tiết, chưa có HTTP, quyền, duyệt/từ chối hoặc UI
 - X01 QA kho/hàng đợi: `get` và `list` dùng chung kiểm payload/metadata khi đọc; `save/get/list` cùng từ chối
   timeout sai trước khi mở SQLite; dữ liệu hỏng không ghi đè output, chưa mở rộng sang HTTP, quyền hoặc UI
+- WEB-W05-PREVIEW: portal Next.js cục bộ có `/duyet`, hàng đợi ba fixture tổng hợp, metadata/text-only,
+  allowlist/rejected/injection, evidence span Unicode, VI/EN và trạng thái loading/empty/error; mọi thao tác duyệt
+  bị vô hiệu, chưa có HTTP, auth hoặc OpenCTI. Unit/UI test, typecheck, lint và production build đạt; trình duyệt
+  thật đạt ở 1280 px, còn viewport 360/1440 chưa được công cụ hỗ trợ kiểm trực tiếp.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
