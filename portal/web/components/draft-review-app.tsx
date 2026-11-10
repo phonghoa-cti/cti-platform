@@ -121,6 +121,7 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   };
   const selectDraft = (id: number) => {
     if (decisionLock.current) return;
+    if (selectedIdRef.current === id) return;
     selectedIdRef.current = id;
     submittedVersionRef.current = null;
     recordedDecisionRef.current = null;
@@ -217,8 +218,8 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
         </div></div>
         {queue === null && !queueError && <div className="state-panel" role="status" aria-live="polite"><span className="loading-bar" aria-hidden="true" />{messages.loading}</div>}
         {queueError && <div className="state-panel error-panel" role="alert"><strong>{queueError}</strong><button type="button" onClick={retryQueue}>{messages.retry}</button></div>}
-        {queue && queue.length === 0 && <div className="state-panel">{mode === "sample" ? messages.emptyQueue : messages.emptyApiQueue}</div>}
-        {queue && queue.length > 0 && <div className="workspace-grid">
+        {queue && queue.length === 0 && !(decisionSuccess && detail) && <div className="state-panel">{mode === "sample" ? messages.emptyQueue : messages.emptyApiQueue}</div>}
+        {queue && (queue.length > 0 || (decisionSuccess && detail)) && <div className="workspace-grid">
           <section className="panel queue-panel" aria-labelledby="queue-title">
             <header className="panel-header"><h2 id="queue-title">{messages.queueTitle}</h2><span>{queue.length} {messages.loadedDrafts}</span></header>
             <div className="queue-list">{queue.map((draft) => <button type="button" key={draft.id} disabled={sending || refreshingDecision} className={`queue-row ${draft.id === selectedId ? "is-selected" : ""}`} aria-pressed={draft.id === selectedId} aria-label={`${messages.draftNumber} ${draft.id}: ${draft.source.name}`} onClick={() => selectDraft(draft.id)}>

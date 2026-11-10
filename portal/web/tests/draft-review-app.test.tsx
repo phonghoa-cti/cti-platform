@@ -102,6 +102,25 @@ describe("draft review application states", () => {
     await waitFor(() => expect(screen.getByText("selected.txt", { selector: "dd" })).toBeInTheDocument());
   });
 
+  it("keeps the current detail when reselecting it and still switches to another draft", async () => {
+    const user = userEvent.setup();
+    const secondSummary = { ...summary, id: 2, source: { ...summary.source, name: "second.txt" } };
+    const secondDetail = { ...pendingDetail, id: 2, source: { ...pendingDetail.source, name: "second.txt" } };
+    const draftApi = api({
+      list: vi.fn().mockResolvedValue({ items: [summary, secondSummary], next_before_id: null }),
+      detail: vi.fn((id: number) => Promise.resolve(id === 2 ? secondDetail : pendingDetail)),
+    });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+
+    await screen.findByRole("button", { name: "Duyệt bản nháp" });
+    await user.click(screen.getByRole("button", { name: /synthetic-regular\.txt/i }));
+    expect(screen.queryByText("Đang tải chi tiết…")).not.toBeInTheDocument();
+    expect(screen.getByText(pendingDetail.source.name, { selector: "dd" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /second\.txt/i }));
+    expect(await screen.findByText("second.txt", { selector: "dd" })).toBeInTheDocument();
+  });
+
   it("submits approve once with detail version and refreshes queue and detail", async () => {
     const user = userEvent.setup();
     const draftApi = api({
@@ -117,6 +136,50 @@ describe("draft review application states", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("đã được duyệt cục bộ");
     expect(draftApi.list).toHaveBeenCalledTimes(2);
     expect(draftApi.detail).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["approve" as const, "approved" as const, "đã được duyệt cục bộ", null],
+    ["reject" as const, "rejected" as const, "đã bị từ chối cục bộ", "Sai bằng chứng"],
+  ])("keeps the recorded %s success visible after deciding the last queued draft", async (decision, status, message, reason) => {
+    const user = userEvent.setup();
+    const decidedDetail = {
+      ...pendingDetail,
+      review: {
+        ...pendingDetail.review,
+        status,
+        version: 1,
+        decided_by_subject: "analyst-sub",
+        decided_at: "2026-11-11T01:02:03+00:00",
+        reason,
+      },
+    };
+    const draftApi = api({
+      list: vi.fn()
+        .mockResolvedValueOnce({ items: [summary], next_before_id: null })
+        .mockResolvedValueOnce({ items: [], next_before_id: null }),
+      detail: vi.fn().mockResolvedValueOnce(pendingDetail).mockResolvedValueOnce(decidedDetail),
+      decide: vi.fn().mockResolvedValue({
+        draft_id: regular.id,
+        status,
+        version: 1,
+        decided_by_subject: "analyst-sub",
+        decided_at: "2026-11-11T01:02:03+00:00",
+        reason,
+      }),
+    });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+
+    if (decision === "reject") {
+      await user.type(await screen.findByRole("textbox", { name: "Lý do từ chối" }), reason!);
+      await user.click(screen.getByRole("button", { name: "Từ chối bản nháp" }));
+    } else {
+      await user.click(await screen.findByRole("button", { name: "Duyệt bản nháp" }));
+    }
+
+    await waitFor(() => expect(draftApi.list).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("status")).toHaveTextContent(message);
+    expect(draftApi.decide).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the decided draft selected while its decision and refresh are in flight", async () => {
