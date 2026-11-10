@@ -102,6 +102,10 @@ class DraftNotFoundError(DraftStoreError):
     """Database hoặc draft không tồn tại."""
 
 
+class DraftDatabaseNotFoundError(DraftNotFoundError):
+    """Database không tồn tại; API v1 phân biệt với draft không tồn tại."""
+
+
 class DraftConflictError(DraftStoreError):
     """Draft đã thay đổi so với phiên bản caller mong đợi."""
 
@@ -146,6 +150,21 @@ class DraftSelectionResult:
     ai_eligible_count: int
     human_deselected_count: int
     selection_save_count: int
+
+
+@dataclass(frozen=True)
+class DraftReviewSelectionResult:
+    """Kết quả quyết định cùng snapshot selection đã ghi vào final audit."""
+
+    draft_id: int
+    status: Literal["approved", "rejected"]
+    version: int
+    decided_by_subject: str
+    decided_at: str
+    reason: str | None
+    selection_version: int
+    selected_indices: tuple[int, ...]
+    selected_sha256: str
 
 
 def _require_exact_keys(value: dict[str, Any], expected: set[str], label: str) -> None:
@@ -617,6 +636,12 @@ def _validate_timeout(timeout: Any) -> float:
     return float(timeout)
 
 
+def _validate_max_version(max_version: Any) -> int:
+    if not _is_int(max_version) or not 0 <= max_version <= SQLITE_MAX_INTEGER:
+        raise DraftInputError("max_version phải là số nguyên trong miền INTEGER SQLite")
+    return max_version
+
+
 def _validate_subject(subject: Any, label: str, *, nullable: bool = False) -> str | None:
     if subject is None and nullable:
         return None
@@ -904,6 +929,97 @@ def list_drafts(
             connection.close()
 
 
+def get_draft_with_selection(db_path: str | Path, draft_id: int, *, timeout: float = 5.0) -> dict[str, Any]:
+    """Đọc detail và selection v2 trong cùng một SQLite snapshot."""
+
+    timeout = _validate_timeout(timeout)
+    if not _is_int(draft_id) or not 1 <= draft_id <= SQLITE_MAX_INTEGER:
+        raise DraftInputError("draft_id phải là số nguyên dương trong miền INTEGER SQLite")
+    path = Path(db_path)
+    if not path.is_file():
+        raise DraftDatabaseNotFoundError(f"Database không tồn tại: {path}")
+    connection: sqlite3.Connection | None = None
+    try:
+        connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=timeout)
+        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+            raise DraftSQLiteError("Chức năng selection yêu cầu migrate database lên v2")
+        _validate_current_schema(connection)
+        connection.execute("BEGIN")
+        row = connection.execute(
+            "SELECT id, created_at, schema_version, status, source_sha256, payload_json, "
+            "created_by_subject, review_status, review_version, decided_by_subject, decided_at, "
+            "decision_reason, selection_version FROM drafts WHERE id=?",
+            (draft_id,),
+        ).fetchone()
+        if row is None:
+            raise DraftNotFoundError(f"không tìm thấy draft ID {draft_id}")
+        payload, stored_id, created_at, review = _decode_draft_row(row, "current")
+        selection = _load_effective_selection(
+            connection, draft_id, payload, review["status"], review["version"], row[12]
+        )
+        return {
+            **payload,
+            "id": stored_id,
+            "created_at": created_at,
+            "review": review,
+            "selection": selection,
+        }
+    except DraftStoreError:
+        raise
+    except sqlite3.Error as exc:
+        raise DraftSQLiteError(f"Lỗi đọc SQLite selection: {exc}") from exc
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def list_drafts_with_selection_version(
+    db_path: str | Path,
+    *,
+    limit: int = 20,
+    before_id: int | None = None,
+    timeout: float = 5.0,
+) -> dict[str, Any]:
+    """Liệt kê pending v2 với selection_version, không đổi contract legacy."""
+
+    timeout = _validate_timeout(timeout)
+    if not _is_int(limit) or not 1 <= limit <= 100:
+        raise DraftInputError("limit phải là số nguyên từ 1 đến 100")
+    if before_id is not None and (not _is_int(before_id) or not 1 <= before_id <= SQLITE_MAX_INTEGER):
+        raise DraftInputError("before_id phải là số nguyên dương trong miền INTEGER SQLite")
+    path = Path(db_path)
+    if not path.is_file():
+        raise DraftDatabaseNotFoundError(f"Database không tồn tại: {path}")
+    connection: sqlite3.Connection | None = None
+    try:
+        connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=timeout)
+        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+            raise DraftSQLiteError("Chức năng selection yêu cầu migrate database lên v2")
+        _validate_current_schema(connection)
+        query = (
+            "SELECT id, created_at, schema_version, status, source_sha256, payload_json, "
+            "created_by_subject, review_status, review_version, decided_by_subject, decided_at, "
+            "decision_reason, selection_version FROM drafts WHERE review_status = ?"
+        )
+        parameters: list[Any] = [PENDING_STATUS]
+        if before_id is not None:
+            query += " AND id < ?"
+            parameters.append(before_id)
+        query += " ORDER BY id DESC LIMIT ?"
+        parameters.append(limit + 1)
+        rows = connection.execute(query, parameters).fetchall()
+        has_more = len(rows) > limit
+        items = [{**_draft_summary(row, "current"), "selection_version": row[12]} for row in rows[:limit]]
+        return {"items": items, "next_before_id": items[-1]["id"] if has_more else None}
+    except DraftStoreError:
+        raise
+    except sqlite3.Error as exc:
+        raise DraftSQLiteError(f"Lỗi đọc SQLite selection: {exc}") from exc
+    finally:
+        if connection is not None:
+            connection.close()
+
+
 def _validate_actor(actor: Any) -> Actor:
     if not isinstance(actor, Actor):
         raise DraftInputError("actor phải là Actor")
@@ -1098,14 +1214,16 @@ def save_selection(
     selected_indices: Sequence[int],
     expected_version: int,
     timeout: float = 5.0,
+    max_version: int = SQLITE_MAX_INTEGER,
 ) -> DraftSelectionResult:
     """Lưu snapshot IOC được chọn và audit trong cùng write transaction."""
 
     timeout = _validate_timeout(timeout)
+    max_version = _validate_max_version(max_version)
     actor, normalized = _validate_selection_input(draft_id, actor, selected_indices, expected_version)
     path = Path(db_path)
     if not path.is_file():
-        raise DraftNotFoundError(f"Database không tồn tại: {path}")
+        raise DraftDatabaseNotFoundError(f"Database không tồn tại: {path}")
     connection: sqlite3.Connection | None = None
     try:
         connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=rw", uri=True, timeout=timeout)
@@ -1133,7 +1251,7 @@ def save_selection(
             raise DraftPolicyError("selected_indices chứa IOC không eligible")
         if normalized == current.selected_indices:
             return current
-        if expected_version == SQLITE_MAX_INTEGER or row[12] == SQLITE_MAX_INTEGER:
+        if expected_version >= max_version or row[12] >= max_version:
             raise DraftConflictError("Version đã đạt giới hạn INTEGER SQLite")
         new_version = expected_version + 1
         new_selection_version = row[12] + 1
@@ -1230,7 +1348,7 @@ def _validate_approval_policy(payload: dict[str, Any], review: dict[str, Any], a
         raise DraftPolicyError(f"Không thể approve item kind chưa hỗ trợ: {unsupported}")
 
 
-def decide_draft(
+def _decide_draft_with_selection(
     db_path: str | Path,
     draft_id: int,
     *,
@@ -1239,14 +1357,16 @@ def decide_draft(
     expected_version: int,
     reason: str | None = None,
     timeout: float = 5.0,
-) -> DraftReviewResult:
+    max_version: int = SQLITE_MAX_INTEGER,
+) -> DraftReviewSelectionResult:
     """Quyết định draft cục bộ và audit trong một transaction; không gọi mạng."""
 
     timeout = _validate_timeout(timeout)
+    max_version = _validate_max_version(max_version)
     normalized_reason = _validate_decision_input(draft_id, actor, decision, expected_version, reason)
     path = Path(db_path)
     if not path.is_file():
-        raise DraftNotFoundError(f"Database không tồn tại: {path}")
+        raise DraftDatabaseNotFoundError(f"Database không tồn tại: {path}")
     connection: sqlite3.Connection | None = None
     try:
         uri = f"{path.resolve().as_uri()}?mode=rw"
@@ -1278,6 +1398,8 @@ def decide_draft(
             _validate_approval_policy(payload, review, actor)
             if not selection.selected_indices:
                 raise DraftPolicyError("Không thể approve selection rỗng")
+        if expected_version >= max_version:
+            raise DraftConflictError("Version đã đạt giới hạn INTEGER SQLite")
 
         decided_at = datetime.now(UTC).isoformat()
         new_status = "approved" if decision == "approve" else "rejected"
@@ -1324,13 +1446,16 @@ def decide_draft(
             ),
         )
         _commit(connection)
-        return DraftReviewResult(
+        return DraftReviewSelectionResult(
             draft_id=draft_id,
             status=new_status,
             version=expected_version + 1,
             decided_by_subject=actor.subject,
             decided_at=decided_at,
             reason=normalized_reason,
+            selection_version=selection.selection_version,
+            selected_indices=selection.selected_indices,
+            selected_sha256=selection.selected_sha256,
         )
     except DraftStoreError:
         if connection is not None:
@@ -1343,3 +1468,61 @@ def decide_draft(
     finally:
         if connection is not None:
             connection.close()
+
+
+def decide_draft_with_selection(
+    db_path: str | Path,
+    draft_id: int,
+    *,
+    actor: Actor,
+    decision: Literal["approve", "reject"],
+    expected_version: int,
+    reason: str | None = None,
+    timeout: float = 5.0,
+    max_version: int = SQLITE_MAX_INTEGER,
+) -> DraftReviewSelectionResult:
+    """Quyết định và trả đúng snapshot selection đã commit vào final audit."""
+
+    return _decide_draft_with_selection(
+        db_path,
+        draft_id,
+        actor=actor,
+        decision=decision,
+        expected_version=expected_version,
+        reason=reason,
+        timeout=timeout,
+        max_version=max_version,
+    )
+
+
+def decide_draft(
+    db_path: str | Path,
+    draft_id: int,
+    *,
+    actor: Actor,
+    decision: Literal["approve", "reject"],
+    expected_version: int,
+    reason: str | None = None,
+    timeout: float = 5.0,
+    max_version: int = SQLITE_MAX_INTEGER,
+) -> DraftReviewResult:
+    """Wrapper legacy giữ nguyên sáu field kết quả quyết định."""
+
+    result = _decide_draft_with_selection(
+        db_path,
+        draft_id,
+        actor=actor,
+        decision=decision,
+        expected_version=expected_version,
+        reason=reason,
+        timeout=timeout,
+        max_version=max_version,
+    )
+    return DraftReviewResult(
+        draft_id=result.draft_id,
+        status=result.status,
+        version=result.version,
+        decided_by_subject=result.decided_by_subject,
+        decided_at=result.decided_at,
+        reason=result.reason,
+    )

@@ -121,6 +121,24 @@ caller tin cậy cung cấp, không xác minh JWT và không được map trực
 - Span 1.0 là khoảng code point Python `[start,end)` trên nguyên `text`; JavaScript không được dùng trực tiếp
   offset UTF-16 mà không chuyển đổi/test.
 
+#### Contract selection v1
+
+`/api/v1/drafts` là contract riêng cho selection; ba route `/api/drafts` legacy ở trên giữ nguyên để frontend
+hiện tại không nhận nhầm version/shape mới. Bốn thao tác v1 đều chỉ cho `analyst|admin` từ JWT đã xác minh:
+
+- `GET /api/v1/drafts` trả summary legacy cộng `selection_version`; chỉ pending, cursor giảm dần.
+- `GET /api/v1/drafts/{id}` trả payload bất biến, `review` và `selection` từ cùng một SQLite read transaction.
+- `POST /api/v1/drafts/{id}/selection` nhận đúng `expected_version` và tối đa 1.024 `selected_indices` duy nhất;
+  empty selection hợp lệ, index không eligible là 403, stale/terminal/version ceiling là 409.
+- `POST /api/v1/drafts/{id}/decision` trả quyết định cùng `selection_version`, `selected_indices` và
+  `selected_sha256` đã được ghi vào final audit trong cùng transaction; không đọc lại sau commit.
+
+Mọi integer public v1 nằm trong `0..9007199254740991` (ID bắt đầu từ 1), không nhận boolean/coercion. Hai POST
+đọc raw body theo stream tối đa 65.536 byte, yêu cầu exact Origin và JSON. Mọi success/error v1 có
+`Cache-Control: no-store` và `Vary: Cf-Access-Jwt-Assertion`. DB thiếu/chưa migrate/hỏng/future hoặc output vượt
+contract trả 503; draft ID không tồn tại trong DB hợp lệ trả 404. API v1 không tự migrate, không nhận subject/role
+từ client và chưa nối UI/OpenCTI.
+
 ### GET /api/blocklist.txt?type=ipv4|domain|url&min_score=60
 Văn bản thuần, mỗi dòng một giá trị (không defang), đã loại allowlist. Header `X-Generated-At`.
 

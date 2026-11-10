@@ -17,31 +17,49 @@ from portal_api.auth import (
     AuthenticationUnavailable,
     Principal,
 )
-from portal_api.schemas import SQLITE_MAX_INTEGER, DecisionRequest, DecisionResponse, DraftDetail, DraftPage
+from portal_api.schemas import (
+    JSON_SAFE_INTEGER,
+    SQLITE_MAX_INTEGER,
+    DecisionRequest,
+    DecisionRequestV1,
+    DecisionResponse,
+    DecisionResponseV1,
+    DraftDetail,
+    DraftDetailV1,
+    DraftPage,
+    DraftPageV1,
+    SelectionSaveRequest,
+    SelectionView,
+)
 from portal_api.service import ApiFailure, ReviewService
 from portal_api.settings import Settings
 
 JWT_HEADER = "Cf-Access-Jwt-Assertion"
 ALLOWED_ROLES = {"analyst", "admin"}
 POSITIVE_INTEGER = re.compile(r"[1-9][0-9]*\Z")
+V1_BODY_LIMIT = 65_536
 
 
 def _error(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}})
 
 
-def _parse_positive_integer(value: str, label: str) -> int:
+def _is_review_path(path: str) -> bool:
+    return path.startswith("/api/drafts") or path.startswith("/api/v1/drafts")
+
+
+def _parse_positive_integer(value: str, label: str, *, maximum: int = SQLITE_MAX_INTEGER) -> int:
     if not isinstance(value, str) or not POSITIVE_INTEGER.fullmatch(value):
         raise ApiFailure(422, "invalid_request", f"{label} không hợp lệ")
-    if len(value) > len(str(SQLITE_MAX_INTEGER)):
+    if len(value) > len(str(maximum)):
         raise ApiFailure(422, "invalid_request", f"{label} không hợp lệ")
     parsed = int(value)
-    if parsed > SQLITE_MAX_INTEGER:
+    if parsed > maximum:
         raise ApiFailure(422, "invalid_request", f"{label} không hợp lệ")
     return parsed
 
 
-def _parse_list_query(request: Request) -> tuple[int, int | None]:
+def _parse_list_query(request: Request, *, maximum: int = SQLITE_MAX_INTEGER) -> tuple[int, int | None]:
     allowed = {"limit", "before_id"}
     if set(request.query_params) - allowed:
         raise ApiFailure(422, "invalid_request", "Query không hợp lệ")
@@ -49,11 +67,13 @@ def _parse_list_query(request: Request) -> tuple[int, int | None]:
         if len(request.query_params.getlist(key)) > 1:
             raise ApiFailure(422, "invalid_request", "Query không hợp lệ")
     raw_limit = request.query_params.get("limit", "20")
-    limit = _parse_positive_integer(raw_limit, "limit")
+    limit = _parse_positive_integer(raw_limit, "limit", maximum=maximum)
     if limit > 100:
         raise ApiFailure(422, "invalid_request", "limit không hợp lệ")
     raw_before = request.query_params.get("before_id")
-    before_id = _parse_positive_integer(raw_before, "before_id") if raw_before is not None else None
+    before_id = (
+        _parse_positive_integer(raw_before, "before_id", maximum=maximum) if raw_before is not None else None
+    )
     return limit, before_id
 
 
@@ -73,6 +93,17 @@ def _require_origin(request: Request, settings: Settings) -> None:
         raise ApiFailure(403, "forbidden", "Origin không được phép")
 
 
+async def _read_v1_json(request: Request) -> Any:
+    chunks: list[bytes] = []
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > V1_BODY_LIMIT:
+            raise ApiFailure(413, "request_too_large", "Nội dung yêu cầu quá lớn")
+        chunks.append(chunk)
+    return json.loads(b"".join(chunks))
+
+
 def create_app(
     settings: Settings,
     store: Any,
@@ -88,7 +119,7 @@ def create_app(
     @app.middleware("http")
     async def review_headers(request: Request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith("/api/drafts"):
+        if _is_review_path(request.url.path):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = JWT_HEADER
         return response
@@ -103,7 +134,7 @@ def create_app(
 
     @app.exception_handler(Exception)
     async def unexpected_handler(request: Request, _exc: Exception):
-        if request.url.path.startswith("/api/drafts"):
+        if _is_review_path(request.url.path):
             response = _error(503, "review_unavailable", "Dịch vụ duyệt tạm thời không sẵn sàng")
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = JWT_HEADER
@@ -162,12 +193,90 @@ def create_app(
             raise ApiFailure(422, "invalid_request", "Yêu cầu không hợp lệ") from exc
         return service.decide(parsed_id, principal, body)
 
+    @app.get("/api/v1/drafts", response_model=DraftPageV1)
+    def list_drafts_v1(
+        request: Request,
+        _principal: Principal = Depends(require_review_role),  # noqa: B008
+    ):
+        limit, before_id = _parse_list_query(request, maximum=JSON_SAFE_INTEGER)
+        return service.list_v1(limit=limit, before_id=before_id)
+
+    @app.get("/api/v1/drafts/{draft_id}", response_model=DraftDetailV1)
+    def get_draft_v1(
+        draft_id: str,
+        _principal: Principal = Depends(require_review_role),  # noqa: B008
+    ):
+        parsed_id = _parse_positive_integer(draft_id, "draft_id", maximum=JSON_SAFE_INTEGER)
+        return service.detail_v1(parsed_id)
+
+    @app.post(
+        "/api/v1/drafts/{draft_id}/selection",
+        response_model=SelectionView,
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {"schema": {"$ref": "#/components/schemas/SelectionSaveRequest"}}
+                },
+            }
+        },
+    )
+    async def save_selection_v1(
+        request: Request,
+        draft_id: str,
+        principal: Principal = Depends(require_review_role),  # noqa: B008
+    ):
+        parsed_id = _parse_positive_integer(draft_id, "draft_id", maximum=JSON_SAFE_INTEGER)
+        _require_origin(request, settings)
+        _require_json(request)
+        try:
+            body = SelectionSaveRequest.model_validate(await _read_v1_json(request))
+        except ApiFailure:
+            raise
+        except (json.JSONDecodeError, UnicodeDecodeError, ValidationError, TypeError, ValueError) as exc:
+            raise ApiFailure(422, "invalid_request", "Yêu cầu không hợp lệ") from exc
+        return service.save_selection_v1(parsed_id, principal, body)
+
+    @app.post(
+        "/api/v1/drafts/{draft_id}/decision",
+        response_model=DecisionResponseV1,
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {"schema": {"$ref": "#/components/schemas/DecisionRequestV1"}}
+                },
+            }
+        },
+    )
+    async def decide_draft_v1(
+        request: Request,
+        draft_id: str,
+        principal: Principal = Depends(require_review_role),  # noqa: B008
+    ):
+        parsed_id = _parse_positive_integer(draft_id, "draft_id", maximum=JSON_SAFE_INTEGER)
+        _require_origin(request, settings)
+        _require_json(request)
+        try:
+            body = DecisionRequestV1.model_validate(await _read_v1_json(request))
+        except ApiFailure:
+            raise
+        except (json.JSONDecodeError, UnicodeDecodeError, ValidationError, TypeError, ValueError) as exc:
+            raise ApiFailure(422, "invalid_request", "Yêu cầu không hợp lệ") from exc
+        return service.decide_v1(parsed_id, principal, body)
+
     default_openapi = app.openapi
 
     def openapi_with_manual_body_schema():
         schema = default_openapi()
         schema.setdefault("components", {}).setdefault("schemas", {})["DecisionRequest"] = (
             DecisionRequest.model_json_schema(ref_template="#/components/schemas/{model}")
+        )
+        schema["components"]["schemas"]["DecisionRequestV1"] = DecisionRequestV1.model_json_schema(
+            ref_template="#/components/schemas/{model}"
+        )
+        schema["components"]["schemas"]["SelectionSaveRequest"] = SelectionSaveRequest.model_json_schema(
+            ref_template="#/components/schemas/{model}"
         )
         return schema
 

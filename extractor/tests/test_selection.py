@@ -456,6 +456,148 @@ def test_read_transaction_keeps_old_snapshot_when_writer_commits_between_queries
     assert (new.review_version, new.selection_version, new.selected_indices) == (1, 1, (1,))
 
 
+def test_combined_detail_keeps_review_and_selection_in_one_old_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    db = tmp_path / "combined-interleave.sqlite"
+    draft_id = store.save_draft(db, make_draft(), created_by_subject="author")
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+    actor = store.Actor("reviewer", frozenset({"analyst"}))
+    original = store._load_effective_selection
+    writes: list[store.DraftSelectionResult] = []
+    entered = False
+
+    def interleave(*args, **kwargs):
+        nonlocal entered
+        if not entered:
+            entered = True
+            writes.append(
+                store.save_selection(
+                    db,
+                    draft_id,
+                    actor=actor,
+                    selected_indices=[1],
+                    expected_version=0,
+                )
+            )
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(store, "_load_effective_selection", interleave)
+    old = store.get_draft_with_selection(db, draft_id)
+    assert old["review"]["version"] == 0
+    assert old["selection"].review_version == 0
+    assert old["selection"].selected_indices == (0, 1)
+
+    current = store.get_draft_with_selection(db, draft_id)
+    assert current["review"]["version"] == 1
+    assert current["selection"].review_version == 1
+    assert current["selection"].selected_indices == (1,)
+
+
+def test_v2_list_adds_only_selection_version_and_requires_v2(tmp_path: Path):
+    db = tmp_path / "list-v2.sqlite"
+    draft_id = store.save_draft(db, make_draft(), created_by_subject="author")
+    store.save_selection(
+        db,
+        draft_id,
+        actor=store.Actor("reviewer", frozenset({"analyst"})),
+        selected_indices=[1],
+        expected_version=0,
+    )
+
+    page = store.list_drafts_with_selection_version(db, limit=20, before_id=None)
+    assert page["items"][0]["selection_version"] == 1
+    assert set(page["items"][0]) == {
+        "id",
+        "created_at",
+        "status",
+        "source",
+        "language",
+        "tlp",
+        "item_count",
+        "injection_warning",
+        "review_status",
+        "review_version",
+        "selection_version",
+    }
+
+    legacy = tmp_path / "list-v1.sqlite"
+    create_v1_database(legacy)
+    with pytest.raises(store.DraftSQLiteError, match="v2"):
+        store.list_drafts_with_selection_version(legacy, limit=20, before_id=None)
+
+
+def test_decision_with_selection_returns_committed_snapshot_and_legacy_shape(tmp_path: Path):
+    db = tmp_path / "decision-result.sqlite"
+    draft_id = store.save_draft(db, make_draft(), created_by_subject="author")
+    actor = store.Actor("reviewer", frozenset({"analyst"}))
+    saved = store.save_selection(db, draft_id, actor=actor, selected_indices=[1], expected_version=0)
+
+    result = store.decide_draft_with_selection(
+        db,
+        draft_id,
+        actor=actor,
+        decision="approve",
+        expected_version=saved.review_version,
+    )
+    assert result.selection_version == 1
+    assert result.selected_indices == (1,)
+    assert result.selected_sha256 == hashlib.sha256(b"[1]").hexdigest()
+
+    other = tmp_path / "legacy-result.sqlite"
+    other_id = store.save_draft(other, make_draft(), created_by_subject="author")
+    legacy = store.decide_draft(other, other_id, actor=actor, decision="approve", expected_version=0)
+    assert isinstance(legacy, store.DraftReviewResult)
+    assert set(legacy.__dict__) == {
+        "draft_id",
+        "status",
+        "version",
+        "decided_by_subject",
+        "decided_at",
+        "reason",
+    }
+
+
+def test_public_version_cap_blocks_changes_but_allows_valid_noop(tmp_path: Path):
+    db = tmp_path / "version-cap.sqlite"
+    draft_id = store.save_draft(db, make_draft(), created_by_subject="author")
+    actor = store.Actor("reviewer", frozenset({"analyst"}))
+    first = store.save_selection(
+        db, draft_id, actor=actor, selected_indices=[1], expected_version=0, max_version=1
+    )
+    noop = store.save_selection(
+        db, draft_id, actor=actor, selected_indices=[1], expected_version=1, max_version=1
+    )
+    assert noop.changed is False
+    assert first.selection_save_count == noop.selection_save_count == 1
+    before = db.read_bytes()
+
+    with pytest.raises(store.DraftConflictError, match="giới hạn"):
+        store.save_selection(
+            db, draft_id, actor=actor, selected_indices=[0], expected_version=1, max_version=1
+        )
+    with pytest.raises(store.DraftConflictError, match="giới hạn"):
+        store.decide_draft_with_selection(
+            db,
+            draft_id,
+            actor=actor,
+            decision="reject",
+            expected_version=1,
+            reason="x",
+            max_version=1,
+        )
+    assert db.read_bytes() == before
+
+
+def test_missing_database_has_specific_typed_error_for_v1_core(tmp_path: Path):
+    missing = tmp_path / "missing.sqlite"
+    with pytest.raises(store.DraftDatabaseNotFoundError):
+        store.get_draft_with_selection(missing, 1)
+    with pytest.raises(store.DraftDatabaseNotFoundError):
+        store.list_drafts_with_selection_version(missing, limit=20, before_id=None)
+
+
 @pytest.mark.parametrize("corruption", ["missing_event", "pointer", "hash", "eligibility"])
 def test_corrupt_selection_event_or_pointer_fails_closed_without_mutation(tmp_path: Path, corruption: str):
     db = tmp_path / f"corrupt-{corruption}.sqlite"

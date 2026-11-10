@@ -58,6 +58,10 @@ Cập nhật lần cuối: 11/11/2026
 - W05 selection core: schema SQLite v2 lưu snapshot IOC đủ điều kiện bằng audit riêng, migrate v0/v1 nguyên tử,
   version đồng thời và quyết định cuối tham chiếu snapshot/hash; payload/evidence không đổi. Đây là core-only,
   chưa tương thích API/UI hiện giới hạn version 0/1 và chưa nhập OpenCTI.
+- W05 selection API v1: thêm list/detail/save selection/decision dưới `/api/v1/drafts`; detail dùng một read
+  snapshot, mutation trả committed selection không reread, giới hạn số/body strict và giữ nguyên `/api/drafts`
+  legacy. Đã kiểm in-process với SQLite/JWT/JWKS tổng hợp; chưa nối UI, listener, Cloudflare/JWKS thật, lab,
+  OpenCTI hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

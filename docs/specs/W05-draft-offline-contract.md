@@ -192,5 +192,17 @@ thái payload `pending` để hai lớp trạng thái không bị nhập nhằng
 | OpenCTI | Chưa nối | Chỉ ghi sau quyết định hợp lệ; lưu ID/kết quả/lỗi và cho phép retry an toàn. |
 | Offset frontend | Chỉ code point Python | Dùng `Array.from` hoặc chuyển đổi có test với emoji/chữ ghép. |
 
-Các endpoint trong [`api-portal.md`](api-portal.md) vẫn là đề xuất. Hoàn thành tài liệu này không chứng minh W05,
-HTTP, xác thực, phê duyệt hoặc OpenCTI đã hoạt động.
+Ba endpoint `/api/drafts` legacy và bốn endpoint selection v1 trong [`api-portal.md`](api-portal.md) đã có test
+in-process. Các endpoint portal khác vẫn là đề xuất; tài liệu này không chứng minh browser/lab/OpenCTI hoạt động.
+
+## Adapter HTTP selection v1
+
+Core hiện có hai read helper v2-only: detail đọc draft/review/selection trong một read transaction và list chỉ
+thêm `selection_version` vào summary. `decide_draft_with_selection()` dùng chung transaction routine với
+`decide_draft()` nhưng trả thêm snapshot selection đã ghi final audit; wrapper cũ vẫn giữ sáu field legacy.
+Mutation nhận `max_version` để adapter v1 chặn trước khi ghi khi version mới vượt miền số an toàn JavaScript;
+no-op hợp lệ tại cap vẫn không ghi event/version.
+
+Contract HTTP chính xác nằm tại [`api-portal.md`](api-portal.md). `/api/drafts` legacy không đổi;
+`/api/v1/drafts` mới là lát cắt in-process và chưa chứng minh listener, browser, Cloudflare/JWKS thật, lab,
+OpenCTI hoặc production.

@@ -5,6 +5,7 @@ import json
 import math
 import socket
 import sqlite3
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -685,3 +686,267 @@ def test_raw_token_and_report_text_are_absent_from_errors_and_logs(api, caplog):
     assert marker not in combined
     assert "Synthetic report" not in combined
     assert "evil1.example" not in combined
+
+
+def test_v1_list_and_detail_expose_exact_atomic_selection_shape(api):
+    client, _db, draft_ids, private_key = api
+    headers = auth_headers(sign_token(private_key))
+    page = client.get("/api/v1/drafts", headers=headers)
+    assert page.status_code == 200
+    assert set(page.json()["items"][0]) == {
+        "id",
+        "created_at",
+        "status",
+        "source",
+        "language",
+        "tlp",
+        "item_count",
+        "injection_warning",
+        "review_status",
+        "review_version",
+        "selection_version",
+    }
+    detail = client.get(f"/api/v1/drafts/{draft_ids[0]}", headers=headers)
+    assert detail.status_code == 200
+    assert detail.json()["review"]["version"] == detail.json()["selection"]["review_version"] == 0
+    assert detail.json()["selection"]["selection_version"] == 0
+    assert detail.json()["selection"]["selected_indices"] == [0]
+    assert "draft_id" not in detail.json()["selection"]
+    assert detail.headers["cache-control"] == "no-store"
+
+
+def test_v1_selection_changed_noop_and_reject_return_committed_snapshots(api):
+    client, db, draft_ids, private_key = api
+    headers = {**auth_headers(sign_token(private_key)), "Origin": PORTAL_ORIGIN}
+    draft_id = draft_ids[0]
+    changed = client.post(
+        f"/api/v1/drafts/{draft_id}/selection",
+        headers=headers,
+        json={"expected_version": 0, "selected_indices": []},
+    )
+    assert changed.status_code == 200
+    assert changed.json()["changed"] is True
+    assert changed.json()["review_version"] == changed.json()["selection_version"] == 1
+    assert changed.json()["selected_indices"] == []
+    assert "draft_id" not in changed.json()
+    noop = client.post(
+        f"/api/v1/drafts/{draft_id}/selection",
+        headers=headers,
+        json={"expected_version": 1, "selected_indices": []},
+    )
+    assert noop.status_code == 200
+    assert noop.json()["changed"] is False
+    with sqlite3.connect(db) as connection:
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM draft_selection_audit WHERE draft_id=?", (draft_id,)
+            ).fetchone()[0]
+            == 1
+        )
+    empty_approve = client.post(
+        f"/api/v1/drafts/{draft_id}/decision",
+        headers=headers,
+        json={"decision": "approve", "expected_version": 1},
+    )
+    assert_error(empty_approve, 403, "forbidden")
+    rejected = client.post(
+        f"/api/v1/drafts/{draft_id}/decision",
+        headers=headers,
+        json={"decision": "reject", "expected_version": 1, "reason": "  Không đủ bằng chứng  "},
+    )
+    assert rejected.status_code == 200
+    assert rejected.json()["version"] == 2
+    assert rejected.json()["selection_version"] == 1
+    assert rejected.json()["selected_indices"] == []
+    assert rejected.json()["reason"] == "Không đủ bằng chứng"
+
+
+@pytest.mark.parametrize(
+    ("body", "status", "code"),
+    [
+        ({"expected_version": 0, "selected_indices": [0, 0]}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": [True]}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": None}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": "0"}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": [{}]}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": [-1]}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": [2**53]}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": [], "subject": "spoof"}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": list(range(1025))}, 422, "invalid_request"),
+        ({"expected_version": 0, "selected_indices": [999]}, 403, "forbidden"),
+    ],
+)
+def test_v1_selection_rejects_invalid_or_noneligible_input_without_mutation(api, body, status, code):
+    client, db, draft_ids, private_key = api
+    before = db.read_bytes()
+    response = client.post(
+        f"/api/v1/drafts/{draft_ids[0]}/selection",
+        headers={**auth_headers(sign_token(private_key)), "Origin": PORTAL_ORIGIN},
+        json=body,
+    )
+    assert_error(response, status, code)
+    assert db.read_bytes() == before
+
+
+def test_v1_streaming_body_limit_accepts_boundary_and_rejects_one_byte_over(api):
+    client, _db, draft_ids, private_key = api
+    headers = {
+        **auth_headers(sign_token(private_key)),
+        "Origin": PORTAL_ORIGIN,
+        "Content-Type": "application/json",
+    }
+    core = b'{"expected_version":0,"selected_indices":[0]}'
+    boundary = b" " * (65536 - len(core)) + core
+    accepted = client.post(
+        f"/api/v1/drafts/{draft_ids[0]}/selection",
+        headers=headers,
+        content=(part for part in (boundary[:1000], boundary[1000:])),
+    )
+    assert accepted.status_code == 200
+    oversized = b" " + boundary
+    rejected = client.post(
+        f"/api/v1/drafts/{draft_ids[1]}/selection",
+        headers=headers,
+        content=(part for part in (oversized[:13], oversized[13:])),
+    )
+    assert_error(rejected, 413, "request_too_large")
+
+
+def test_v1_missing_database_is_503_but_missing_row_is_404(tmp_path: Path, rsa_keys):
+    missing = tmp_path / "missing.sqlite"
+    private_key, jwk = rsa_keys
+    settings = make_settings(missing)
+    verifier = AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
+    client = TestClient(create_app(settings, store, verifier=verifier), raise_server_exceptions=False)
+    headers = auth_headers(sign_token(private_key))
+    assert_error(client.get("/api/v1/drafts", headers=headers), 503, "review_unavailable")
+    db = tmp_path / "exists.sqlite"
+    store.save_draft(db, build_regex_draft("x.example", source="x.txt", language="vi"))
+    settings = make_settings(db)
+    client = TestClient(
+        create_app(settings, store, verifier=AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))),
+        raise_server_exceptions=False,
+    )
+    assert_error(client.get("/api/v1/drafts/999", headers=headers), 404, "draft_not_found")
+
+
+def test_missing_database_keeps_legacy_decision_404_while_v1_decision_is_503(tmp_path: Path, rsa_keys):
+    missing = tmp_path / "missing-decision.sqlite"
+    private_key, jwk = rsa_keys
+    settings = make_settings(missing)
+    client = TestClient(
+        create_app(settings, store, verifier=AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))),
+        raise_server_exceptions=False,
+    )
+    headers = {**auth_headers(sign_token(private_key)), "Origin": PORTAL_ORIGIN}
+    body = {"decision": "reject", "expected_version": 0, "reason": "x"}
+
+    assert_error(client.post("/api/drafts/1/decision", headers=headers, json=body), 404, "draft_not_found")
+    assert_error(
+        client.post("/api/v1/drafts/1/decision", headers=headers, json=body),
+        503,
+        "review_unavailable",
+    )
+
+
+def test_v1_adapter_passes_json_safe_cap(api, monkeypatch):
+    client, _db, draft_ids, private_key = api
+    seen: list[tuple[str, int]] = []
+    original_save = store.save_selection
+    original_decide = store.decide_draft_with_selection
+
+    def save(*args, **kwargs):
+        seen.append(("save", kwargs["max_version"]))
+        return original_save(*args, **kwargs)
+
+    def decide(*args, **kwargs):
+        seen.append(("decide", kwargs["max_version"]))
+        return original_decide(*args, **kwargs)
+
+    monkeypatch.setattr(store, "save_selection", save)
+    monkeypatch.setattr(store, "decide_draft_with_selection", decide)
+    monkeypatch.setattr(store, "get_draft_with_selection", lambda *_args, **_kwargs: pytest.fail("reread"))
+    headers = {**auth_headers(sign_token(private_key)), "Origin": PORTAL_ORIGIN}
+    saved = client.post(
+        f"/api/v1/drafts/{draft_ids[0]}/selection",
+        headers=headers,
+        json={"expected_version": 0, "selected_indices": [0]},
+    )
+    assert saved.status_code == 200
+    decided = client.post(
+        f"/api/v1/drafts/{draft_ids[1]}/decision",
+        headers=headers,
+        json={"decision": "reject", "expected_version": 0, "reason": "x"},
+    )
+    assert decided.status_code == 200
+    assert seen == [("save", 2**53 - 1), ("decide", 2**53 - 1)]
+
+
+@pytest.mark.parametrize(
+    ("headers", "status", "code"),
+    [
+        ({}, 401, "authentication_required"),
+        ({"Content-Type": "application/json"}, 401, "authentication_required"),
+    ],
+)
+def test_v1_authentication_precedes_mutation_validation(api, headers, status, code):
+    client, _db, draft_ids, _private_key = api
+    response = client.post(f"/api/v1/drafts/{draft_ids[0]}/selection", headers=headers, content=b"not json")
+    assert_error(response, status, code)
+
+
+@pytest.mark.parametrize(
+    ("extra_headers", "status", "code"),
+    [
+        ({}, 403, "forbidden"),
+        ({"Origin": "https://wrong.test"}, 403, "forbidden"),
+        ({"Origin": PORTAL_ORIGIN}, 415, "unsupported_media_type"),
+        ({"Origin": PORTAL_ORIGIN, "Content-Type": "text/plain"}, 415, "unsupported_media_type"),
+    ],
+)
+def test_v1_mutations_require_origin_and_json(api, extra_headers, status, code):
+    client, _db, draft_ids, private_key = api
+    response = client.post(
+        f"/api/v1/drafts/{draft_ids[0]}/selection",
+        headers={**auth_headers(sign_token(private_key)), **extra_headers},
+        content=b"{}",
+    )
+    assert_error(response, status, code)
+
+
+def test_v1_output_above_json_safe_integer_fails_closed(api, monkeypatch):
+    client, _db, draft_ids, private_key = api
+    original = store.get_draft_with_selection
+
+    def unsafe(*args, **kwargs):
+        value = original(*args, **kwargs)
+        value["selection"] = replace(value["selection"], review_version=2**53)
+        return value
+
+    monkeypatch.setattr(store, "get_draft_with_selection", unsafe)
+    response = client.get(f"/api/v1/drafts/{draft_ids[0]}", headers=auth_headers(sign_token(private_key)))
+    assert_error(response, 503, "review_unavailable")
+
+
+def test_v1_mixed_schema_is_503_and_read_does_not_mutate(api):
+    client, db, _draft_ids, private_key = api
+    with sqlite3.connect(db) as connection:
+        connection.execute("PRAGMA user_version = 1")
+    before = db.read_bytes()
+    response = client.get("/api/v1/drafts", headers=auth_headers(sign_token(private_key)))
+    assert_error(response, 503, "review_unavailable")
+    assert db.read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/drafts?limit=1&limit=2",
+        "/api/v1/drafts?unknown=1",
+        f"/api/v1/drafts/{2**53}",
+    ],
+)
+def test_v1_rejects_repeated_unknown_or_unsafe_query_and_path(api, path):
+    client, _db, _draft_ids, private_key = api
+    response = client.get(path, headers=auth_headers(sign_token(private_key)))
+    assert_error(response, 422, "invalid_request")
