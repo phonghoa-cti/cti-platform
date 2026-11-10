@@ -1,0 +1,17 @@
+services:
+  connector-mitre:
+    image: ghcr.io/opencti-platform/opencti/connector-mitre:7.260811.0-lts.2@sha256:dbdafe0afb40c6a8efb4d74211b712213180543949355017c387723c14b8e8dc
+    platform: linux/amd64
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      OPENCTI_URL: http://opencti:8080
+      OPENCTI_TOKEN: ${CONNECTOR_MITRE_TOKEN:?CONNECTOR_MITRE_TOKEN is required}
+      CONNECTOR_ID: ${CONNECTOR_MITRE_ID:?CONNECTOR_MITRE_ID is required}
+      CONNECTOR_NAME: MITRE ATT&CK
+      CONNECTOR_SCOPE: mitre
+      CONNECTOR_LOG_LEVEL: info
+      MITRE_INTERVAL: "7"
+    depends_on:
+      opencti:
+        condition: service_healthy

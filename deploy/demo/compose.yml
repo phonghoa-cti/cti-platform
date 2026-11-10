@@ -1,0 +1,150 @@
+name: phonghoa-f01-demo
+
+services:
+  redis:
+    image: redis:8.10.1@sha256:8a1efc5f479551822b47424ccae982026b633f28818eab0387348120a61e10e2
+    platform: linux/amd64
+    restart: unless-stopped
+    mem_limit: 1g
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.21@sha256:cbf5cd6cfe5532a9c02d510c66d238bf329cd51fe3d57170a2a880aca7d47419
+    platform: linux/amd64
+    restart: unless-stopped
+    mem_limit: 4g
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    environment:
+      discovery.type: single-node
+      xpack.ml.enabled: "false"
+      xpack.security.enabled: "false"
+      thread_pool.search.queue_size: "5000"
+      logger.org.elasticsearch.discovery: ERROR
+      ES_JAVA_OPTS: -Xms${ELASTIC_MEMORY_SIZE:-4g} -Xmx${ELASTIC_MEMORY_SIZE:-4g}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS 'http://elasticsearch:9200/_cluster/health?wait_for_status=yellow' >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 50
+
+  minio:
+    image: pgsty/silo:RELEASE.2026-11-09T00-00-00Z@sha256:08ce1505b5eacefbad1ca07159b242b9ce045a11c2817e3bc257b25f77bbc02d
+    platform: linux/amd64
+    restart: unless-stopped
+    mem_limit: 256m
+    command: server /data
+    volumes:
+      - s3data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  rabbitmq:
+    image: rabbitmq:4.3.7-management@sha256:6e51f8f18e055d6dc3d94316db0073da64d811c2e19744661fae06b03c1d6fa8
+    platform: linux/amd64
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+      RABBITMQ_NODENAME: rabbit01@localhost
+    volumes:
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - amqpdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  opencti:
+    image: ghcr.io/opencti-platform/opencti/platform:7.260811.0-lts.2@sha256:035a2ef0248116c1b7f249bb27540fe940fca6bb3c781f9010385c26bbdeca3e
+    platform: linux/amd64
+    restart: unless-stopped
+    mem_limit: 3g
+    environment:
+      NODE_OPTIONS: --max-old-space-size=3072
+      APP__PORT: "8080"
+      APP__BASE_URL: http://127.0.0.1:${OPENCTI_PORT:-8080}
+      APP__ADMIN__EMAIL: ${OPENCTI_ADMIN_EMAIL:?OPENCTI_ADMIN_EMAIL is required}
+      APP__ADMIN__PASSWORD: ${OPENCTI_ADMIN_PASSWORD:?OPENCTI_ADMIN_PASSWORD is required}
+      APP__ADMIN__TOKEN: ${OPENCTI_ADMIN_TOKEN:?OPENCTI_ADMIN_TOKEN is required}
+      APP__ENCRYPTION_KEY: ${OPENCTI_ENCRYPTION_KEY:?OPENCTI_ENCRYPTION_KEY is required}
+      APP__HEALTH_ACCESS_KEY: ${OPENCTI_HEALTHCHECK_ACCESS_KEY:?OPENCTI_HEALTHCHECK_ACCESS_KEY is required}
+      REDIS__HOSTNAME: redis
+      REDIS__PORT: "6379"
+      ELASTICSEARCH__URL: http://elasticsearch:9200
+      ELASTICSEARCH__NUMBER_OF_REPLICAS: "0"
+      MINIO__ENDPOINT: minio
+      MINIO__PORT: "9000"
+      MINIO__USE_SSL: "false"
+      MINIO__ACCESS_KEY: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO__SECRET_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      RABBITMQ__HOSTNAME: rabbitmq
+      RABBITMQ__PORT: "5672"
+      RABBITMQ__PORT_MANAGEMENT: "15672"
+      RABBITMQ__MANAGEMENT_SSL: "false"
+      RABBITMQ__USERNAME: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
+      RABBITMQ__PASSWORD: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+      SMTP__HOSTNAME: localhost
+      SMTP__PORT: "25"
+      PROVIDERS__LOCAL__STRATEGY: LocalStrategy
+    ports:
+      - "127.0.0.1:${OPENCTI_PORT:-8080}:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-qO-",
+          "http://opencti:8080/health?health_access_key=${OPENCTI_HEALTHCHECK_ACCESS_KEY:?OPENCTI_HEALTHCHECK_ACCESS_KEY is required}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    image: ghcr.io/opencti-platform/opencti/worker:7.260811.0-lts.2@sha256:fe2aca80af54a2f0a35a76142ae0e57ce00afb23259ade34ddecb56ddfcd44bd
+    platform: linux/amd64
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      OPENCTI_URL: http://opencti:8080
+      OPENCTI_TOKEN: ${OPENCTI_ADMIN_TOKEN:?OPENCTI_ADMIN_TOKEN is required}
+    depends_on:
+      opencti:
+        condition: service_healthy
+
+volumes:
+  redisdata:
+  esdata:
+  s3data:
+  amqpdata:

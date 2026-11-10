@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-11-10T13:15:00Z",
+  "target_platform": "linux/amd64",
+  "opencti_release": {
+    "tag": "7.260811.0-lts.2",
+    "opencti_commit": "957087377304ea548fcd9f83a4ee2b025c855d9b",
+    "connectors_commit": "d50686be6f64eb2e91ac38b23c45d0460a210435"
+  },
+  "upstream_compose": {
+    "repository": "https://github.com/OpenCTI-Platform/docker",
+    "commit": "60285adb360e3823a334333ae4744255d8ac1821",
+    "docker_compose_sha256": "07cbdcb939610469d3d8b7b81cb0dd096634e922deed3fb4588cfe2b3935a2e2"
+  },
+  "images": [
+    {
+      "service": "opencti",
+      "image": "ghcr.io/opencti-platform/opencti/platform",
+      "tag": "7.260811.0-lts.2",
+      "index_digest": "sha256:035a2ef0248116c1b7f249bb27540fe940fca6bb3c781f9010385c26bbdeca3e",
+      "linux_amd64_digest": "sha256:337eecc16ccbffd8645cc6c8ec8013bfa749e71525ee14101814b393b1ff4660",
+      "source": "https://github.com/OpenCTI-Platform/opencti/releases/tag/7.260811.0-lts.2"
+    },
+    {
+      "service": "worker",
+      "image": "ghcr.io/opencti-platform/opencti/worker",
+      "tag": "7.260811.0-lts.2",
+      "index_digest": "sha256:fe2aca80af54a2f0a35a76142ae0e57ce00afb23259ade34ddecb56ddfcd44bd",
+      "linux_amd64_digest": "sha256:2360329ba6878bb3e76511403eb75488247dd83f032e22c7642d7b45e07cf661",
+      "source": "https://github.com/OpenCTI-Platform/opencti/releases/tag/7.260811.0-lts.2"
+    },
+    {
+      "service": "connector-mitre",
+      "image": "ghcr.io/opencti-platform/opencti/connector-mitre",
+      "tag": "7.260811.0-lts.2",
+      "index_digest": "sha256:dbdafe0afb40c6a8efb4d74211b712213180543949355017c387723c14b8e8dc",
+      "linux_amd64_digest": "sha256:cb23aada8a3a10b9908b62728df0eb0fec393a17202f48c91b6ecac6f2d034df",
+      "source": "https://github.com/OpenCTI-Platform/connectors/releases/tag/7.260811.0-lts.2"
+    },
+    {
+      "service": "connector-import-file-stix",
+      "image": "ghcr.io/opencti-platform/opencti/connector-import-file-stix",
+      "tag": "7.260811.0-lts.2",
+      "index_digest": "sha256:3feced71a5cea614bff5e3915b4d0896710c3c8a7f7aadf047461438b8442cb0",
+      "linux_amd64_digest": "sha256:6a0fb4068409076fe098a27a07ffed4a691ae6df270e161073e33c1abad69d96",
+      "source": "https://github.com/OpenCTI-Platform/connectors/releases/tag/7.260811.0-lts.2"
+    },
+    {
+      "service": "redis",
+      "image": "docker.io/library/redis",
+      "tag": "8.10.1",
+      "index_digest": "sha256:8a1efc5f479551822b47424ccae982026b633f28818eab0387348120a61e10e2",
+      "linux_amd64_digest": "sha256:5edb5f1591cd35076057573171f40e0439ec7fbbb38e04d56c0efae810d99d47",
+      "source": "https://hub.docker.com/_/redis"
+    },
+    {
+      "service": "elasticsearch",
+      "image": "docker.elastic.co/elasticsearch/elasticsearch",
+      "tag": "8.19.21",
+      "index_digest": "sha256:cbf5cd6cfe5532a9c02d510c66d238bf329cd51fe3d57170a2a880aca7d47419",
+      "linux_amd64_digest": "sha256:2b93783c2d1a0ade4d18cd6656fb4fe7a90890cc8a2ecd199eaa0f35a16be813",
+      "source": "https://www.elastic.co/guide/en/elasticsearch/reference/8.19/docker.html"
+    },
+    {
+      "service": "minio",
+      "image": "docker.io/pgsty/silo",
+      "tag": "RELEASE.2026-11-09T00-00-00Z",
+      "index_digest": "sha256:08ce1505b5eacefbad1ca07159b242b9ce045a11c2817e3bc257b25f77bbc02d",
+      "linux_amd64_digest": "sha256:47271709b91be7f607a26dfa6485be4921c07b5d277d0adea65f37e1919ad5e9",
+      "source": "https://hub.docker.com/r/pgsty/silo"
+    },
+    {
+      "service": "rabbitmq",
+      "image": "docker.io/library/rabbitmq",
+      "tag": "4.3.7-management",
+      "index_digest": "sha256:6e51f8f18e055d6dc3d94316db0073da64d811c2e19744661fae06b03c1d6fa8",
+      "linux_amd64_digest": "sha256:0b1463ed47510cde3c4df497271173ddecfd87b713e6605a382f3f402d2dda28",
+      "source": "https://hub.docker.com/_/rabbitmq"
+    }
+  ]
+}
