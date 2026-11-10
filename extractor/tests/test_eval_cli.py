@@ -500,3 +500,50 @@ def test_invalid_metadata_language_is_stable_and_preserves_output(tmp_path: Path
     assert output.read_text(encoding="utf-8") == "keep-me"
     assert "SOURCE_SECRET_MARKER" not in completed.stderr
     assert "Traceback" not in completed.stderr
+
+
+@pytest.mark.parametrize("config", ["C2", "C3"])
+@pytest.mark.parametrize(
+    "role",
+    [[], {}, None, False, 1, "unknown"],
+    ids=["list", "dict", "null", "bool", "number", "unknown-enum"],
+)
+def test_invalid_label_role_is_stable_and_preserves_output(tmp_path: Path, config: str, role: object):
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(
+        dataset,
+        "case-01",
+        "SOURCE_SECRET_MARKER",
+        [{"type": "domain", "value": "evil.example", "role": role}],
+    )
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    output = tmp_path / "result.json"
+    output.write_text("keep-me", encoding="utf-8")
+
+    completed = _run_cli(dataset, output, config, responses_dir=responses, tlp="TLP:CLEAR")
+
+    assert completed.returncode == 1
+    assert output.read_text(encoding="utf-8") == "keep-me"
+    assert "SOURCE_SECRET_MARKER" not in completed.stderr
+    assert "Traceback" not in completed.stderr
+
+
+@pytest.mark.parametrize("config", ["C2", "C3"])
+@pytest.mark.parametrize("role", ["attacker", "victim", "benign"])
+def test_valid_label_roles_remain_supported(tmp_path: Path, config: str, role: str):
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(
+        dataset,
+        "case-01",
+        "Synthetic document without an IOC.",
+        [{"type": "domain", "value": "evil.example", "role": role}],
+    )
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    output = tmp_path / "result.json"
+
+    completed = _run_cli(dataset, output, config, responses_dir=responses, tlp="TLP:CLEAR")
+
+    assert completed.returncode == 0, completed.stderr
+    assert output.exists()

@@ -74,7 +74,8 @@ def _validate_label_item(item: Any, path: Path, index: int) -> None:
         raise DatasetError(f"{path.name}: iocs[{index}] có value không hợp lệ") from exc
     if item["type"] != normalized.type.value:
         raise DatasetError(f"{path.name}: iocs[{index}] có type không khớp value")
-    if item["role"] not in {"attacker", "victim", "benign"}:
+    role = item["role"]
+    if not isinstance(role, str) or role not in {"attacker", "victim", "benign"}:
         raise DatasetError(f"{path.name}: iocs[{index}] có role không hợp lệ")
 
 
