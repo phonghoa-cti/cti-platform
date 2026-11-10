@@ -59,7 +59,13 @@ def create_counterfeit_current_database(db: Path, broken: str) -> None:
         else ("CHECK (review_status IN ('pending', 'approved', 'rejected')),CHECK (review_version >= 0),")
     )
     audit_unique = "" if broken == "audit_unique" else "UNIQUE"
-    audit_fk = "" if broken == "audit_fk" else "REFERENCES drafts(id)"
+    audit_fk = "" if broken in {"audit_fk", "audit_composite_fk"} else "REFERENCES drafts(id)"
+    audit_table_fk = (
+        ", FOREIGN KEY(draft_id, reason) REFERENCES drafts(id, created_by_subject)"
+        if broken == "audit_composite_fk"
+        else ""
+    )
+    drafts_parent_unique = "UNIQUE(id, created_by_subject)," if broken == "audit_composite_fk" else ""
     audit_action_check = "" if broken == "audit_action_check" else "CHECK (action IN ('approve', 'reject'))"
     connection = sqlite3.connect(db)
     try:
@@ -78,6 +84,7 @@ def create_counterfeit_current_database(db: Path, broken: str) -> None:
                 decided_by_subject TEXT,
                 decided_at TEXT,
                 decision_reason TEXT,
+                {drafts_parent_unique}
                 {drafts_checks}
                 CHECK (id > 0)
             );
@@ -93,6 +100,7 @@ def create_counterfeit_current_database(db: Path, broken: str) -> None:
                 previous_version INTEGER NOT NULL,
                 new_version INTEGER NOT NULL,
                 reason TEXT
+                {audit_table_fk}
             );
             PRAGMA user_version = 1;
             """
@@ -660,7 +668,14 @@ def test_queue_excludes_decided_drafts_but_get_keeps_them_readable(tmp_path: Pat
 
 @pytest.mark.parametrize(
     "broken",
-    ["draft_checks", "audit_unique", "audit_fk", "audit_action_check", "queue_index"],
+    [
+        "draft_checks",
+        "audit_unique",
+        "audit_fk",
+        "audit_composite_fk",
+        "audit_action_check",
+        "queue_index",
+    ],
 )
 def test_current_schema_with_matching_columns_but_broken_constraints_is_rejected_before_write(
     tmp_path: Path, broken: str

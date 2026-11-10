@@ -252,10 +252,11 @@ def _has_unique_draft_audit_index(connection: sqlite3.Connection) -> bool:
 
 
 def _has_audit_foreign_key(connection: sqlite3.Connection) -> bool:
-    return any(
-        row[2] == "drafts" and row[3] == "draft_id" and row[4] == "id"
-        for row in connection.execute("PRAGMA foreign_key_list(draft_audit)")
-    )
+    foreign_keys: dict[int, list[tuple[str, str, str]]] = {}
+    for row in connection.execute("PRAGMA foreign_key_list(draft_audit)"):
+        foreign_keys.setdefault(row[0], []).append((row[2], row[3], row[4]))
+
+    return len(foreign_keys) == 1 and next(iter(foreign_keys.values())) == [("drafts", "draft_id", "id")]
 
 
 def _has_queue_index(connection: sqlite3.Connection) -> bool:
