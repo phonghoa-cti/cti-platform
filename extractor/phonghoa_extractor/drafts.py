@@ -29,7 +29,7 @@ def build_regex_draft(
         raise ValueError("language phải là vi hoặc en")
     canonical_tlp = _canonical_tlp(tlp)
     raw_items = [_raw_item(text, ioc) for ioc in extract_iocs(text)]
-    grounded = ground_iocs([item for item in raw_items if item is not None], text)
+    grounded = ground_iocs(raw_items, text)
     findings = scan(text)
     return {
         "schema_version": "1.0",
@@ -60,10 +60,10 @@ def _canonical_tlp(tlp: str) -> str:
     return label
 
 
-def _raw_item(text: str, ioc: Ioc) -> dict[str, str] | None:
+def _raw_item(text: str, ioc: Ioc) -> dict[str, str]:
     quote = quote_for_ioc(text, ioc)
     if quote is None:
-        return None
+        return {"type": ioc.type.value, "value": ioc.value, "evidence": ""}
     evidence, _ = quote
     return {"type": ioc.type.value, "value": ioc.value, "evidence": evidence}
 

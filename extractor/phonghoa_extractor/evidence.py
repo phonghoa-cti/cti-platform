@@ -14,10 +14,11 @@ _EMAIL = re.compile(
     re.IGNORECASE,
 )
 _URL = re.compile(
-    r"\b(?:https?|hxxps?)(?::|\[:\])(?://|\[/\]\[/\])[^\s<>\"')]+",
+    r"\b[a-z][a-z0-9+.-]*(?::|\[:\])(?://|\[/\]\[/\])[^\s<>\"']+",
     re.IGNORECASE,
 )
 _HASH = re.compile(r"(?<![a-z0-9])[0-9a-f]{32,64}(?![a-z0-9])", re.IGNORECASE)
+_IPV6 = re.compile(r"(?<![a-z0-9:])[0-9a-f:]*:[0-9a-f:]+(?![a-z0-9:])", re.IGNORECASE)
 
 
 def find_ioc_occurrences(text: str, expected: Ioc) -> list[tuple[int, int]]:
@@ -35,10 +36,12 @@ def find_ioc_occurrences(text: str, expected: Ioc) -> list[tuple[int, int]]:
 
 def find_evidence_span(source_text: str, evidence: str, expected: Ioc) -> tuple[int, int] | None:
     """Tìm lần xuất hiện nguyên văn của quote có chứa đúng IOC, có biên token."""
+    ioc_spans = find_ioc_occurrences(source_text, expected)
     start = source_text.find(evidence)
     while start >= 0:
-        if find_ioc_occurrences(evidence, expected):
-            return start, start + len(evidence)
+        end = start + len(evidence)
+        if any(start <= token_start and token_end <= end for token_start, token_end in ioc_spans):
+            return start, end
         start = source_text.find(evidence, start + 1)
     return None
 
@@ -67,5 +70,7 @@ def _candidate_matches(text: str, ioc_type: IocType) -> Iterator[re.Match[str]]:
         yield from _EMAIL.finditer(text)
     elif ioc_type in (IocType.MD5, IocType.SHA1, IocType.SHA256):
         yield from _HASH.finditer(text)
+    elif ioc_type is IocType.IPV6:
+        yield from _IPV6.finditer(text)
     else:
         yield from _DOMAIN_OR_IP.finditer(text)

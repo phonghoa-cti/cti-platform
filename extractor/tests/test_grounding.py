@@ -1,3 +1,5 @@
+import pytest
+
 from phonghoa_extractor.grounding import ground_iocs, ground_techniques
 
 SOURCE = (
@@ -166,6 +168,44 @@ def test_repeated_evidence_uses_first_occurrence_that_contains_ioc():
 
     assert item.keep
     assert item.extra["span"] == (0, len(evidence))
+
+
+@pytest.mark.parametrize(
+    ("value", "source"),
+    [
+        ("evil.example", "Contact not-evil.example."),
+        ("45.137.21.9", "Contact 145.137.21.90."),
+        ("a" * 32, "b" + "a" * 32 + "c"),
+    ],
+)
+def test_cut_quote_is_rejected_when_source_token_boundary_is_invalid(value, source):
+    [item] = ground_iocs([{"value": value, "evidence": value}], source)
+
+    assert not item.keep
+    assert item.status == "bia"
+    assert item.extra["span"] is None
+
+
+def test_cut_quote_skips_invalid_occurrence_and_selects_later_bounded_one():
+    source = "not-evil.example then evil.example"
+
+    [item] = ground_iocs([{"value": "evil.example", "evidence": "evil.example"}], source)
+
+    assert item.keep
+    assert item.extra["span"] == (22, 34)
+    start, end = item.extra["span"]
+    assert source[start:end] == item.evidence
+
+
+def test_ipv6_evidence_is_grounded_on_original_source():
+    source = "Host 2606:4700:4700::1111"
+
+    [item] = ground_iocs([{"value": "2606:4700:4700::1111", "evidence": source}], source)
+
+    assert not item.keep
+    assert item.status == "allowlist"
+    assert item.note == "hạ tầng hợp pháp, mặc định bỏ chọn"
+    assert item.extra["span"] == (0, len(source))
 
 
 def test_techniques_must_exist_in_attack():

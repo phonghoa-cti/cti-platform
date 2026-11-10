@@ -4,7 +4,7 @@ CLI này đọc một file `.txt` UTF-8, dùng regex C1 hiện có, kiểm bằn
 `status=pending` để analyst duyệt. Công cụ không gọi mạng, LLM, OpenCTI hoặc SQLite.
 
 ```powershell
-python extractor\draft\run.py `
+.\.venv\Scripts\python.exe extractor\draft\run.py `
   --input .\bao-cao.txt `
   --output .\draft.json `
   --language vi `

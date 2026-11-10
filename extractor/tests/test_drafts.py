@@ -4,6 +4,7 @@ import hashlib
 
 import pytest
 
+from phonghoa_core.extract import extract_iocs
 from phonghoa_extractor.drafts import build_regex_draft
 
 
@@ -91,6 +92,38 @@ def test_empty_text_produces_empty_pending_draft():
     assert draft["status"] == "pending"
     assert draft["items"] == []
     assert draft["source"]["sha256"] == hashlib.sha256(b"").hexdigest()
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Download hxxps://evil(.)example/Path.", "https://evil.example/Path"),
+        ("Download ftp://evil.example/file.", "ftp://evil.example/file"),
+    ],
+)
+def test_draft_preserves_url_forms_supported_by_core_extractor(text, expected):
+    assert [ioc.value for ioc in extract_iocs(text)] == [expected]
+
+    draft = build_regex_draft(text, source="parity.txt", language="en")
+
+    assert [item["value"] for item in draft["items"]] == [expected]
+    assert draft["items"][0]["keep"]
+    start, end = draft["items"][0]["span"]
+    assert text[start:end] == draft["items"][0]["evidence"]
+
+
+def test_extracted_ioc_without_locatable_quote_is_kept_as_rejected_item(monkeypatch):
+    monkeypatch.setattr("phonghoa_extractor.drafts.quote_for_ioc", lambda *_: None)
+
+    draft = build_regex_draft("Contact evil.example.", source="mismatch.txt", language="en")
+
+    assert len(draft["items"]) == 1
+    [item] = draft["items"]
+    assert item["value"] == "evil.example"
+    assert not item["keep"]
+    assert item["status"] == "bia"
+    assert item["span"] is None
+    assert item["warning"] == "thiếu evidence nguyên văn"
 
 
 @pytest.mark.parametrize("language", ["fr", "", None])
