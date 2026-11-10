@@ -150,6 +150,41 @@ describe("draft review application states", () => {
     expect(screen.queryByText("second.txt", { selector: "dd" })).not.toBeInTheDocument();
   });
 
+  it("keeps a valid decision recorded when the following refresh fails", async () => {
+    const user = userEvent.setup();
+    const decide = vi.fn().mockResolvedValue({
+      draft_id: regular.id,
+      status: "approved",
+      version: 1,
+      decided_by_subject: "analyst-sub",
+      decided_at: "2026-11-11T01:02:03+00:00",
+      reason: null,
+    });
+    const detail = vi.fn()
+      .mockResolvedValueOnce(pendingDetail)
+      .mockRejectedValueOnce(new ApiClientError("network"))
+      .mockResolvedValueOnce({
+        ...pendingDetail,
+        review: { ...pendingDetail.review, status: "approved", version: 1, decided_by_subject: "analyst-sub", decided_at: "2026-11-11T01:02:03+00:00" },
+      });
+    const draftApi = api({ detail, decide });
+    render(<DraftReviewApp mode="api" api={draftApi} />);
+    const approve = await screen.findByRole("button", { name: "Duyệt bản nháp" });
+
+    await user.click(approve);
+
+    expect(await screen.findByRole("status")).toHaveTextContent("đã được duyệt cục bộ");
+    expect(screen.getByRole("alert")).toHaveTextContent("đã được ghi nhưng chưa tải lại được trạng thái");
+    expect(screen.getByRole("button", { name: "Duyệt bản nháp" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Duyệt bản nháp" }));
+    expect(decide).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Tải lại trạng thái" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    expect(screen.getByText("Đã duyệt")).toBeInTheDocument();
+    expect(decide).toHaveBeenCalledTimes(1);
+  });
+
   it("requires a trimmed rejection reason and sends it with expected version", async () => {
     const user = userEvent.setup();
     const draftApi = api({

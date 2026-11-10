@@ -51,15 +51,18 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   const [queueError, setQueueError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [decisionRefreshError, setDecisionRefreshError] = useState<string | null>(null);
   const [decisionSuccess, setDecisionSuccess] = useState<"approved" | "rejected" | null>(null);
   const [queueAttempt, setQueueAttempt] = useState(0);
   const [detailAttempt, setDetailAttempt] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [sending, setSending] = useState(false);
+  const [refreshingDecision, setRefreshingDecision] = useState(false);
   const [decisionBlocked, setDecisionBlocked] = useState(false);
   const decisionLock = useRef(false);
   const submittedVersionRef = useRef<string | null>(null);
   const selectedIdRef = useRef<number | null>(null);
+  const recordedDecisionRef = useRef<{ id: number; status: "approved" | "rejected" } | null>(null);
   const messages = locale === "vi" ? vi : en;
 
   const loadQueue = useCallback(async (reset: boolean) => {
@@ -111,21 +114,24 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
   const retryQueue = () => {
     selectedIdRef.current = null;
     submittedVersionRef.current = null;
+    recordedDecisionRef.current = null;
     setQueue(null); setQueueError(null); setSelectedId(null); setDetail(null); setDetailError(null);
-    setDecisionError(null); setDecisionSuccess(null); setDecisionBlocked(false);
+    setDecisionError(null); setDecisionRefreshError(null); setDecisionSuccess(null); setDecisionBlocked(false);
     setQueueAttempt((value) => value + 1);
   };
   const selectDraft = (id: number) => {
     if (decisionLock.current) return;
     selectedIdRef.current = id;
     submittedVersionRef.current = null;
-    setDetail(null); setDetailError(null); setDecisionError(null); setDecisionSuccess(null); setDecisionBlocked(false);
+    recordedDecisionRef.current = null;
+    setDetail(null); setDetailError(null); setDecisionError(null); setDecisionRefreshError(null); setDecisionSuccess(null); setDecisionBlocked(false);
     setSelectedId(id);
     if (mode === "sample") setDetail(sampleDetails.find((draft) => draft.id === id) ?? null);
   };
   const retryDetail = () => {
     submittedVersionRef.current = null;
-    setDetail(null); setDetailError(null); setDecisionError(null); setDecisionSuccess(null); setDecisionBlocked(false);
+    recordedDecisionRef.current = null;
+    setDetail(null); setDetailError(null); setDecisionError(null); setDecisionRefreshError(null); setDecisionSuccess(null); setDecisionBlocked(false);
     setDetailAttempt((value) => value + 1);
   };
 
@@ -139,27 +145,57 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
     finally { setLoadingMore(false); }
   };
 
+  const refreshDecisionState = async (draftId: number) => {
+    const [freshDetail, freshPage] = await Promise.all([api.detail(draftId), api.list()]);
+    setQueue(freshPage.items); setNextBeforeId(freshPage.next_before_id);
+    if (selectedIdRef.current === draftId) setDetail(freshDetail);
+  };
+
+  const retryDecisionRefresh = async () => {
+    const recorded = recordedDecisionRef.current;
+    if (!recorded || refreshingDecision || decisionLock.current) return;
+    decisionLock.current = true;
+    setRefreshingDecision(true); setDecisionRefreshError(null);
+    try {
+      await refreshDecisionState(recorded.id);
+    } catch {
+      setDecisionRefreshError(messages.decisionRefreshFailed);
+    } finally {
+      decisionLock.current = false;
+      setRefreshingDecision(false);
+    }
+  };
+
   const decide = async (request: DecisionRequest) => {
     if (mode !== "api" || !detail || !("review" in detail) || detail.review.status !== "pending" || decisionLock.current) return;
     const decisionDraftId = detail.id;
     const submittedVersion = `${decisionDraftId}:${detail.review.version}`;
     if (submittedVersionRef.current === submittedVersion) return;
     submittedVersionRef.current = submittedVersion;
-    decisionLock.current = true; setSending(true); setDecisionError(null); setDecisionSuccess(null);
+    decisionLock.current = true; setSending(true); setDecisionError(null); setDecisionRefreshError(null); setDecisionSuccess(null);
+    let result: Awaited<ReturnType<DraftApi["decide"]>>;
     try {
-      const result = await api.decide(decisionDraftId, request);
+      result = await api.decide(decisionDraftId, request);
       if (result.draft_id !== decisionDraftId) throw new ApiClientError("service");
-      const [freshDetail, freshPage] = await Promise.all([api.detail(decisionDraftId), api.list()]);
-      setQueue(freshPage.items); setNextBeforeId(freshPage.next_before_id);
       if (selectedIdRef.current === decisionDraftId) {
-        setDetail(freshDetail);
         setDecisionSuccess(result.status);
       }
     } catch (error) {
       submittedVersionRef.current = null;
       setDecisionError(safeErrorMessage(error, "decision", locale));
       if (error instanceof ApiClientError && error.status === 409) setDecisionBlocked(true);
-    } finally { decisionLock.current = false; setSending(false); }
+      decisionLock.current = false; setSending(false);
+      return;
+    }
+
+    recordedDecisionRef.current = { id: decisionDraftId, status: result.status };
+    try {
+      await refreshDecisionState(decisionDraftId);
+    } catch {
+      setDecisionRefreshError(messages.decisionRefreshFailed);
+    } finally {
+      decisionLock.current = false; setSending(false);
+    }
   };
 
   return <div className="app-shell">
@@ -185,16 +221,16 @@ export function DraftReviewApp({ mode = "api", api = draftApi, loadDrafts = load
         {queue && queue.length > 0 && <div className="workspace-grid">
           <section className="panel queue-panel" aria-labelledby="queue-title">
             <header className="panel-header"><h2 id="queue-title">{messages.queueTitle}</h2><span>{queue.length} {messages.loadedDrafts}</span></header>
-            <div className="queue-list">{queue.map((draft) => <button type="button" key={draft.id} disabled={sending} className={`queue-row ${draft.id === selectedId ? "is-selected" : ""}`} aria-pressed={draft.id === selectedId} aria-label={`${messages.draftNumber} ${draft.id}: ${draft.source.name}`} onClick={() => selectDraft(draft.id)}>
+            <div className="queue-list">{queue.map((draft) => <button type="button" key={draft.id} disabled={sending || refreshingDecision} className={`queue-row ${draft.id === selectedId ? "is-selected" : ""}`} aria-pressed={draft.id === selectedId} aria-label={`${messages.draftNumber} ${draft.id}: ${draft.source.name}`} onClick={() => selectDraft(draft.id)}>
               <span className="queue-id">#{draft.id}</span><span className="queue-source">{draft.source.name}</span><span className="queue-meta">{draft.item_count} {messages.items} · {draft.tlp}</span>
               <span className={`queue-status ${draft.injection_warning ? "has-warning" : ""}`}>{draft.injection_warning ? messages.injectionShort : messages.pending}</span>
             </button>)}</div>
-            {nextBeforeId !== null && <button className="load-more" type="button" disabled={loadingMore || sending} onClick={() => void loadMore()}>{loadingMore ? messages.loadingMore : messages.loadMore}</button>}
+            {nextBeforeId !== null && <button className="load-more" type="button" disabled={loadingMore || sending || refreshingDecision} onClick={() => void loadMore()}>{loadingMore ? messages.loadingMore : messages.loadMore}</button>}
           </section>
           <div className="detail-state">
             {mode === "api" && selectedId !== null && !detail && !detailError && <div className="state-panel" role="status" aria-live="polite">{messages.detailLoading}</div>}
             {detailError && <div className="state-panel error-panel" role="alert"><strong>{detailError}</strong><button type="button" onClick={retryDetail}>{messages.retry}</button></div>}
-            {detail && <DraftReview draft={detail} locale={locale} mode={mode} sending={sending} decisionBlocked={decisionBlocked} decisionError={decisionError} decisionSuccess={decisionSuccess} onDecide={decide} onReload={retryDetail} />}
+            {detail && <DraftReview draft={detail} locale={locale} mode={mode} sending={sending} decisionBlocked={decisionBlocked} decisionError={decisionError} decisionRefreshError={decisionRefreshError} decisionSuccess={decisionSuccess} refreshingDecision={refreshingDecision} onDecide={decide} onReload={retryDetail} onRefreshDecision={retryDecisionRefresh} />}
           </div>
         </div>}
       </div>

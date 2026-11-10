@@ -75,5 +75,7 @@
   "sendingDecision": "Sending…",
   "approvedLocally": "The draft was approved locally; it has not been imported into OpenCTI.",
   "rejectedLocally": "The draft was rejected locally; it has not been imported into OpenCTI.",
-  "reloadDetail": "Reload detail"
+  "reloadDetail": "Reload detail",
+  "decisionRefreshFailed": "The decision was recorded, but the latest status could not be loaded. Reload the status.",
+  "reloadDecisionStatus": "Reload status"
 }

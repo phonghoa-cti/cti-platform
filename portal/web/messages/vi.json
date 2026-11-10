@@ -75,5 +75,7 @@
   "sendingDecision": "Đang gửi…",
   "approvedLocally": "Bản nháp đã được duyệt cục bộ; chưa nhập OpenCTI.",
   "rejectedLocally": "Bản nháp đã bị từ chối cục bộ; chưa nhập OpenCTI.",
-  "reloadDetail": "Tải lại chi tiết"
+  "reloadDetail": "Tải lại chi tiết",
+  "decisionRefreshFailed": "Quyết định đã được ghi nhưng chưa tải lại được trạng thái. Hãy tải lại.",
+  "reloadDecisionStatus": "Tải lại trạng thái"
 }

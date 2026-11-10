@@ -51,7 +51,9 @@ Cập nhật lần cuối: 11/11/2026
 - WEB-W05-API-CLIENT: `/duyet` gọi ba route `/api/drafts*` tương đối cùng origin với parser runtime tách summary,
   detail và decision; phân trang cursor 20 dòng, tải chi tiết có chống response cũ, keep chỉ đọc, quyết định dùng
   `expected_version` và xử lý lỗi an toàn; khóa đổi draft/tải thêm trong lúc gửi và guard kết quả theo draft đang
-  chọn để không gắn decision cũ lên draft khác. `/duyet/mau` giữ fixture tổng hợp có nhãn và không POST. 48 test
+  chọn để không gắn decision cũ lên draft khác. POST quyết định và refresh hiển thị là hai pha: nếu POST đã ghi
+  nhưng refresh lỗi, UI vẫn khóa version cũ, báo success và cho tải lại trạng thái mà không POST lại.
+  `/duyet/mau` giữ fixture tổng hợp có nhãn và không POST. 49 test
   unit/UI, typecheck, lint và production build đạt cục bộ; fetch được giả ở biên test, chưa kiểm browser nối
   FastAPI/auth/routing thật và chưa kiểm trực tiếp viewport 360/1440.
 

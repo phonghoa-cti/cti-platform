@@ -22,16 +22,19 @@ function reviewLabel(status: "pending" | "approved" | "rejected", messages: Mess
   return messages.reviewPending;
 }
 
-export function DraftReview({ draft, locale, mode = "sample", sending = false, decisionBlocked = false, decisionError = null, decisionSuccess = null, onDecide, onReload }: {
+export function DraftReview({ draft, locale, mode = "sample", sending = false, decisionBlocked = false, decisionError = null, decisionRefreshError = null, decisionSuccess = null, refreshingDecision = false, onDecide, onReload, onRefreshDecision }: {
   draft: Draft | DraftDetail;
   locale: Locale;
   mode?: "api" | "sample";
   sending?: boolean;
   decisionBlocked?: boolean;
   decisionError?: string | null;
+  decisionRefreshError?: string | null;
   decisionSuccess?: "approved" | "rejected" | null;
+  refreshingDecision?: boolean;
   onDecide?: (request: DecisionRequest) => Promise<void>;
   onReload?: () => void;
+  onRefreshDecision?: () => Promise<void>;
 }) {
   const messages: Messages = locale === "vi" ? vi : en;
   const [activeItem, setActiveItem] = useState<number | null>(null);
@@ -188,6 +191,8 @@ export function DraftReview({ draft, locale, mode = "sample", sending = false, d
         {decisionError && <p className="decision-message error-text" role="alert">{decisionError}</p>}
         {decisionBlocked && <button className="decision-reload" type="button" onClick={onReload}>{messages.reloadDetail}</button>}
         {decisionSuccess && <p className="decision-message success-text" role="status" aria-live="polite">{decisionSuccess === "approved" ? messages.approvedLocally : messages.rejectedLocally}</p>}
+        {decisionRefreshError && <p className="decision-message error-text" role="alert">{decisionRefreshError}</p>}
+        {decisionRefreshError && <button className="decision-reload" type="button" disabled={refreshingDecision} onClick={() => void onRefreshDecision?.()}>{refreshingDecision ? messages.loading : messages.reloadDecisionStatus}</button>}
       </footer>}
     </div>
   );
