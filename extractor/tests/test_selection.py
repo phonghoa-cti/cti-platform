@@ -300,3 +300,190 @@ def test_concurrent_save_and_approve_have_one_coherent_winner(tmp_path: Path):
     selection_rows = audit_snapshot(db, "draft_selection_audit")
     final_rows = audit_snapshot(db, "draft_audit")
     assert (len(selection_rows), len(final_rows)) in {(1, 0), (0, 1)}
+
+
+@pytest.mark.parametrize(
+    ("status", "version", "reader"),
+    [("pending", 3, "get"), ("pending", 3, "list"), ("approved", 2, "get")],
+)
+def test_v1_reader_rejects_invalid_review_version(tmp_path: Path, status: str, version: int, reader: str):
+    db = tmp_path / "v1-invalid-version.sqlite"
+    create_v1_database(db)
+    with sqlite3.connect(db) as connection:
+        connection.execute(
+            "UPDATE drafts SET review_status=?, review_version=?, decided_by_subject=?, decided_at=?",
+            (
+                status,
+                version,
+                "reviewer" if status != "pending" else None,
+                "2026-11-11T00:00:00+00:00" if status != "pending" else None,
+            ),
+        )
+    before = db.read_bytes()
+
+    with pytest.raises(store.DraftStoreError, match="review"):
+        if reader == "get":
+            store.get_draft(db, 1)
+        else:
+            store.list_drafts(db)
+
+    assert db.read_bytes() == before
+
+
+def test_v1_reader_accepts_only_valid_pending_and_terminal_versions(tmp_path: Path):
+    pending = tmp_path / "v1-pending.sqlite"
+    create_v1_database(pending)
+    assert store.get_draft(pending, 1)["review"]["version"] == 0
+    assert store.list_drafts(pending)["items"][0]["review_version"] == 0
+
+    terminal = tmp_path / "v1-terminal.sqlite"
+    create_v1_database(terminal)
+    with sqlite3.connect(terminal) as connection:
+        connection.execute(
+            "UPDATE drafts SET review_status='approved', review_version=1, "
+            "decided_by_subject='reviewer', decided_at='2026-11-11T00:00:00+00:00'"
+        )
+    assert store.get_draft(terminal, 1)["review"] == {
+        "status": "approved",
+        "version": 1,
+        "created_by_subject": "author",
+        "decided_by_subject": "reviewer",
+        "decided_at": "2026-11-11T00:00:00+00:00",
+        "reason": None,
+    }
+
+
+def test_v2_reader_accepts_multiple_selection_saves(tmp_path: Path):
+    db = tmp_path / "v2-multiple-saves.sqlite"
+    draft_id = store.save_draft(db, make_draft(), created_by_subject="author")
+    actor = store.Actor("reviewer", frozenset({"analyst"}))
+    first = store.save_selection(db, draft_id, actor=actor, selected_indices=[1], expected_version=0)
+    second = store.save_selection(
+        db, draft_id, actor=actor, selected_indices=[0], expected_version=first.review_version
+    )
+    assert (second.review_version, second.selection_version, second.selected_indices) == (2, 2, (0,))
+    assert store.get_draft(db, draft_id)["review"]["version"] == 2
+    assert store.get_effective_selection(db, draft_id).selection_version == 2
+
+
+@pytest.mark.parametrize(
+    "weakness",
+    [
+        "selection_version_unique",
+        "review_version_unique",
+        "actor_subject",
+        "at",
+        "selected_indices_json",
+    ],
+)
+def test_counterfeit_v2_selection_schema_is_rejected_without_repair(tmp_path: Path, weakness: str):
+    db = tmp_path / f"counterfeit-{weakness}.sqlite"
+    store.save_draft(db, make_draft(), created_by_subject="author")
+    with sqlite3.connect(db) as connection:
+        ddl = connection.execute(
+            "SELECT sql FROM sqlite_master WHERE name='draft_selection_audit'"
+        ).fetchone()[0]
+        if weakness.endswith("_unique"):
+            column = weakness.removesuffix("_unique")
+            ddl = ddl.replace(
+                f"UNIQUE(draft_id, {column})",
+                f"UNIQUE(draft_id, {column}, actor_subject DESC)",
+            )
+        else:
+            ddl = ddl.replace(f"{weakness} TEXT NOT NULL", f"{weakness} TEXT")
+        connection.execute("DROP TABLE draft_selection_audit")
+        connection.execute(ddl)
+        connection.execute(
+            "CREATE INDEX idx_draft_selection_audit_draft_version "
+            "ON draft_selection_audit(draft_id, selection_version DESC)"
+        )
+    before = db.read_bytes()
+
+    with pytest.raises(store.DraftSQLiteError, match="Schema"):
+        store.migrate_store(db)
+
+    assert db.read_bytes() == before
+
+
+def test_v2_schema_accepts_exact_unique_keys_with_desc_order(tmp_path: Path):
+    db = tmp_path / "unique-desc.sqlite"
+    store.save_draft(db, make_draft(), created_by_subject="author")
+    with sqlite3.connect(db) as connection:
+        ddl = connection.execute(
+            "SELECT sql FROM sqlite_master WHERE name='draft_selection_audit'"
+        ).fetchone()[0]
+        ddl = ddl.replace(
+            "UNIQUE(draft_id, selection_version)",
+            "UNIQUE(draft_id, selection_version DESC)",
+        ).replace(
+            "UNIQUE(draft_id, review_version)",
+            "UNIQUE(draft_id, review_version DESC)",
+        )
+        connection.execute("DROP TABLE draft_selection_audit")
+        connection.execute(ddl)
+        connection.execute(
+            "CREATE INDEX idx_draft_selection_audit_draft_version "
+            "ON draft_selection_audit(draft_id, selection_version DESC)"
+        )
+
+    store.migrate_store(db)
+    assert store.get_effective_selection(db, 1).selection_version == 0
+
+
+def test_read_transaction_keeps_old_snapshot_when_writer_commits_between_queries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    db = tmp_path / "interleave.sqlite"
+    store.save_draft(db, make_draft(), created_by_subject="author")
+    with sqlite3.connect(db) as connection:
+        assert connection.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+    actor = store.Actor("reviewer", frozenset({"analyst"}))
+    original = store._load_effective_selection
+    writes: list[store.DraftSelectionResult] = []
+    entered = False
+
+    def interleave(*args, **kwargs):
+        nonlocal entered
+        if not entered:
+            entered = True
+            writes.append(store.save_selection(db, 1, actor=actor, selected_indices=[1], expected_version=0))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(store, "_load_effective_selection", interleave)
+    old = store.get_effective_selection(db, 1)
+    assert (old.review_version, old.selection_version, old.selected_indices) == (0, 0, (0, 1))
+    new = store.get_effective_selection(db, 1)
+    assert (new.review_version, new.selection_version, new.selected_indices) == (1, 1, (1,))
+
+
+@pytest.mark.parametrize("corruption", ["missing_event", "pointer", "hash", "eligibility"])
+def test_corrupt_selection_event_or_pointer_fails_closed_without_mutation(tmp_path: Path, corruption: str):
+    db = tmp_path / f"corrupt-{corruption}.sqlite"
+    draft_id = store.save_draft(db, make_draft(), created_by_subject="author")
+    store.save_selection(
+        db,
+        draft_id,
+        actor=store.Actor("reviewer", frozenset({"analyst"})),
+        selected_indices=[1],
+        expected_version=0,
+    )
+    with sqlite3.connect(db) as connection:
+        if corruption == "missing_event":
+            connection.execute("DELETE FROM draft_selection_audit")
+        elif corruption == "pointer":
+            connection.execute("UPDATE drafts SET review_version=2, selection_version=2")
+        elif corruption == "hash":
+            connection.execute("UPDATE draft_selection_audit SET selected_sha256=?", ("0" * 64,))
+        else:
+            serialized = "[2]"
+            digest = hashlib.sha256(serialized.encode()).hexdigest()
+            connection.execute(
+                "UPDATE draft_selection_audit SET selected_indices_json=?, selected_sha256=?",
+                (serialized, digest),
+            )
+    before = db.read_bytes()
+
+    with pytest.raises(store.DraftSQLiteError):
+        store.get_effective_selection(db, draft_id)
+
+    assert db.read_bytes() == before

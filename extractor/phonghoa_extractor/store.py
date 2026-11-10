@@ -313,7 +313,7 @@ def _has_unique_index(connection: sqlite3.Connection, table: str, columns: list[
     for row in connection.execute(f'PRAGMA index_list("{table}")'):
         _, name, unique, _, partial = row
         if unique == 1 and partial == 0:
-            actual = [column for column, desc in _index_columns(connection, name) if desc == 0]
+            actual = [column for column, _ in _index_columns(connection, name)]
             if actual == columns:
                 return True
     return False
@@ -453,6 +453,9 @@ def _validate_current_schema(connection: sqlite3.Connection) -> None:
         raise DraftSQLiteError("Schema draft_selection_audit bị hỏng hoặc không được hỗ trợ")
     _validate_common_review_schema(connection, drafts_info, audit_info)
     selection_sql = _table_sql(connection, "draft_selection_audit")
+    required_selection_columns = SELECTION_AUDIT_COLUMNS - {"id"}
+    if any(selection_info[column][3] != 1 for column in required_selection_columns):
+        raise DraftSQLiteError("Schema selection audit thiếu NOT NULL bắt buộc")
     selection_version = drafts_info["selection_version"]
     if selection_version[3] != 1 or selection_version[4] != "0":
         raise DraftSQLiteError("Schema selection_version thiếu NOT NULL/DEFAULT")
@@ -535,7 +538,7 @@ def _validate_common_review_schema(
         raise DraftSQLiteError("Schema draft_audit thiếu UNIQUE/FK draft_id")
 
 
-def _schema_mode(connection: sqlite3.Connection) -> Literal["legacy", "current"]:
+def _schema_mode(connection: sqlite3.Connection) -> Literal["legacy", "v1", "current"]:
     user_version = connection.execute("PRAGMA user_version").fetchone()[0]
     if user_version > STORE_SCHEMA_VERSION:
         raise DraftSQLiteError(f"Phiên bản database {user_version} chưa được hỗ trợ")
@@ -544,7 +547,7 @@ def _schema_mode(connection: sqlite3.Connection) -> Literal["legacy", "current"]
         return "legacy"
     if user_version == 1:
         _validate_v1_schema(connection)
-        return "current"
+        return "v1"
     if user_version == STORE_SCHEMA_VERSION:
         _validate_current_schema(connection)
         return "current"
@@ -657,7 +660,7 @@ def _default_review() -> dict[str, Any]:
     }
 
 
-def _decode_review(row: tuple[Any, ...], mode: Literal["legacy", "current"]) -> dict[str, Any]:
+def _decode_review(row: tuple[Any, ...], mode: Literal["legacy", "v1", "current"]) -> dict[str, Any]:
     if mode == "legacy":
         return _default_review()
     created_by, status, version, decided_by, decided_at, reason = row[6:12]
@@ -665,6 +668,8 @@ def _decode_review(row: tuple[Any, ...], mode: Literal["legacy", "current"]) -> 
         _validate_subject(created_by, "created_by_subject")
     if status not in REVIEW_STATUSES or not _is_int(version) or version < 0:
         raise DraftStoreError("Metadata review không hợp lệ")
+    if mode == "v1" and version != (0 if status == "pending" else 1):
+        raise DraftStoreError("Metadata review v1 không hợp lệ")
     if len(row) >= 13:
         selection_version = row[12]
         if not _is_int(selection_version) or selection_version < 0:
@@ -700,13 +705,13 @@ def _decode_review(row: tuple[Any, ...], mode: Literal["legacy", "current"]) -> 
 
 
 def _decode_draft_row(
-    row: tuple[Any, ...], mode: Literal["legacy", "current"]
+    row: tuple[Any, ...], mode: Literal["legacy", "v1", "current"]
 ) -> tuple[dict[str, Any], int, str, dict[str, Any]]:
     payload, draft_id, created_at = _decode_payload_row(row)
     return payload, draft_id, created_at, _decode_review(row, mode)
 
 
-def _draft_summary(row: tuple[Any, ...], mode: Literal["legacy", "current"]) -> dict[str, Any]:
+def _draft_summary(row: tuple[Any, ...], mode: Literal["legacy", "v1", "current"]) -> dict[str, Any]:
     payload, draft_id, created_at, review = _decode_draft_row(row, mode)
     return {
         "id": draft_id,
@@ -820,7 +825,7 @@ def get_draft(db_path: str | Path, draft_id: int, *, timeout: float = 5.0) -> di
         review_columns = (
             ", created_by_subject, review_status, review_version, "
             "decided_by_subject, decided_at, decision_reason" + (", selection_version" if is_v2 else "")
-            if mode == "current"
+            if mode != "legacy"
             else ""
         )
         row = connection.execute(
@@ -869,14 +874,14 @@ def list_drafts(
         review_columns = (
             ", created_by_subject, review_status, review_version, "
             "decided_by_subject, decided_at, decision_reason" + (", selection_version" if is_v2 else "")
-            if mode == "current"
+            if mode != "legacy"
             else ""
         )
         query = (
             "SELECT id, created_at, schema_version, status, source_sha256, payload_json "
             + review_columns
             + " FROM drafts WHERE "
-            + ("review_status" if mode == "current" else "status")
+            + ("review_status" if mode != "legacy" else "status")
             + " = ?"
         )
         parameters: list[Any] = [PENDING_STATUS]
