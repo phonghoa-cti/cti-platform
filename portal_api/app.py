@@ -33,6 +33,8 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
 def _parse_positive_integer(value: str, label: str) -> int:
     if not isinstance(value, str) or not POSITIVE_INTEGER.fullmatch(value):
         raise ApiFailure(422, "invalid_request", f"{label} không hợp lệ")
+    if len(value) > len(str(SQLITE_MAX_INTEGER)):
+        raise ApiFailure(422, "invalid_request", f"{label} không hợp lệ")
     parsed = int(value)
     if parsed > SQLITE_MAX_INTEGER:
         raise ApiFailure(422, "invalid_request", f"{label} không hợp lệ")
@@ -102,7 +104,10 @@ def create_app(
     @app.exception_handler(Exception)
     async def unexpected_handler(request: Request, _exc: Exception):
         if request.url.path.startswith("/api/drafts"):
-            return _error(503, "review_unavailable", "Dịch vụ duyệt tạm thời không sẵn sàng")
+            response = _error(503, "review_unavailable", "Dịch vụ duyệt tạm thời không sẵn sàng")
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Vary"] = JWT_HEADER
+            return response
         return _error(500, "internal_error", "Lỗi nội bộ")
 
     def require_review_role(request: Request) -> Principal:

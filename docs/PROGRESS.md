@@ -49,7 +49,8 @@ Cập nhật lần cuối: 10/11/2026
   chỉnh item, ingestion OpenCTI hoặc audit chống sửa file database.
 - W05 API cục bộ: FastAPI có ba route list/detail/decision, xác minh JWT RS256/issuer/audience/claims bằng khóa
   RSA tổng hợp, role lookup phía server và POST bắt buộc Origin + JSON; lỗi/no-store/schema response đã có test
-  in-process. Chưa kiểm Cloudflare/JWKS thật, listener, browser frontend, lab hoặc OpenCTI.
+  in-process. Audience chuỗi/mảng exact membership, lỗi bất ngờ no-store và số quá dài 422 đã có regression.
+  Chưa kiểm Cloudflare/JWKS thật, listener, browser frontend, lab hoặc OpenCTI.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

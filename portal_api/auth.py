@@ -41,6 +41,22 @@ def _require_numeric_dates(claims: dict[str, Any]) -> None:
             raise AuthenticationError("invalid numeric date")
 
 
+def _require_exact_audience(claims: dict[str, Any], expected: str) -> None:
+    audience = claims.get("aud")
+    if isinstance(audience, str):
+        valid = bool(audience) and audience == expected
+    elif isinstance(audience, list):
+        valid = (
+            bool(audience)
+            and all(isinstance(value, str) and bool(value) for value in audience)
+            and expected in audience
+        )
+    else:
+        valid = False
+    if not valid:
+        raise AuthenticationError("invalid audience")
+
+
 class AccessJwtVerifier:
     """Verifier RS256; không lấy URL hoặc thuật toán từ claim chưa tin cậy."""
 
@@ -69,9 +85,10 @@ class AccessJwtVerifier:
                 algorithms=["RS256"],
                 audience=self._settings.access_audience,
                 issuer=self._settings.access_issuer,
-                options={"require": ["exp", "iss", "aud", "sub"], "strict_aud": True},
+                options={"require": ["exp", "iss", "aud", "sub"]},
             )
             _require_numeric_dates(claims)
+            _require_exact_audience(claims, self._settings.access_audience)
         except AuthenticationError:
             raise
         except jwt.PyJWKClientConnectionError as exc:

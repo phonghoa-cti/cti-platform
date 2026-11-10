@@ -116,6 +116,8 @@ caller tin cậy cung cấp, không xác minh JWT và không được map trực
   415 `unsupported_media_type`, 422 `invalid_request`, 503 `review_unavailable`.
 - Biên response từ chối schema/item status ngoài contract thay vì trả dữ liệu một phần. Mọi response W05 có
   `Cache-Control: no-store`; không bật CORS wildcard.
+- JWT audience chấp nhận chuỗi exact hoặc mảng chuỗi không rỗng có exact member cấu hình; không dùng
+  substring/prefix/wildcard. ID/cursor vượt giới hạn SQLite trả 422 trước khi chạm store.
 - Span 1.0 là khoảng code point Python `[start,end)` trên nguyên `text`; JavaScript không được dùng trực tiếp
   offset UTF-16 mà không chuyển đổi/test.
 

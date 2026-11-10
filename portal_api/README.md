@@ -13,7 +13,7 @@ từ client và không có dev user. Production factory dùng `Settings.from_env
 |---|---|
 | `W05_DB_PATH` | File SQLite review đã migrate |
 | `CF_ACCESS_ISSUER` | HTTPS issuer chính xác, không path |
-| `CF_ACCESS_AUD` | Một audience duy nhất |
+| `CF_ACCESS_AUD` | Một audience tin cậy; claim nhận chuỗi exact hoặc mảng chuỗi có exact member |
 | `CF_ACCESS_JWKS_URL` | HTTPS JWKS cùng origin với issuer |
 | `PORTAL_ORIGIN` | Origin portal chính xác gồm scheme/host/port |
 | `W05_ROLES_JSON` | JSON map `sub` sang danh sách role phía server |

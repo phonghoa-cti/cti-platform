@@ -192,6 +192,15 @@ def test_valid_signed_admin_reads_payload_pending_and_separate_review(api):
     assert response.headers["cache-control"] == "no-store"
 
 
+@pytest.mark.parametrize("audience", [AUDIENCE, [AUDIENCE], ["extra-audience", AUDIENCE]])
+def test_valid_signed_token_accepts_exact_audience_string_or_array_membership(api, audience):
+    client, _, _, private_key = api
+
+    response = client.get("/api/drafts", headers=auth_headers(sign_token(private_key, audience=audience)))
+
+    assert response.status_code == 200
+
+
 @pytest.mark.parametrize(
     "token_factory",
     [
@@ -199,7 +208,11 @@ def test_valid_signed_admin_reads_payload_pending_and_separate_review(api):
         lambda key: sign_token(key, expires=timedelta(seconds=-1)),
         lambda key: sign_token(key, issuer="https://wrong.synthetic.test"),
         lambda key: sign_token(key, audience="wrong-audience"),
-        lambda key: sign_token(key, audience=[AUDIENCE, "extra-audience"]),
+        lambda key: sign_token(key, audience=[]),
+        lambda key: sign_token(key, audience=["wrong-audience"]),
+        lambda key: sign_token(key, audience=[AUDIENCE, ""]),
+        lambda key: sign_token(key, audience=[AUDIENCE, 7]),
+        lambda key: sign_token(key, audience=[[AUDIENCE]]),
         lambda key: sign_token(key, subject=""),
         lambda key: sign_token(key, omit={"sub"}),
         lambda key: sign_token(key, omit={"exp"}),
@@ -297,6 +310,27 @@ def test_invalid_query_and_path_values_return_exact_422(api, path, expected):
     client, _, _, private_key = api
     response = client.get(path, headers=auth_headers(sign_token(private_key)))
     assert_error(response, 422, expected)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/drafts?limit=" + "9" * 5000,
+        "/api/drafts?before_id=" + "9" * 5000,
+        "/api/drafts/" + "9" * 5000,
+    ],
+)
+def test_oversized_integer_inputs_return_422_before_store_access(tmp_path, rsa_keys, path):
+    private_key, jwk = rsa_keys
+    missing_db = tmp_path / "must-not-be-opened.sqlite"
+    settings = make_settings(missing_db)
+    verifier = AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
+    client = TestClient(create_app(settings, store, verifier=verifier), raise_server_exceptions=False)
+
+    response = client.get(path, headers=auth_headers(sign_token(private_key)))
+
+    assert_error(response, 422, "invalid_request")
+    assert not missing_db.exists()
 
 
 @pytest.mark.parametrize(
@@ -499,6 +533,26 @@ def test_database_unavailable_or_unsupported_schema_is_sanitized_503(tmp_path, r
     assert_error(response, 503, "review_unavailable")
     assert "secret marker" not in response.text
     assert str(db) not in response.text
+
+
+def test_unexpected_store_error_is_sanitized_503_with_no_store_headers(tmp_path, rsa_keys, caplog):
+    class UnexpectedStore:
+        @staticmethod
+        def list_drafts(*_args, **_kwargs):
+            raise RuntimeError("SYNTHETIC-SENSITIVE-MARKER")
+
+    private_key, jwk = rsa_keys
+    settings = make_settings(tmp_path / "unused.sqlite")
+    verifier = AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
+    client = TestClient(
+        create_app(settings, UnexpectedStore(), verifier=verifier), raise_server_exceptions=False
+    )
+
+    response = client.get("/api/drafts", headers=auth_headers(sign_token(private_key)))
+
+    assert_error(response, 503, "review_unavailable")
+    assert "SYNTHETIC-SENSITIVE-MARKER" not in response.text
+    assert "SYNTHETIC-SENSITIVE-MARKER" not in caplog.text
 
 
 def test_locked_database_is_sanitized_503(api):
