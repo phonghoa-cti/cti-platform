@@ -1,0 +1,8 @@
+{
+  "id": "vn-03",
+  "iocs": [
+    {"type": "domain", "value": "maychu.example", "role": "attacker"},
+    {"type": "ipv6", "value": "2001:4860:4860::8888", "role": "attacker"}
+  ],
+  "ttps": []
+}

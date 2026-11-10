@@ -1,0 +1,2 @@
+Hạ tầng giả lập dùng maychu.example và địa chỉ IPv6 2001:4860:4860::8888.
+Mẫu này cố ý cho thấy baseline regex hiện chưa trích IPv6.

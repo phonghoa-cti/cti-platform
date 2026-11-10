@@ -1,0 +1,1 @@
+Hộp thư điều khiển là ops[@]mail[.]example; địa chỉ OPS[@]MAIL[.]EXAMPLE được lặp lại để kiểm tra khử trùng.

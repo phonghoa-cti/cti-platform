@@ -1,0 +1,3 @@
+The sample downloaded hxxps://drop[.]example/payload and referenced SHA-256
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.
+The benign documentation host was docs.example.

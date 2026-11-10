@@ -1,0 +1,8 @@
+{
+  "id": "vn-01",
+  "iocs": [
+    {"type": "domain", "value": "xau.example", "role": "attacker"},
+    {"type": "domain", "value": "victim.example", "role": "victim"}
+  ],
+  "ttps": []
+}

@@ -1,0 +1,8 @@
+{
+  "id": "en-06",
+  "iocs": [
+    {"type": "md5", "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "role": "attacker"},
+    {"type": "sha1", "value": "cccccccccccccccccccccccccccccccccccccccc", "role": "attacker"}
+  ],
+  "ttps": []
+}

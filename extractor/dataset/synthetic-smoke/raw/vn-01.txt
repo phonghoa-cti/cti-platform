@@ -1,0 +1,2 @@
+Nhóm thử nghiệm liên hệ tên miền XAU[.]EXAMPLE rồi lặp lại xau[.]example.
+Tên miền victim.example thuộc hệ thống nạn nhân, không phải hạ tầng tấn công.
