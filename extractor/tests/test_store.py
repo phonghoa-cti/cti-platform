@@ -119,6 +119,115 @@ def test_invalid_draft_does_not_create_database(tmp_path: Path):
     assert not db.exists()
 
 
+@pytest.mark.parametrize("field", ["language", "tlp"])
+@pytest.mark.parametrize("bad_value", [[], {}, None, 42])
+def test_language_and_tlp_wrong_types_are_rejected_before_writing(tmp_path: Path, field: str, bad_value):
+    valid = make_draft("Sensitive synthetic marker: evil.example")
+    invalid = copy.deepcopy(valid)
+    invalid[field] = bad_value
+    fresh_db = tmp_path / f"fresh-{field}.sqlite"
+
+    with pytest.raises(DraftStoreError, match=field):
+        save_draft(fresh_db, invalid)
+
+    assert not fresh_db.exists()
+
+    existing_db = tmp_path / f"existing-{field}.sqlite"
+    first_id = save_draft(existing_db, valid)
+    with pytest.raises(DraftStoreError, match=field):
+        save_draft(existing_db, invalid)
+
+    assert payload_of(get_draft(existing_db, first_id)) == valid
+    assert save_draft(existing_db, valid) == 2
+
+
+@pytest.mark.parametrize(
+    ("span", "evidence"),
+    [
+        ([0, 0], ""),
+        ([0, 9], "Synthetic"),
+    ],
+)
+def test_kept_ioc_requires_evidence_span_containing_the_ioc(tmp_path: Path, span: list[int], evidence: str):
+    draft = make_draft("Synthetic only: evil.example")
+    draft["items"][0]["span"] = span
+    draft["items"][0]["evidence"] = evidence
+
+    with pytest.raises(DraftStoreError, match="IOC.*span"):
+        save_draft(tmp_path / "drafts.sqlite", draft)
+
+
+def test_kept_ioc_rejects_value_cut_from_larger_hostname(tmp_path: Path):
+    draft = make_draft("Synthetic only: not-evil.example")
+    start = draft["text"].index("evil.example")
+    draft["items"][0].update(
+        {"type": "domain", "value": "evil.example", "span": [start, start + 12], "evidence": "evil.example"}
+    )
+
+    with pytest.raises(DraftStoreError, match="IOC.*span"):
+        save_draft(tmp_path / "drafts.sqlite", draft)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"type": "ipv4"},
+        {"value": "other.example"},
+    ],
+)
+def test_kept_ioc_rejects_declared_type_or_value_not_matching_evidence(tmp_path: Path, mutation):
+    draft = make_draft("Synthetic only: evil.example")
+    draft["items"][0].update(mutation)
+
+    with pytest.raises(DraftStoreError, match=r"items\[0\]"):
+        save_draft(tmp_path / "drafts.sqlite", draft)
+
+
+def test_kept_ioc_accepts_a_later_bounded_occurrence_in_the_declared_span(tmp_path: Path):
+    draft = make_draft("not-evil.example then evil.example")
+    item = next(item for item in draft["items"] if item["value"] == "evil.example")
+    start = draft["text"].rindex("evil.example")
+    item.update({"span": [start, start + 12], "evidence": "evil.example"})
+
+    stored = get_draft(tmp_path / "drafts.sqlite", save_draft(tmp_path / "drafts.sqlite", draft))
+
+    assert payload_of(stored) == draft
+
+
+@pytest.mark.parametrize(
+    ("text", "language"),
+    [
+        ("Tiếng Việt 😀 có evil[.]example", "vi"),
+        ("Download hxxps://Evil[.]Example/Path?Q=One", "en"),
+    ],
+)
+def test_valid_unicode_defanged_and_url_drafts_still_round_trip(tmp_path: Path, text: str, language: str):
+    draft = build_regex_draft(text, source="synthetic.txt", language=language)
+    db = tmp_path / "drafts.sqlite"
+
+    assert payload_of(get_draft(db, save_draft(db, draft))) == draft
+
+
+def test_valid_ipv6_item_still_round_trips(tmp_path: Path):
+    text = "Observed 2606:4700:4700::1111 and evil.example"
+    draft = make_draft(text)
+    draft["items"].append(
+        {
+            "kind": "ioc",
+            "type": "ipv6",
+            "value": "2606:4700:4700::1111",
+            "span": [0, len(text)],
+            "evidence": text,
+            "keep": True,
+            "warning": None,
+            "status": "ok",
+        }
+    )
+    db = tmp_path / "drafts.sqlite"
+
+    assert payload_of(get_draft(db, save_draft(db, draft))) == draft
+
+
 def test_get_missing_database_or_id_never_creates_or_rewrites(tmp_path: Path):
     missing = tmp_path / "missing.sqlite"
 

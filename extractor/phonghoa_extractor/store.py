@@ -10,6 +10,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from phonghoa_core.ioc import normalize
+from phonghoa_extractor.evidence import find_ioc_occurrences
+
 SCHEMA_VERSION = "1.0"
 PENDING_STATUS = "pending"
 TLP_VALUES = {"TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"}
@@ -48,6 +51,18 @@ def _is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def _validate_kept_ioc(item: dict[str, Any], index: int, text: str, start: int, end: int) -> None:
+    try:
+        expected = normalize(item["value"])
+    except ValueError as exc:
+        raise DraftStoreError(f"items[{index}].value không phải IOC hợp lệ") from exc
+    if item["type"] != expected.type.value:
+        raise DraftStoreError(f"items[{index}].type không khớp value")
+    occurrences = find_ioc_occurrences(text, expected)
+    if not any(start <= token_start and token_end <= end for token_start, token_end in occurrences):
+        raise DraftStoreError(f"items[{index}] IOC không nằm trong span evidence")
+
+
 def _validate_draft(draft: Any) -> None:
     if not isinstance(draft, dict):
         raise DraftStoreError("draft phải là JSON object")
@@ -72,9 +87,9 @@ def _validate_draft(draft: Any) -> None:
     expected_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
     if source["sha256"] != expected_hash:
         raise DraftStoreError("source.sha256 không khớp text")
-    if draft["language"] not in {"vi", "en"}:
+    if not isinstance(draft["language"], str) or draft["language"] not in {"vi", "en"}:
         raise DraftStoreError("language phải là vi hoặc en")
-    if draft["tlp"] not in TLP_VALUES:
+    if not isinstance(draft["tlp"], str) or draft["tlp"] not in TLP_VALUES:
         raise DraftStoreError("tlp không hợp lệ")
     if not isinstance(draft["injection_warning"], bool):
         raise DraftStoreError("injection_warning phải là boolean")
@@ -121,6 +136,8 @@ def _validate_draft(draft: Any) -> None:
             raise DraftStoreError(f"items[{index}].span ngoài phạm vi text")
         if text[start:end] != item["evidence"]:
             raise DraftStoreError(f"items[{index}].span không khớp evidence")
+        if item["keep"] and item["kind"] == "ioc":
+            _validate_kept_ioc(item, index, text, start, end)
 
 
 def _create_schema(connection: sqlite3.Connection) -> None:

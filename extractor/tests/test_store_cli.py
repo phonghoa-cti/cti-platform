@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import copy
 import json
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
+
+from phonghoa_extractor.drafts import build_regex_draft
+from phonghoa_extractor.store import get_draft, save_draft
 
 REPO_ROOT = Path(__file__).parents[2]
 DRAFT_SCRIPT = REPO_ROOT / "extractor" / "draft" / "run.py"
@@ -77,3 +83,34 @@ def test_cli_input_errors_do_not_create_db_or_output(tmp_path: Path):
     assert missing_get.returncode != 0
     assert not db.exists()
     assert not output.exists()
+
+
+@pytest.mark.parametrize("field", ["language", "tlp"])
+@pytest.mark.parametrize("bad_value", [[], {}, None, 42])
+def test_cli_wrong_language_and_tlp_types_are_safe_and_do_not_write(tmp_path: Path, field: str, bad_value):
+    marker = "Sensitive synthetic marker: evil.example"
+    valid = build_regex_draft(marker, source="synthetic.txt", language="vi")
+    invalid = copy.deepcopy(valid)
+    invalid[field] = bad_value
+    input_path = tmp_path / f"invalid-{field}.json"
+    input_path.write_text(json.dumps(invalid), encoding="utf-8")
+    fresh_db = tmp_path / f"fresh-{field}.sqlite"
+
+    fresh_result = run(str(STORE_SCRIPT), "save", "--db", str(fresh_db), "--input", str(input_path))
+
+    assert fresh_result.returncode == 1
+    assert field in fresh_result.stderr
+    assert "Traceback" not in fresh_result.stderr
+    assert marker not in fresh_result.stdout + fresh_result.stderr
+    assert not fresh_db.exists()
+
+    existing_db = tmp_path / f"existing-{field}.sqlite"
+    first_id = save_draft(existing_db, valid)
+    existing_result = run(str(STORE_SCRIPT), "save", "--db", str(existing_db), "--input", str(input_path))
+
+    assert existing_result.returncode == 1
+    assert field in existing_result.stderr
+    assert "Traceback" not in existing_result.stderr
+    assert marker not in existing_result.stdout + existing_result.stderr
+    assert get_draft(existing_db, first_id)["text"] == marker
+    assert save_draft(existing_db, valid) == 2

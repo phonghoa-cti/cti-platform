@@ -24,9 +24,11 @@ Lưu mỗi draft thành một bản ghi SQLite mới và đọc lại theo ID:
   --output .\stored-draft.json
 ```
 
-`save` kiểm lại schema, `status`, SHA-256 và mọi `span` trước khi mở database. `get` chỉ đọc và không
-tự tạo database nếu đường dẫn không tồn tại. `id` cùng `created_at` UTC do kho quản lý, không được phép
-chèn sẵn trong draft đầu vào.
+`save` kiểm lại schema, `status`, SHA-256 và mọi `span` trước khi mở database. `language` và `tlp` phải
+là chuỗi thuộc tập giá trị hỗ trợ. Với IOC được giữ, đúng IOC sau chuẩn hóa phải nằm trọn trong chính
+`span` đã khai báo; một quote ở vị trí khác không hợp thức hóa span sai. `get` chỉ đọc và không tự tạo
+database nếu đường dẫn không tồn tại. `id` cùng `created_at` UTC do kho quản lý, không được phép chèn sẵn
+trong draft đầu vào.
 
 `span` dùng chỉ số ký tự Python theo khoảng `[start, end)`, và `text[start:end]` luôn bằng `evidence` cho
 mục có bằng chứng hợp lệ. JavaScript dùng đơn vị UTF-16 nên frontend phải chuyển đổi offset nếu văn bản có
