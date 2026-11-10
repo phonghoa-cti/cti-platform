@@ -1,6 +1,6 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 10/11/2026
+Cập nhật lần cuối: 11/11/2026
 
 ## Mốc
 | Mốc | Hạn | Trạng thái |
@@ -55,6 +55,9 @@ Cập nhật lần cuối: 10/11/2026
   JWT RSA tổng hợp được xác minh thật, role phía server và SQLite tạm; ma trận HTTP kiểm auth/Origin/decision/audit,
   cleanup và lỗi POST thành công nhưng refresh 503 không retry. Đây không phải integration lab, HTTPS/JWKS thật,
   OpenCTI, deployment hoặc thay thế quy tắc HTTPS của cấu hình production.
+- W05 selection core: schema SQLite v2 lưu snapshot IOC đủ điều kiện bằng audit riêng, migrate v0/v1 nguyên tử,
+  version đồng thời và quyết định cuối tham chiếu snapshot/hash; payload/evidence không đổi. Đây là core-only,
+  chưa tương thích API/UI hiện giới hạn version 0/1 và chưa nhập OpenCTI.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

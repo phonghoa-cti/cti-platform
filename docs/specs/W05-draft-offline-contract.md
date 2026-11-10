@@ -1,7 +1,7 @@
 # Hợp đồng bản nháp ngoại tuyến X01 → W05
 
 Trạng thái: hợp đồng cho dữ liệu **đã chạy cục bộ**, chưa phải API HTTP đang hoạt động. Phiên bản payload hiện
-tại là `1.0`; schema kho SQLite review là `PRAGMA user_version=1`. `drafts.py` tạo payload bất biến, còn
+tại là `1.0`; schema kho SQLite selection là `PRAGMA user_version=2`. `drafts.py` tạo payload bất biến, còn
 `store.py` kiểm/lưu payload và ghi quyết định review tách riêng.
 
 Mục tiêu của tài liệu này là để người làm W05 đọc đúng dữ liệu hiện có mà không làm mất bằng chứng, cảnh báo
@@ -163,6 +163,19 @@ thái payload `pending` để hai lớp trạng thái không bị nhập nhằng
   audit. Audit SQLite là trace vận hành, không chống người có quyền sửa file database.
 - Approve chỉ nhận các item kept có `kind=ioc`; không gọi mạng, LLM, OpenCTI và không tạo Report/STIX/outbox.
 - CLI ghi JSON summary ra file riêng; output trùng/equivalent/samefile với DB phải bị từ chối.
+
+## Lựa chọn IOC hiệu lực (schema store v2)
+
+- `get_effective_selection()` trả tập index eligible hiện tại, version selection/review, hash JSON canonical,
+  người/thời điểm save gần nhất và bốn count tách biệt.
+- `save_selection()` chỉ nhận `Actor` trusted và list/tuple index; chỉ Analyst/Admin, subset của IOC
+  `kind=ioc, keep=true, status=ok`. Tập rỗng hợp lệ nhưng không thể approve.
+- Save có thay đổi tăng đồng thời `selection_version` và `review_version`; no-op không ghi event. Pending có hai
+  version bằng nhau, terminal có `review_version = selection_version + 1`.
+- Approve và reject v2 đều copy selection version, JSON và SHA-256 vào `draft_audit`. Audit migrate từ v1 giữ ba
+  trường này null vì không được bịa lịch sử.
+- Payload, evidence, source hash và `items.keep` ban đầu không đổi. API/UI hiện tại chưa đọc selection object và
+  chưa chấp nhận review version lớn hơn 1 nên chưa được nối vào DB đã edit.
 
 ## Khoảng trống trước khi W05 chạy thật
 
