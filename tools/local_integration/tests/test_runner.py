@@ -12,6 +12,13 @@ import pytest
 from tools.local_integration.runner import LocalRun
 
 
+def recover_resources_created_by_failed_lifecycle_test(run: LocalRun) -> None:
+    """Only protects RED runs; production must reject before this is needed."""
+    if any((run._gateway_process, run._ui_process, run._api_thread, run._temporary)):
+        run._closed = False
+        run.close()
+
+
 def test_runner_starts_signed_http_stack_and_cleans_owned_resources() -> None:
     run = LocalRun("admin-other", duration_seconds=20, start_ui=False)
     with run:
@@ -129,3 +136,62 @@ def test_partial_start_failure_stops_api_and_removes_temp(monkeypatch: pytest.Mo
     assert run._closed
     with pytest.raises(OSError):
         socket.create_connection(("127.0.0.1", run.api_port), timeout=0.2)
+
+
+def test_completed_run_cannot_start_again() -> None:
+    run = LocalRun("admin-other", duration_seconds=20, start_ui=False)
+    run.start()
+    run.close()
+    first_temp_root = run.temp_root
+
+    try:
+        with pytest.raises(RuntimeError, match="chỉ được start một lần"):
+            run.start()
+
+        assert run._closed
+        assert run.temp_root == first_temp_root
+        assert not first_temp_root.exists()
+        assert run._gateway_process is None
+        assert run._api_thread is None
+    finally:
+        recover_resources_created_by_failed_lifecycle_test(run)
+
+
+def test_close_before_start_permanently_blocks_start() -> None:
+    run = LocalRun("admin-other", duration_seconds=20, start_ui=False)
+    run.close()
+
+    try:
+        with pytest.raises(RuntimeError, match="chỉ được start một lần"):
+            run.start()
+
+        assert run._closed
+        assert run._temporary is None
+        assert run._gateway_process is None
+        assert run._api_thread is None
+    finally:
+        recover_resources_created_by_failed_lifecycle_test(run)
+
+
+def test_failed_start_cannot_allocate_resources_again(monkeypatch: pytest.MonkeyPatch) -> None:
+    attempts = 0
+
+    def fail_gateway_start(*_args, **_kwargs):
+        nonlocal attempts
+        attempts += 1
+        raise OSError("synthetic child start failure")
+
+    monkeypatch.setattr(subprocess, "Popen", fail_gateway_start)
+    run = LocalRun("admin-other", duration_seconds=20, start_ui=False)
+
+    try:
+        with pytest.raises(OSError, match="synthetic child start failure"):
+            run.start()
+        with pytest.raises(RuntimeError, match="chỉ được start một lần"):
+            run.start()
+
+        assert attempts == 1
+        assert run._closed
+        assert not run.temp_root.exists()
+    finally:
+        recover_resources_created_by_failed_lifecycle_test(run)

@@ -127,6 +127,7 @@ class LocalRun:
         self._gateway_process: subprocess.Popen[bytes] | None = None
         self._timer: threading.Timer | None = None
         self._closed = False
+        self._lifecycle = "new"
         self._lock = threading.Lock()
 
     def _token_and_verifier(self, settings):
@@ -183,8 +184,10 @@ class LocalRun:
         self.draft_ids = tuple(ids)
 
     def start(self) -> LocalRun:
-        if self._temporary is not None:
-            raise RuntimeError("run đã start")
+        with self._lock:
+            if self._lifecycle != "new":
+                raise RuntimeError("mỗi LocalRun chỉ được start một lần")
+            self._lifecycle = "starting"
         try:
             _require_available_port(self.gateway_port)
             self._temporary = tempfile.TemporaryDirectory(prefix="w05-local-")
@@ -252,8 +255,12 @@ class LocalRun:
             self._timer = threading.Timer(self.duration_seconds, self.close)
             self._timer.daemon = True
             self._timer.start()
+            with self._lock:
+                self._lifecycle = "running"
             return self
         except Exception as start_error:
+            with self._lock:
+                self._lifecycle = "failed"
             try:
                 self.close()
             except ExceptionGroup as cleanup_error:
@@ -266,6 +273,7 @@ class LocalRun:
         with self._lock:
             if self._closed:
                 return
+            self._lifecycle = "cleanup"
             errors: list[Exception] = []
             if self._timer is not None:
                 try:
@@ -332,6 +340,7 @@ class LocalRun:
                     self._temporary,
                 )
             )
+            self._lifecycle = "closed" if self._closed else "cleanup-pending"
             if errors:
                 raise ExceptionGroup("cleanup local integration chưa hoàn tất", errors)
 

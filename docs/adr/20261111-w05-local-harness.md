@@ -18,6 +18,7 @@ The reviewed UI snapshot uses same-origin `/api/drafts*` requests. The backend's
 - Preserve the browser's Origin. Never synthesize or rewrite it. Proxy only the reviewed `/api/drafts*` routes, strip hop-by-hop headers, buffer a bounded request body, preserve end-to-end response headers including repeated `Set-Cookie`, never retry, and return a sanitized `503` on timeout/upstream failure.
 - Reject an invalid request target with a sanitized `400`. If an upstream fails before response headers, return a sanitized `503`; if it fails after headers, close the incomplete downstream response. Client disconnects destroy the one owned upstream request. No path retries a POST.
 - Use a fresh temporary SQLite database and four synthetic drafts for each run. Scenarios are a fixed allowlist. Cleanup attempts each owned child and API resource independently, removes the run's temporary directory only after the API thread has stopped, reports aggregated failures, and leaves unfinished resources retryable by a later `close()` call.
+- A `LocalRun` instance is single-use. Its lifecycle state rejects every later `start()` before allocating resources, including after close, close-before-start, or a failed start; a new scenario requires a new instance. Repeated `close()` remains valid so incomplete cleanup can be retried.
 
 ## Consequences
 
