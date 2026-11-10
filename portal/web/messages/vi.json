@@ -26,6 +26,8 @@
   "itemsTitle": "Mục trích xuất",
   "itemsContext": "Lựa chọn hiện tại chỉ tồn tại trong bản xem thử",
   "itemsReadOnly": "Gợi ý giữ chỉ đọc · API chưa nhận chỉnh sửa IOC",
+  "itemsSelectable": "Chỉ IOC đủ điều kiện mới có thể chọn",
+  "selectionLabel": "Lựa chọn duyệt",
   "emptyItems": "Không có IOC được trích. Điều này không khẳng định nguồn an toàn.",
   "sourceName": "Nguồn",
   "sha256": "SHA-256",
@@ -78,4 +80,15 @@
   "reloadDetail": "Tải lại chi tiết",
   "decisionRefreshFailed": "Quyết định đã được ghi nhưng chưa tải lại được trạng thái. Hãy tải lại.",
   "reloadDecisionStatus": "Tải lại trạng thái"
+  ,"selectionTitle": "Lựa chọn IOC đã lưu"
+  ,"selectedPending": "IOC đang chọn · chưa lưu"
+  ,"selectedSaved": "IOC đã lưu"
+  ,"unsavedSelection": "Đã có thay đổi chưa lưu. Hãy lưu hoặc hủy thay đổi trước khi chuyển bản nháp hay quyết định."
+  ,"saveSelection": "Lưu lựa chọn"
+  ,"savingSelection": "Đang lưu…"
+  ,"discardSelection": "Hủy thay đổi"
+  ,"discardAndReload": "Bỏ thay đổi cục bộ và tải lại trạng thái"
+  ,"selectionSaved": "Lựa chọn đã được lưu."
+  ,"selectionNoop": "Lựa chọn đã khớp trạng thái được lưu."
+  ,"selectionRefreshFailed": "Lựa chọn đã được lưu nhưng chưa tải lại được trạng thái. Tải lại trạng thái trước khi quyết định."
 }

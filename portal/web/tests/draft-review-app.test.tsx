@@ -2,14 +2,28 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DraftReviewApp } from "@/components/draft-review-app";
-import { ApiClientError, parseDraftDetail, type DraftApi } from "@/data/api-client";
+import { ApiClientError, parseDraftDetailV1, type DraftApi, type SelectionView } from "@/data/api-client";
 import { parseDraftQueue } from "@/data/draft-adapter";
 import regular from "@/data/fixtures/01-regular.json";
 import empty from "@/data/fixtures/03-empty.json";
 
-const pendingDetail = parseDraftDetail({
+const savedSelection: SelectionView = {
+  review_version: 0,
+  selection_version: 0,
+  selected_indices: [0],
+  selected_sha256: "a".repeat(64),
+  saved_by_subject: null,
+  saved_at: null,
+  changed: false,
+  ai_extracted_count: 1,
+  ai_eligible_count: 1,
+  human_deselected_count: 0,
+  selection_save_count: 0,
+};
+const pendingDetail = parseDraftDetailV1({
   ...regular,
   review: { status: "pending", version: 0, created_by_subject: "author-sub", decided_by_subject: null, decided_at: null, reason: null },
+  selection: savedSelection,
 });
 const summary = {
   id: regular.id,
@@ -21,8 +35,14 @@ const summary = {
   item_count: regular.items.length,
   injection_warning: regular.injection_warning,
   review_status: "pending" as const,
-  review_version: 0 as const,
+  review_version: 0,
+  selection_version: 0,
 };
+
+function decisionResult(status: "approved" | "rejected", reason: string | null) {
+  return { draft_id: regular.id, status, version: 1, decided_by_subject: "analyst-sub", decided_at: "2026-11-11T01:02:03+00:00", reason,
+    selection_version: 0, selected_indices: [0], selected_sha256: "a".repeat(64) };
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -34,6 +54,7 @@ function api(overrides: Partial<DraftApi> = {}): DraftApi {
   return {
     list: vi.fn().mockResolvedValue({ items: [summary], next_before_id: null }),
     detail: vi.fn().mockResolvedValue(pendingDetail),
+    saveSelection: vi.fn(),
     decide: vi.fn(),
     ...overrides,
   };
@@ -124,7 +145,7 @@ describe("draft review application states", () => {
   it("submits approve once with detail version and refreshes queue and detail", async () => {
     const user = userEvent.setup();
     const draftApi = api({
-      decide: vi.fn().mockResolvedValue({ draft_id: regular.id, status: "approved", version: 1, decided_by_subject: "analyst-sub", decided_at: "2026-11-11T01:02:03+00:00", reason: null }),
+      decide: vi.fn().mockResolvedValue(decisionResult("approved", null)),
     });
     render(<DraftReviewApp mode="api" api={draftApi} />);
     const approve = await screen.findByRole("button", { name: "Duyệt bản nháp" });
@@ -132,7 +153,7 @@ describe("draft review application states", () => {
     await Promise.all([user.click(approve), user.click(approve)]);
 
     expect(draftApi.decide).toHaveBeenCalledTimes(1);
-    expect(draftApi.decide).toHaveBeenCalledWith(regular.id, { decision: "approve", expected_version: 0 });
+    expect(draftApi.decide).toHaveBeenCalledWith(regular.id, { decision: "approve", expected_version: 0 }, savedSelection);
     expect(await screen.findByRole("status")).toHaveTextContent("đã được duyệt cục bộ");
     expect(draftApi.list).toHaveBeenCalledTimes(2);
     expect(draftApi.detail).toHaveBeenCalledTimes(2);
@@ -159,14 +180,7 @@ describe("draft review application states", () => {
         .mockResolvedValueOnce({ items: [summary], next_before_id: null })
         .mockResolvedValueOnce({ items: [], next_before_id: null }),
       detail: vi.fn().mockResolvedValueOnce(pendingDetail).mockResolvedValueOnce(decidedDetail),
-      decide: vi.fn().mockResolvedValue({
-        draft_id: regular.id,
-        status,
-        version: 1,
-        decided_by_subject: "analyst-sub",
-        decided_at: "2026-11-11T01:02:03+00:00",
-        reason,
-      }),
+      decide: vi.fn().mockResolvedValue(decisionResult(status, reason)),
     });
     render(<DraftReviewApp mode="api" api={draftApi} />);
 
@@ -184,7 +198,7 @@ describe("draft review application states", () => {
 
   it("keeps the decided draft selected while its decision and refresh are in flight", async () => {
     const user = userEvent.setup();
-    const decision = deferred<{ draft_id: number; status: "approved"; version: 1; decided_by_subject: string; decided_at: string; reason: null }>();
+    const decision = deferred<ReturnType<typeof decisionResult>>();
     const secondSummary = { ...summary, id: 2, source: { ...summary.source, name: "second.txt" } };
     const secondDetail = { ...pendingDetail, id: 2, source: { ...pendingDetail.source, name: "second.txt" } };
     const approvedFirst = {
@@ -207,7 +221,7 @@ describe("draft review application states", () => {
     await user.click(secondRow);
     expect(screen.getByText(pendingDetail.source.name, { selector: "dd" })).toBeInTheDocument();
 
-    decision.resolve({ draft_id: regular.id, status: "approved", version: 1, decided_by_subject: "analyst-sub", decided_at: "2026-11-11T01:02:03+00:00", reason: null });
+    decision.resolve(decisionResult("approved", null));
     expect(await screen.findByText("Đã duyệt")).toBeInTheDocument();
     expect(screen.getByText(pendingDetail.source.name, { selector: "dd" })).toBeInTheDocument();
     expect(screen.queryByText("second.txt", { selector: "dd" })).not.toBeInTheDocument();
@@ -215,14 +229,7 @@ describe("draft review application states", () => {
 
   it("keeps a valid decision recorded when the following refresh fails", async () => {
     const user = userEvent.setup();
-    const decide = vi.fn().mockResolvedValue({
-      draft_id: regular.id,
-      status: "approved",
-      version: 1,
-      decided_by_subject: "analyst-sub",
-      decided_at: "2026-11-11T01:02:03+00:00",
-      reason: null,
-    });
+    const decide = vi.fn().mockResolvedValue(decisionResult("approved", null));
     const detail = vi.fn()
       .mockResolvedValueOnce(pendingDetail)
       .mockRejectedValueOnce(new ApiClientError("network"))
@@ -251,7 +258,7 @@ describe("draft review application states", () => {
   it("requires a trimmed rejection reason and sends it with expected version", async () => {
     const user = userEvent.setup();
     const draftApi = api({
-      decide: vi.fn().mockResolvedValue({ draft_id: regular.id, status: "rejected", version: 1, decided_by_subject: "analyst-sub", decided_at: "2026-11-11T01:02:03+00:00", reason: "Sai bằng chứng" }),
+      decide: vi.fn().mockResolvedValue(decisionResult("rejected", "Sai bằng chứng")),
     });
     render(<DraftReviewApp mode="api" api={draftApi} />);
     await screen.findByRole("button", { name: "Từ chối bản nháp" });
@@ -261,22 +268,22 @@ describe("draft review application states", () => {
     expect(draftApi.decide).not.toHaveBeenCalled();
     await user.type(screen.getByRole("textbox", { name: "Lý do từ chối" }), "  Sai bằng chứng  ");
     await user.click(screen.getByRole("button", { name: "Từ chối bản nháp" }));
-    expect(draftApi.decide).toHaveBeenCalledWith(regular.id, { decision: "reject", expected_version: 0, reason: "Sai bằng chứng" });
+    expect(draftApi.decide).toHaveBeenCalledWith(regular.id, { decision: "reject", expected_version: 0, reason: "Sai bằng chứng" }, savedSelection);
   });
 
-  it("does not retry a failed POST until the user clicks again", async () => {
+  it("does not resend an ambiguous decision POST", async () => {
     const user = userEvent.setup();
     const decide = vi.fn()
       .mockRejectedValueOnce(new ApiClientError("service", 503))
-      .mockResolvedValueOnce({ draft_id: regular.id, status: "approved", version: 1, decided_by_subject: "analyst-sub", decided_at: "2026-11-11T01:02:03+00:00", reason: null });
+      .mockResolvedValueOnce(decisionResult("approved", null));
     render(<DraftReviewApp mode="api" api={api({ decide })} />);
     const approve = await screen.findByRole("button", { name: "Duyệt bản nháp" });
 
     await user.click(approve);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Dịch vụ duyệt chưa sẵn sàng");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa xác định quyết định đã được ghi");
     expect(decide).toHaveBeenCalledTimes(1);
     await user.click(approve);
-    expect(decide).toHaveBeenCalledTimes(2);
+    expect(decide).toHaveBeenCalledTimes(1);
   });
 
   it.each([
@@ -284,9 +291,9 @@ describe("draft review application states", () => {
     [403, "không có quyền"],
     [404, "không còn khả dụng"],
     [409, "Dữ liệu đã thay đổi"],
-    [422, "Kiểm tra thông tin nhập"],
-    [415, "Dịch vụ duyệt chưa sẵn sàng"],
-    [503, "Dịch vụ duyệt chưa sẵn sàng"],
+    [422, "Lựa chọn không còn hợp lệ"],
+    [415, "không đúng định dạng"],
+    [503, "Chưa xác định quyết định"],
   ])("shows safe decision error for HTTP %s", async (status, message) => {
     const user = userEvent.setup();
     render(<DraftReviewApp mode="api" api={api({ decide: vi.fn().mockRejectedValue(new ApiClientError("http", status)) })} />);

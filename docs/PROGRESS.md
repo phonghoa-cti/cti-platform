@@ -62,6 +62,10 @@ Cập nhật lần cuối: 11/11/2026
   snapshot, mutation trả committed selection không reread, giới hạn số/body strict và giữ nguyên `/api/drafts`
   legacy. Đã kiểm in-process với SQLite/JWT/JWKS tổng hợp; chưa nối UI, listener, Cloudflare/JWKS thật, lab,
   OpenCTI hoặc production.
+- W05 selection UI: `/duyet` dùng API v1 và tách tập lựa chọn đã lưu với tập analyst đang sửa; lưu/decision là
+  hai thao tác riêng, POST chưa rõ kết quả bị khóa đến khi tải lại có chủ ý, response/refresh được xử lý độc lập.
+  `/duyet/mau` vẫn chỉ dùng fixture có nhãn và không gọi API. Đã kiểm Vitest/typecheck/lint/build cục bộ; chưa
+  kiểm gateway v1, browser same-origin, Cloudflare/JWKS thật, lab, OpenCTI hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

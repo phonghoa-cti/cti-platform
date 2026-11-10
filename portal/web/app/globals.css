@@ -269,6 +269,9 @@ button:focus-visible, input:focus-visible, [tabindex="-1"]:focus-visible {
 }
 .approval-boundary button:disabled { background: #283746; color: var(--text-helper); cursor: not-allowed; opacity: 1; }
 .decision-boundary { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) auto; align-items: end; }
+.selection-boundary { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(180px, 1fr) auto; gap: 10px 16px; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle); }
+.selection-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.selection-boundary .decision-message, .selection-boundary .decision-reload { grid-column: 1 / -1; }
 .decision-copy { align-self: center; }
 .reason-field { display: flex; flex-direction: column; gap: 6px; color: var(--text-secondary); font-size: 12px; }
 .reason-field textarea { min-height: 64px; resize: vertical; border: 0; border-bottom: 1px solid var(--border-strong); background: var(--layer-01); color: var(--text-primary); padding: 8px; }
@@ -320,5 +323,7 @@ button:focus-visible, input:focus-visible, [tabindex="-1"]:focus-visible {
   .approval-boundary { align-items: stretch; flex-direction: column; }
   .approval-boundary button { width: 100%; }
   .decision-boundary { display: flex; }
+  .selection-boundary { display: flex; align-items: stretch; flex-direction: column; }
+  .selection-actions { flex-direction: column; }
   .decision-actions { flex-direction: column; }
 }

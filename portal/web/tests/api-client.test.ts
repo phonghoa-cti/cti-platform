@@ -30,6 +30,20 @@ const summary = {
   review_status: "pending",
   review_version: 0,
 };
+const selection = {
+  review_version: 0,
+  selection_version: 0,
+  selected_indices: [0],
+  selected_sha256: "a".repeat(64),
+  saved_by_subject: null,
+  saved_at: null,
+  changed: false,
+  ai_extracted_count: 1,
+  ai_eligible_count: 1,
+  human_deselected_count: 0,
+  selection_save_count: 0,
+};
+const summaryV1 = { ...summary, selection_version: 0 };
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -79,15 +93,15 @@ describe("W05 runtime parsers", () => {
 describe("same-origin draft API client", () => {
   it("paginates with limit 20 and before_id using same-origin no-store requests", async () => {
     const fetcher = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ items: [summary], next_before_id: 6 }))
+      .mockResolvedValueOnce(jsonResponse({ items: [summaryV1], next_before_id: 6 }))
       .mockResolvedValueOnce(jsonResponse({ items: [], next_before_id: null }));
     const api = createDraftApi(fetcher);
 
     await api.list();
     await api.list(6);
 
-    expect(fetcher).toHaveBeenNthCalledWith(1, "/api/drafts?limit=20", expect.objectContaining({ credentials: "same-origin", cache: "no-store" }));
-    expect(fetcher).toHaveBeenNthCalledWith(2, "/api/drafts?limit=20&before_id=6", expect.objectContaining({ credentials: "same-origin", cache: "no-store" }));
+    expect(fetcher).toHaveBeenNthCalledWith(1, "/api/v1/drafts?limit=20", expect.objectContaining({ credentials: "same-origin", cache: "no-store" }));
+    expect(fetcher).toHaveBeenNthCalledWith(2, "/api/v1/drafts?limit=20&before_id=6", expect.objectContaining({ credentials: "same-origin", cache: "no-store" }));
   });
 
   it("posts only the decision contract and expected detail version", async () => {
@@ -98,11 +112,14 @@ describe("same-origin draft API client", () => {
       decided_by_subject: "analyst-sub",
       decided_at: "2026-11-11T01:02:03+00:00",
       reason: "Không đủ bằng chứng",
+      selection_version: 0,
+      selected_indices: [0],
+      selected_sha256: "a".repeat(64),
     }));
 
-    await createDraftApi(fetcher).decide(regular.id, { decision: "reject", expected_version: 0, reason: "Không đủ bằng chứng" });
+    await createDraftApi(fetcher).decide(regular.id, { decision: "reject", expected_version: 0, reason: "Không đủ bằng chứng" }, selection);
 
-    expect(fetcher).toHaveBeenCalledWith(`/api/drafts/${regular.id}/decision`, {
+    expect(fetcher).toHaveBeenCalledWith(`/api/v1/drafts/${regular.id}/decision`, {
       method: "POST",
       credentials: "same-origin",
       cache: "no-store",
@@ -111,10 +128,20 @@ describe("same-origin draft API client", () => {
     });
   });
 
-  it.each([401, 403, 404, 409, 415, 422, 503])("maps HTTP %s without exposing the server message", async (status) => {
-    const api = createDraftApi(vi.fn().mockResolvedValue(jsonResponse({ error: { message: "SECRET raw backend" } }, status)));
+  it.each([
+    [401, "authentication_required"], [403, "forbidden"], [404, "draft_not_found"], [409, "draft_conflict"],
+    [413, "request_too_large"], [415, "unsupported_media_type"], [422, "invalid_request"],
+  ])("maps exact HTTP %s envelopes without exposing the server message", async (status, code) => {
+    const api = createDraftApi(vi.fn().mockResolvedValue(jsonResponse({ error: { code, message: "SECRET raw backend" } }, status)));
     await expect(api.list()).rejects.toMatchObject({ status });
     await expect(api.list()).rejects.not.toThrow(/SECRET/);
+  });
+
+  it("treats 5xx and malformed error envelopes as unsafe service results", async () => {
+    const unavailable = createDraftApi(vi.fn().mockResolvedValue(jsonResponse({ error: { code: "review_unavailable", message: "secret" } }, 503)));
+    const malformed = createDraftApi(vi.fn().mockResolvedValue(jsonResponse({ error: { message: "secret" } }, 409)));
+    await expect(unavailable.list()).rejects.toMatchObject({ kind: "service", status: undefined });
+    await expect(malformed.list()).rejects.toMatchObject({ kind: "service", status: undefined });
   });
 
   it("maps network, non-JSON, and malformed 200 responses to safe client errors", async () => {

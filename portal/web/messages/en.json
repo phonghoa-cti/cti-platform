@@ -26,6 +26,8 @@
   "itemsTitle": "Extracted items",
   "itemsContext": "Selections only exist in this local preview",
   "itemsReadOnly": "Keep suggestions are read-only · the API does not accept IOC edits",
+  "itemsSelectable": "Only eligible IOCs can be selected",
+  "selectionLabel": "Review selection",
   "emptyItems": "No IOCs were extracted. This does not prove the source is safe.",
   "sourceName": "Source",
   "sha256": "SHA-256",
@@ -78,4 +80,15 @@
   "reloadDetail": "Reload detail",
   "decisionRefreshFailed": "The decision was recorded, but the latest status could not be loaded. Reload the status.",
   "reloadDecisionStatus": "Reload status"
+  ,"selectionTitle": "Saved IOC selection"
+  ,"selectedPending": "IOCs selected · not saved"
+  ,"selectedSaved": "IOCs saved"
+  ,"unsavedSelection": "There are unsaved selection changes. Save or discard them before switching drafts or deciding."
+  ,"saveSelection": "Save selection"
+  ,"savingSelection": "Saving…"
+  ,"discardSelection": "Discard changes"
+  ,"discardAndReload": "Discard local changes and reload state"
+  ,"selectionSaved": "The selection was saved."
+  ,"selectionNoop": "The selection already matches the saved state."
+  ,"selectionRefreshFailed": "The selection was saved, but the latest state could not be loaded. Reload before deciding."
 }
