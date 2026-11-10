@@ -219,6 +219,61 @@ def _table_columns(connection: sqlite3.Connection, table: str) -> set[str]:
     return {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
 
 
+def _table_info(connection: sqlite3.Connection, table: str) -> dict[str, tuple[Any, ...]]:
+    return {row[1]: row for row in connection.execute(f"PRAGMA table_info({table})")}
+
+
+def _table_sql(connection: sqlite3.Connection, table: str) -> str:
+    row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+    ).fetchone()
+    if row is None or not isinstance(row[0], str):
+        raise DraftSQLiteError(f"Schema thiếu bảng {table}")
+    return " ".join(row[0].lower().split())
+
+
+def _has_check(table_sql: str, expression: str) -> bool:
+    return re.search(rf"check\s*\(\s*{expression}\s*\)", table_sql) is not None
+
+
+def _index_columns(connection: sqlite3.Connection, index_name: str) -> list[tuple[str, int]]:
+    quoted_name = index_name.replace('"', '""')
+    return [
+        (row[2], row[3]) for row in connection.execute(f'PRAGMA index_xinfo("{quoted_name}")') if row[5] == 1
+    ]
+
+
+def _has_unique_draft_audit_index(connection: sqlite3.Connection) -> bool:
+    for row in connection.execute("PRAGMA index_list(draft_audit)"):
+        _, name, unique, _, partial = row
+        if unique == 1 and partial == 0 and _index_columns(connection, name) == [("draft_id", 0)]:
+            return True
+    return False
+
+
+def _has_audit_foreign_key(connection: sqlite3.Connection) -> bool:
+    return any(
+        row[2] == "drafts" and row[3] == "draft_id" and row[4] == "id"
+        for row in connection.execute("PRAGMA foreign_key_list(draft_audit)")
+    )
+
+
+def _has_queue_index(connection: sqlite3.Connection) -> bool:
+    for row in connection.execute("PRAGMA index_list(drafts)"):
+        _, name, unique, _, partial = row
+        if name == "idx_drafts_review_queue":
+            return (
+                unique == 0
+                and partial == 0
+                and _index_columns(connection, name)
+                == [
+                    ("review_status", 0),
+                    ("id", 1),
+                ]
+            )
+    return False
+
+
 def _commit(connection: sqlite3.Connection) -> None:
     """Điểm commit nhỏ để test chứng minh rollback khi commit thất bại."""
 
@@ -269,10 +324,35 @@ def _create_audit_schema(connection: sqlite3.Connection) -> None:
 
 
 def _validate_current_schema(connection: sqlite3.Connection) -> None:
-    if _table_columns(connection, "drafts") != REVIEW_DRAFT_COLUMNS:
+    drafts_info = _table_info(connection, "drafts")
+    audit_info = _table_info(connection, "draft_audit")
+    if set(drafts_info) != REVIEW_DRAFT_COLUMNS:
         raise DraftSQLiteError("Schema drafts review bị hỏng hoặc không được hỗ trợ")
-    if _table_columns(connection, "draft_audit") != AUDIT_COLUMNS:
+    if set(audit_info) != AUDIT_COLUMNS:
         raise DraftSQLiteError("Schema draft_audit bị hỏng hoặc không được hỗ trợ")
+    drafts_sql = _table_sql(connection, "drafts")
+    audit_sql = _table_sql(connection, "draft_audit")
+    review_status = drafts_info["review_status"]
+    review_version = drafts_info["review_version"]
+    if review_status[3] != 1 or review_status[4] != "'pending'":
+        raise DraftSQLiteError("Schema review_status thiếu NOT NULL/DEFAULT")
+    if review_version[3] != 1 or review_version[4] != "0":
+        raise DraftSQLiteError("Schema review_version thiếu NOT NULL/DEFAULT")
+    if not _has_check(
+        drafts_sql,
+        r"review_status\s+in\s*\(\s*'pending'\s*,\s*'approved'\s*,\s*'rejected'\s*\)",
+    ) or not _has_check(drafts_sql, r"review_version\s*>=\s*0"):
+        raise DraftSQLiteError("Schema drafts thiếu CHECK review state/version")
+    if audit_info["draft_id"][3] != 1 or audit_info["action"][3] != 1:
+        raise DraftSQLiteError("Schema draft_audit thiếu NOT NULL")
+    if not _has_check(audit_sql, r"action\s+in\s*\(\s*'approve'\s*,\s*'reject'\s*\)"):
+        raise DraftSQLiteError("Schema draft_audit thiếu CHECK action")
+    if not _has_unique_draft_audit_index(connection):
+        raise DraftSQLiteError("Schema draft_audit thiếu UNIQUE draft_id")
+    if not _has_audit_foreign_key(connection):
+        raise DraftSQLiteError("Schema draft_audit thiếu FK draft_id")
+    if not _has_queue_index(connection):
+        raise DraftSQLiteError("Schema drafts thiếu index review queue")
 
 
 def _schema_mode(connection: sqlite3.Connection) -> Literal["legacy", "current"]:
@@ -522,8 +602,8 @@ def get_draft(db_path: str | Path, draft_id: int, *, timeout: float = 5.0) -> di
     """Đọc một draft bằng kết nối SQLite chỉ đọc, không tự tạo database."""
 
     timeout = _validate_timeout(timeout)
-    if not _is_int(draft_id) or draft_id < 1:
-        raise DraftStoreError("ID phải là số nguyên dương")
+    if not _is_int(draft_id) or not 1 <= draft_id <= SQLITE_MAX_INTEGER:
+        raise DraftStoreError("ID phải là số nguyên dương trong miền INTEGER SQLite")
     path = Path(db_path)
     if not path.is_file():
         raise DraftStoreError(f"Database không tồn tại: {path}")

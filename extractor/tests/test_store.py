@@ -247,6 +247,16 @@ def test_get_missing_database_or_id_never_creates_or_rewrites(tmp_path: Path):
     assert get_draft(db, first_id)["id"] == first_id
 
 
+@pytest.mark.parametrize("draft_id", [True, 0, -1, 2**63])
+def test_get_rejects_invalid_id_before_database_io(tmp_path: Path, draft_id):
+    missing = tmp_path / "missing.sqlite"
+
+    with pytest.raises(DraftStoreError, match="ID"):
+        get_draft(missing, draft_id)
+
+    assert not missing.exists()
+
+
 @pytest.mark.parametrize(
     ("column", "value", "error"),
     [

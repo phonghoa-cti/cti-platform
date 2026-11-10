@@ -192,6 +192,29 @@ def test_cli_get_stdout_distinguishes_payload_and_approved_review_status(tmp_pat
     }
 
 
+def test_cli_get_rejects_id_above_sqlite_integer_before_database_or_output_io(tmp_path: Path):
+    db = tmp_path / "missing.sqlite"
+    output = tmp_path / "existing.json"
+    output.write_text("KEEP THIS", encoding="utf-8")
+
+    result = run(
+        str(STORE_SCRIPT),
+        "get",
+        "--db",
+        str(db),
+        "--id",
+        str(2**63),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 1
+    assert "ID" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert not db.exists()
+    assert output.read_text(encoding="utf-8") == "KEEP THIS"
+
+
 @pytest.mark.parametrize("command", ["save", "get", "list"])
 @pytest.mark.parametrize("timeout", ["nan", "inf", "-inf", "-1"])
 def test_cli_rejects_invalid_timeout_before_database_or_output_io(tmp_path: Path, command: str, timeout: str):

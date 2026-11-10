@@ -52,6 +52,58 @@ def create_legacy_database(db: Path, draft: dict | None = None) -> str:
     return payload_json
 
 
+def create_counterfeit_current_database(db: Path, broken: str) -> None:
+    drafts_checks = (
+        ""
+        if broken == "draft_checks"
+        else ("CHECK (review_status IN ('pending', 'approved', 'rejected')),CHECK (review_version >= 0),")
+    )
+    audit_unique = "" if broken == "audit_unique" else "UNIQUE"
+    audit_fk = "" if broken == "audit_fk" else "REFERENCES drafts(id)"
+    audit_action_check = "" if broken == "audit_action_check" else "CHECK (action IN ('approve', 'reject'))"
+    connection = sqlite3.connect(db)
+    try:
+        connection.executescript(
+            f"""
+            CREATE TABLE drafts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                schema_version TEXT NOT NULL,
+                status TEXT NOT NULL,
+                source_sha256 TEXT NOT NULL,
+                created_by_subject TEXT,
+                review_status TEXT NOT NULL DEFAULT 'pending',
+                review_version INTEGER NOT NULL DEFAULT 0,
+                decided_by_subject TEXT,
+                decided_at TEXT,
+                decision_reason TEXT,
+                {drafts_checks}
+                CHECK (id > 0)
+            );
+            CREATE TABLE draft_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                draft_id INTEGER NOT NULL {audit_unique} {audit_fk},
+                action TEXT NOT NULL {audit_action_check},
+                at TEXT NOT NULL,
+                actor_subject TEXT NOT NULL,
+                expected_version INTEGER NOT NULL,
+                previous_status TEXT NOT NULL,
+                new_status TEXT NOT NULL,
+                previous_version INTEGER NOT NULL,
+                new_version INTEGER NOT NULL,
+                reason TEXT
+            );
+            PRAGMA user_version = 1;
+            """
+        )
+        if broken != "queue_index":
+            connection.execute("CREATE INDEX idx_drafts_review_queue ON drafts(review_status, id DESC)")
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def review_row(db: Path, draft_id: int = 1) -> tuple:
     connection = sqlite3.connect(db)
     try:
@@ -604,3 +656,34 @@ def test_queue_excludes_decided_drafts_but_get_keeps_them_readable(tmp_path: Pat
     assert page["items"][0]["review_status"] == "pending"
     assert store.get_draft(db, approved_id)["review"]["status"] == "approved"
     assert store.get_draft(db, rejected_id)["review"]["status"] == "rejected"
+
+
+@pytest.mark.parametrize(
+    "broken",
+    ["draft_checks", "audit_unique", "audit_fk", "audit_action_check", "queue_index"],
+)
+def test_current_schema_with_matching_columns_but_broken_constraints_is_rejected_before_write(
+    tmp_path: Path, broken: str
+):
+    db = tmp_path / f"broken-{broken}.sqlite"
+    create_counterfeit_current_database(db, broken)
+    before = hashlib.sha256(db.read_bytes()).hexdigest()
+    actor = store.Actor("reviewer", frozenset({"analyst"}))
+
+    operations = (
+        lambda: store.get_draft(db, 1),
+        lambda: store.list_drafts(db),
+        lambda: store.migrate_store(db),
+        lambda: store.decide_draft(
+            db,
+            1,
+            actor=actor,
+            decision="approve",
+            expected_version=0,
+        ),
+        lambda: store.save_draft(db, make_draft(), created_by_subject="author"),
+    )
+    for operation in operations:
+        with pytest.raises(store.DraftSQLiteError, match="Schema"):
+            operation()
+        assert hashlib.sha256(db.read_bytes()).hexdigest() == before
