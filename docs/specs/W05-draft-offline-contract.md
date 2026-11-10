@@ -22,7 +22,7 @@ hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/
 | `schema_version` | string, không null | ✓ | ✓ | Builder | Hiện chỉ nhận `"1.0"`. |
 | `status` | string, không null | ✓ | ✓ | Builder | Hiện chỉ nhận `"pending"`; đây là trạng thái **draft**. |
 | `source` | object, không null | ✓ | ✓ | Builder | Tên nguồn và hash của text được lưu; xem bảng dưới. |
-| `language` | `"vi" | "en"`, không null | ✓ | ✓ | Builder/người gọi | Ngôn ngữ khai báo của text. Store không tự nhận diện. |
+| `language` | `"vi" \| "en"`, không null | ✓ | ✓ | Builder/người gọi | Ngôn ngữ khai báo của text. Store không tự nhận diện. |
 | `tlp` | string, không null | ✓ | ✓ | Builder/người gọi | `TLP:CLEAR`, `TLP:GREEN`, `TLP:AMBER`, `TLP:AMBER+STRICT` hoặc `TLP:RED`; là metadata, không cấp quyền gửi cloud. |
 | `text` | string, không null | ✓ | ✓ | Người gọi/builder | Nguyên văn dùng để tạo hash và tính span; có thể rỗng. |
 | `items` | array, không null | ✓ | ✓ | Builder | Danh sách mục trích; hiện builder C1 chỉ tạo IOC. |
@@ -67,8 +67,9 @@ hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/
 3. Item rejected có thể có `span=null`, `evidence=""`, `keep=false`; W05 không tạo liên kết tô sáng cho item này.
 4. Hiện store chỉ nhận draft `pending`; chưa có chuyển trạng thái, cập nhật hay ghi đè.
 5. Builder C1 hiện chỉ tạo IOC. Ví dụ API cũ có `ttp|malware|actor` là hướng tương lai, không phải dữ liệu đã chạy.
-6. Store hiện kiểm kiểu nhưng chưa giới hạn tập `kind`/`item.status` cho mọi item không-kept. Biên API tương lai
-   phải có allowlist schema và từ chối loại/trạng thái chưa hỗ trợ trước khi đưa dữ liệu cho W05.
+6. Ngoài kiểm tra quan hệ type/value/span cho `kind=ioc` được giữ, store chưa giới hạn đầy đủ tập
+   `kind`/`item.status` của dữ liệu tự khai. Biên API tương lai phải có allowlist schema và từ chối loại/trạng
+   thái chưa hỗ trợ trước khi đưa dữ liệu cho W05.
 7. `tlp` và `injection_warning` chỉ là dữ liệu hiển thị/kiểm soát; chúng không phải phép gửi cloud và cũng không
    chứng minh nội dung an toàn.
 
@@ -92,11 +93,48 @@ const quote = Array.from(text).slice(start, end).join("");
 Nếu API/frontend sau này chọn offset UTF-16, cần một bước chuyển đổi được đặc tả và test riêng; không được đổi
 ngầm ý nghĩa span 1.0.
 
+## Hàng đợi pending ngoại tuyến
+
+API Python dự kiến cho lát cắt này:
+
+```python
+list_drafts(db_path, *, limit=20, before_id=None, timeout=5.0)
+```
+
+Hàm chỉ đọc các draft có trạng thái cột SQLite là `pending`, sắp xếp `id DESC` và trả:
+
+```json
+{
+  "items": [
+    {
+      "id": 5,
+      "created_at": "2026-11-10T15:18:49.564135+00:00",
+      "status": "pending",
+      "source": {"name": "synthetic.txt", "sha256": "..."},
+      "language": "vi",
+      "tlp": "TLP:AMBER",
+      "item_count": 1,
+      "injection_warning": false
+    }
+  ],
+  "next_before_id": 5
+}
+```
+
+- Summary không chứa `text`, `items`, `evidence`, `findings` hoặc excerpt nguồn.
+- `limit` là integer thật trong `[1,100]`; `before_id` là null hoặc integer dương trong miền SQLite.
+- Trang sau dùng `id < before_id`, không dùng OFFSET. Cursor không cần trùng một ID đang tồn tại.
+- `next_before_id` là ID cuối trang khi còn ít nhất một dòng phía sau; hết dữ liệu hoặc trang rỗng trả null.
+- Insert mới giữa hai lần đọc không làm lặp/mất ID cũ ở các trang tiếp theo; tải lại trang đầu mới thấy ID mới.
+  Đây không phải snapshot chung qua nhiều lần đọc.
+- Lệnh list dùng SQLite `mode=ro`, timeout hữu hạn, không tạo DB/table và không chuyển trạng thái.
+- CLI ghi JSON summary ra file riêng; output trùng/equivalent/samefile với DB phải bị từ chối.
+
 ## Khoảng trống trước khi W05 chạy thật
 
 | Phần | Hiện tại | Cần có trước tích hợp |
 |---|---|---|
-| Liệt kê/lọc/phân trang | Chưa có HTTP | Danh sách pending có giới hạn, thứ tự ổn định và metadata phân trang. |
+| Liệt kê/lọc/phân trang | Có API/CLI ngoại tuyến theo cursor ID; chưa có HTTP | Endpoint pending có quyền, giới hạn và metadata phân trang. |
 | Đọc chi tiết | Chỉ có CLI/API Python `get_draft` | Endpoint đọc một draft, lỗi 404/422 rõ và payload giữ đủ trường. |
 | Xác thực/quyền | Chưa có | Danh tính phải do backend xác minh; chỉ Analyst/Admin, không tin header email do client tự gửi. |
 | Schema ở biên API | Store chưa siết mọi `kind/status` | Từ chối loại/trạng thái chưa hỗ trợ và trường thừa/thiếu trước khi render. |
