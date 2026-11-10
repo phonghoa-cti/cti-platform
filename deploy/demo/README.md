@@ -58,6 +58,17 @@ docker compose --env-file .env -f compose.yml -f compose.import.yml config --qui
 Trước mỗi thay đổi version, so sánh các image render từ Compose với `images.lock.json`; không chấp nhận
 `latest`, image không có digest hoặc platform khác `linux/amd64`.
 
+## Kiểm fixture STIX
+
+Cài đúng validator vào `.venv` riêng của checkout, không cài toàn hệ thống:
+
+```powershell
+uv pip install --python .venv\Scripts\python.exe stix2-validator==3.3.2
+.venv\Scripts\stix2_validator.exe --version 2.1 --strict --enforce-refs deploy/demo/fixtures/demo-bundle.json
+```
+
+Lệnh chỉ parse file cục bộ. Kết quả và negative case được mô tả trong [`fixtures/README.md`](fixtures/README.md).
+
 ## Trình tự nghiệm thu trên lab (chưa chạy)
 
 1. Analyst duyệt fixture: xác nhận nội dung tổng hợp, provenance, marking/TLP và SHA-256 trong

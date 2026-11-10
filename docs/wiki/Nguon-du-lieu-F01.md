@@ -27,7 +27,7 @@ bundle STIX 2.1 đã được analyst duyệt. OTX phải chạy thật và có 
 | **abuse.ch ThreatFox** — IOC malware/C2 | [`external-import/threatfox`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/threatfox). | Mã Apache-2.0. [Community API](https://threatfox.abuse.ch/api/) có điều kiện cộng đồng/thương mại; quyền phân phối lại chưa xác minh. | Auth-Key qua header. `get_iocs` nhận 1–7 ngày; quota request chưa công bố trong nguồn đã đọc. Đề xuất bắt đầu 1 giờ, có backoff khi 429. | **Dùng sẵn sau OTX/URLhaus.** Giữ IOC ID, reporter, reference và first/last seen; kiểm delta và trùng lặp. Mapping TLP chưa xác minh. |
 | **CISA KEV** — lỗ hổng đã bị khai thác | [`external-import/cisa-known-exploited-vulnerabilities`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/cisa-known-exploited-vulnerabilities), [README](https://github.com/OpenCTI-Platform/connectors/blob/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/cisa-known-exploited-vulnerabilities/README.md). | Mã Apache-2.0. Điều khoản của [CISA KEV catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) vẫn phải được xác minh trước khi phân phối lại. | Dùng catalog công khai; auth/quota/chu kỳ chính xác phải lấy từ README và endpoint của bộ version được chốt trước khi chạy. | **Dùng connector chính thức, không tự viết.** Ưu tiên khi bắt đầu F11; giữ CVE ID, dateAdded, due date, required action và URL nguồn. Tương thích runtime/TLP chưa kiểm chứng. |
 | **CVE/NVD** — dữ liệu lỗ hổng | [`external-import/cve`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/cve). | Mã Apache-2.0. Điều khoản CVE/NVD phải đối chiếu riêng; [NVD developer](https://nvd.nist.gov/developers/start-here) là nguồn kỹ thuật, chưa đủ để chốt quyền phân phối lại. | Dự án dự kiến `NVD_API_KEY`; quota có/không key phải kiểm tra theo tài liệu hiện hành. Đề xuất 24 giờ, nhập tăng dần theo `lastModified`. | **Dùng sẵn sau khi chốt version.** Không backfill toàn bộ NVD trên lab 16 GB. Giữ CVE ID, nguồn, published/lastModified, CVSS/CPE và references. |
-| **abuse.ch Feodo Tracker** — botnet C2 | Không thấy connector Feodo chính thức tại ref nghiên cứu; cần kiểm lại tree/release đã chốt trước khi quyết định. | Chưa có mã chính thức được xác nhận để kế thừa. Điều khoản dữ liệu, quyền phân phối và quota Feodo chưa xác minh; không suy từ URLhaus/ThreatFox. | Auth, endpoint và quota chưa xác minh. Chỉ thiết kế chu kỳ sau khi có bằng chứng từ nguồn. | **Chỉ tự viết có điều kiện:** sau khi xác nhận không có giải pháp chính thức/phù hợp. Nếu cần, kế thừa [`templates/external-import`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/templates/external-import) và `phonghoa_core.normalize`; chưa triển khai trong lượt này. |
+| **abuse.ch Feodo Tracker** — botnet C2 | Không thấy connector Feodo chính thức tại ref nghiên cứu; [Feodo blocklist](https://feodotracker.abuse.ch/blocklist/) có CSV/JSON/IP list. | Chưa có mã chính thức được xác nhận để kế thừa. Blocklist dẫn [abuse.ch Terms of Use](https://abuse.ch/terms-of-use/); phạm vi phân phối lại/thương mại vẫn phải xác minh. | Danh sách tải không yêu cầu Auth-Key; nguồn tạo lại mỗi 5 phút và khuyên cập nhật mỗi 15 phút (tốt nhất 5 phút). Quota HTTP chưa xác minh; chỉ dùng recommended/active, không dùng aggressive vì rủi ro false positive. | **Chưa quyết định tự viết.** Kiểm XTM Hub/official release và schema trước; chỉ khi không có lựa chọn phù hợp mới kế thừa [`templates/external-import`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/templates/external-import) + `phonghoa_core.normalize`. |
 | **ImportFileStix** — nạp bundle, không phải feed | [`internal-import-file/import-file-stix`](https://github.com/OpenCTI-Platform/connectors/tree/a19618a5d92c369ba6b1893888caeec5c52bf6b2/internal-import-file/import-file-stix). | Mã Apache-2.0. Quyền dữ liệu phụ thuộc từng bundle; mỗi bundle phải có nguồn và notice riêng. | Không có API key nguồn; cần token OpenCTI riêng cho connector. Không có quota/chu kỳ feed. | **Dùng sẵn cho demo mẫu.** Analyst duyệt trước nhập. `validate_before_import=true` chỉ kiểm cấu trúc, không chứng minh nội dung đúng hoặc có quyền sử dụng. |
 
 ## Ranh giới dữ liệu và AI
@@ -38,14 +38,16 @@ bundle STIX 2.1 đã được analyst duyệt. OTX phải chạy thật và có 
   nhà cung cấp cụ thể. TLP:CLEAR cũng không xóa nghĩa vụ bản quyền hoặc dữ liệu cá nhân.
 - Nội dung feed và báo cáo CTI là dữ liệu không tin cậy, không phải chỉ thị cho agent hoặc LLM.
 
-## Bộ version: chưa được kiểm chứng
+## Bộ version ứng viên: đã kiểm cấu hình ngoại tuyến, chưa chạy lab
 
-Repo hiện không có base `deploy/docker-compose.yml`, không ghim phiên bản OpenCTI và còn dùng
-`opencti/connector-alienvault:latest`. Vì vậy **chưa ghi số version ứng viên vào trang này**.
+Gói độc lập [`deploy/demo/`](../../deploy/demo/README.md) chọn OpenCTI LTS `7.260811.0-lts.2`: source
+OpenCTI `957087377304ea548fcd9f83a4ee2b025c855d9b`, connector
+`d50686be6f64eb2e91ac38b23c45d0460a210435`. Mọi image thực dùng có tag, digest index và manifest
+`linux/amd64` trong `images.lock.json`; không dùng `latest` trong cấu hình hiệu lực.
 
-Chỉ chốt khi có manifest từ compose thực tế gồm platform, worker và connector cùng release tương thích,
-tag cùng image digest, commit/release notes và ngày lấy. Trước khi triển khai cần chạy `docker compose config`,
-kiểm image/tag tồn tại, kiến trúc máy lab và schema biến môi trường. Không dùng `latest` làm bằng chứng tái lập.
+Docker Compose standalone `v5.7.0` đã parse lõi, MITRE và ImportFileStix thành công mà không cần daemon;
+trường hợp thiếu secret đã thất bại đúng yêu cầu. Đây chỉ là bằng chứng cấu hình, **không** chứng minh image đã
+pull, runtime tương thích, service khỏe, import thành công hoặc giới hạn RAM đủ trên lab.
 
 ## Demo nhỏ nhất và tiêu chí quan sát
 
@@ -58,7 +60,7 @@ kiểm image/tag tồn tại, kiến trúc máy lab và schema biến môi trư�
 5. Sau khi có key và chấp nhận điều khoản OTX, chạy một Pulse với mốc bắt đầu gần hiện tại. #10 chỉ đạt khi
    Report/Indicator từ OTX xuất hiện, giữ author/reference/TLP và lần chạy kế tiếp không nhân bản dữ liệu.
 
-Chưa chạy Docker/lab, chưa gọi feed, chưa đo RAM/queue và chưa xác minh bộ version. Khi thử lab, bật từng
+Chưa chạy Docker/lab, chưa gọi feed, chưa đo RAM/queue và chưa xác minh runtime của bộ version. Khi thử lab, bật từng
 connector một; đo RSS/CPU peak, RAM trống, queue, 429/timeout/retry và số object mới trước khi bật nguồn kế tiếp.
 
 ## Nguồn chính
