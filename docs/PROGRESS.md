@@ -31,6 +31,9 @@ Cập nhật lần cuối: 10/11/2026
 - X01/C1 ngoại tuyến: CLI dùng lại regex và bộ chấm điểm hiện có, chạy trên 6 mẫu tổng hợp Việt/Anh và xuất
   JSON tái hiện được theo báo cáo, micro và loại IOC; đây chỉ là smoke test, chưa phải đánh giá X01 trên dữ
   liệu thật
+- X01 bước 1 bản nháp ngoại tuyến: CLI `.txt` tạo JSON `status=pending`, mỗi IOC có quote/span nguyên văn,
+  SHA-256 nguồn, TLP mặc định AMBER, cảnh báo injection và allowlist; chưa lưu SQLite, chưa gọi model/lab và
+  chưa đánh giá TTP hay chất lượng trên dataset thật
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
