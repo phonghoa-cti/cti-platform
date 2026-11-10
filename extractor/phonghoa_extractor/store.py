@@ -158,23 +158,44 @@ def _create_schema(connection: sqlite3.Connection) -> None:
     connection.commit()
 
 
-def _draft_summary(row: tuple[Any, ...]) -> dict[str, Any]:
-    draft_id, created_at, row_status, source_sha256, payload_json = row
+def _validate_timeout(timeout: Any) -> float:
+    if isinstance(timeout, bool) or not isinstance(timeout, (int, float)):
+        raise DraftStoreError("timeout phải là số hữu hạn không âm")
+    try:
+        is_finite = math.isfinite(timeout)
+    except OverflowError:
+        is_finite = False
+    if not is_finite or timeout < 0:
+        raise DraftStoreError("timeout phải là số hữu hạn không âm")
+    return float(timeout)
+
+
+def _decode_draft_row(row: tuple[Any, ...]) -> tuple[dict[str, Any], int, str]:
+    draft_id, created_at, schema_version, row_status, source_sha256, payload_json = row
+    if not _is_int(draft_id) or draft_id < 1:
+        raise DraftStoreError("Metadata draft không hợp lệ")
     try:
         payload = json.loads(payload_json)
     except (TypeError, json.JSONDecodeError) as exc:
         raise DraftStoreError(f"Payload draft ID {draft_id} không phải JSON hợp lệ") from exc
     _validate_draft(payload)
-    if row_status != payload["status"] or source_sha256 != payload["source"]["sha256"]:
+    if (
+        schema_version != payload["schema_version"]
+        or row_status != payload["status"]
+        or source_sha256 != payload["source"]["sha256"]
+    ):
         raise DraftStoreError(f"Metadata draft ID {draft_id} không khớp payload")
-    if not _is_int(draft_id) or draft_id < 1:
-        raise DraftStoreError("Metadata danh sách draft không hợp lệ")
     try:
         created_time = datetime.fromisoformat(created_at)
     except (TypeError, ValueError) as exc:
         raise DraftStoreError(f"created_at của draft ID {draft_id} không hợp lệ") from exc
     if created_time.utcoffset() is None:
         raise DraftStoreError(f"created_at của draft ID {draft_id} phải có múi giờ")
+    return payload, draft_id, created_at
+
+
+def _draft_summary(row: tuple[Any, ...]) -> dict[str, Any]:
+    payload, draft_id, created_at = _decode_draft_row(row)
     return {
         "id": draft_id,
         "created_at": created_at,
@@ -190,6 +211,7 @@ def _draft_summary(row: tuple[Any, ...]) -> dict[str, Any]:
 def save_draft(db_path: str | Path, draft: dict[str, Any], *, timeout: float = 5.0) -> int:
     """Thêm một draft mới và trả ID; không sửa hoặc gộp bản ghi cũ."""
 
+    timeout = _validate_timeout(timeout)
     _validate_draft(draft)
     path = Path(db_path)
     payload = json.dumps(draft, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
@@ -223,6 +245,7 @@ def save_draft(db_path: str | Path, draft: dict[str, Any], *, timeout: float = 5
 def get_draft(db_path: str | Path, draft_id: int, *, timeout: float = 5.0) -> dict[str, Any]:
     """Đọc một draft bằng kết nối SQLite chỉ đọc, không tự tạo database."""
 
+    timeout = _validate_timeout(timeout)
     if not _is_int(draft_id) or draft_id < 1:
         raise DraftStoreError("ID phải là số nguyên dương")
     path = Path(db_path)
@@ -233,15 +256,15 @@ def get_draft(db_path: str | Path, draft_id: int, *, timeout: float = 5.0) -> di
         uri = f"{path.resolve().as_uri()}?mode=ro"
         connection = sqlite3.connect(uri, uri=True, timeout=timeout)
         row = connection.execute(
-            "SELECT payload_json, created_at FROM drafts WHERE id = ?", (draft_id,)
+            "SELECT id, created_at, schema_version, status, source_sha256, payload_json "
+            "FROM drafts WHERE id = ?",
+            (draft_id,),
         ).fetchone()
         if row is None:
             raise DraftStoreError(f"không tìm thấy draft ID {draft_id}")
-        payload = json.loads(row[0])
-        if not isinstance(payload, dict):
-            raise DraftStoreError(f"Payload draft ID {draft_id} không hợp lệ")
-        return {**payload, "id": draft_id, "created_at": row[1]}
-    except (sqlite3.Error, json.JSONDecodeError) as exc:
+        payload, stored_id, created_at = _decode_draft_row(row)
+        return {**payload, "id": stored_id, "created_at": created_at}
+    except sqlite3.Error as exc:
         raise DraftStoreError(f"Lỗi đọc SQLite: {exc}") from exc
     finally:
         if connection is not None:
@@ -257,17 +280,11 @@ def list_drafts(
 ) -> dict[str, Any]:
     """Liệt kê summary draft pending theo ID giảm dần bằng kết nối chỉ đọc."""
 
+    timeout = _validate_timeout(timeout)
     if not _is_int(limit) or not 1 <= limit <= 100:
         raise DraftStoreError("limit phải là số nguyên từ 1 đến 100")
     if before_id is not None and (not _is_int(before_id) or not 1 <= before_id <= SQLITE_MAX_INTEGER):
         raise DraftStoreError("before_id phải là số nguyên dương trong miền INTEGER SQLite")
-    if (
-        isinstance(timeout, bool)
-        or not isinstance(timeout, (int, float))
-        or timeout < 0
-        or not math.isfinite(timeout)
-    ):
-        raise DraftStoreError("timeout phải là số hữu hạn không âm")
     path = Path(db_path)
     if not path.is_file():
         raise DraftStoreError(f"Database không tồn tại: {path}")
@@ -275,7 +292,10 @@ def list_drafts(
     try:
         uri = f"{path.resolve().as_uri()}?mode=ro"
         connection = sqlite3.connect(uri, uri=True, timeout=timeout)
-        query = "SELECT id, created_at, status, source_sha256, payload_json FROM drafts WHERE status = ?"
+        query = (
+            "SELECT id, created_at, schema_version, status, source_sha256, payload_json "
+            "FROM drafts WHERE status = ?"
+        )
         parameters: list[Any] = [PENDING_STATUS]
         if before_id is not None:
             query += " AND id < ?"

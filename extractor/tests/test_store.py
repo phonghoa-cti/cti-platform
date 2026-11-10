@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
+import math
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -8,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from phonghoa_extractor.drafts import build_regex_draft
-from phonghoa_extractor.store import DraftStoreError, get_draft, save_draft
+from phonghoa_extractor.store import DraftStoreError, get_draft, list_drafts, save_draft
 
 
 def make_draft(text: str = "😀 Dòng một.\nContact evil[.]example; value '); DROP TABLE drafts;--") -> dict:
@@ -242,6 +245,116 @@ def test_get_missing_database_or_id_never_creates_or_rewrites(tmp_path: Path):
     with pytest.raises(DraftStoreError, match="ID"):
         get_draft(db, 0)
     assert get_draft(db, first_id)["id"] == first_id
+
+
+@pytest.mark.parametrize(
+    ("column", "value", "error"),
+    [
+        ("payload_json", "{not-json", "JSON"),
+        ("payload_json", '{"status":"pending"}', "draft"),
+        ("schema_version", "2.0", "Metadata"),
+        ("status", "approved", "Metadata"),
+        ("source_sha256", "0" * 64, "Metadata"),
+        ("created_at", "not-a-time", "created_at"),
+        ("created_at", "2026-11-10T12:00:00", "múi giờ"),
+    ],
+)
+def test_get_rejects_corrupt_payload_or_row_metadata_without_changing_database(
+    tmp_path: Path, column: str, value: str, error: str
+):
+    db = tmp_path / "drafts.sqlite"
+    draft_id = save_draft(db, make_draft())
+    connection = sqlite3.connect(db)
+    try:
+        connection.execute(f"UPDATE drafts SET {column} = ? WHERE id = ?", (value, draft_id))
+        connection.commit()
+    finally:
+        connection.close()
+    before_hash = hashlib.sha256(db.read_bytes()).hexdigest()
+
+    with pytest.raises(DraftStoreError, match=error):
+        get_draft(db, draft_id)
+
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before_hash
+
+
+@pytest.mark.parametrize("mutation", ["wrong_hash", "wrong_span", "wrong_status"])
+def test_get_and_list_reject_payload_that_breaks_hash_span_or_status(tmp_path: Path, mutation: str):
+    db = tmp_path / "drafts.sqlite"
+    draft_id = save_draft(db, make_draft())
+    connection = sqlite3.connect(db)
+    try:
+        payload_json = connection.execute(
+            "SELECT payload_json FROM drafts WHERE id = ?", (draft_id,)
+        ).fetchone()[0]
+        payload = json.loads(payload_json)
+        if mutation == "wrong_hash":
+            payload["source"]["sha256"] = "0" * 64
+        elif mutation == "wrong_span":
+            payload["items"][0]["span"] = [0, 1]
+        else:
+            payload["status"] = "approved"
+        connection.execute(
+            "UPDATE drafts SET payload_json = ? WHERE id = ?",
+            (json.dumps(payload, ensure_ascii=False), draft_id),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    before_hash = hashlib.sha256(db.read_bytes()).hexdigest()
+
+    with pytest.raises(DraftStoreError):
+        get_draft(db, draft_id)
+    with pytest.raises(DraftStoreError):
+        list_drafts(db)
+
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before_hash
+
+
+@pytest.mark.parametrize(
+    ("statement", "value", "error"),
+    [
+        ("UPDATE drafts SET schema_version = ? WHERE id = 1", "2.0", "Metadata"),
+        ("UPDATE drafts SET source_sha256 = ? WHERE id = 1", "0" * 64, "Metadata"),
+        ("UPDATE drafts SET created_at = ? WHERE id = 1", "2026-11-10T12:00:00", "múi giờ"),
+    ],
+)
+def test_list_rejects_returned_pending_row_with_corrupt_metadata(
+    tmp_path: Path, statement: str, value: str, error: str
+):
+    db = tmp_path / "drafts.sqlite"
+    save_draft(db, make_draft())
+    connection = sqlite3.connect(db)
+    try:
+        connection.execute(statement, (value,))
+        connection.commit()
+    finally:
+        connection.close()
+    before_hash = hashlib.sha256(db.read_bytes()).hexdigest()
+
+    with pytest.raises(DraftStoreError, match=error):
+        list_drafts(db)
+
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before_hash
+
+
+@pytest.mark.parametrize("operation", ["save", "get", "list"])
+@pytest.mark.parametrize("timeout", [True, -1, math.inf, -math.inf, math.nan, "1"])
+def test_all_store_operations_reject_invalid_timeout_before_database_io(
+    tmp_path: Path, operation: str, timeout
+):
+    db = tmp_path / "missing.sqlite"
+    draft = make_draft()
+
+    with pytest.raises(DraftStoreError, match="timeout"):
+        if operation == "save":
+            save_draft(db, draft, timeout=timeout)
+        elif operation == "get":
+            get_draft(db, 1, timeout=timeout)
+        else:
+            list_drafts(db, timeout=timeout)
+
+    assert not db.exists()
 
 
 def test_failed_insert_rolls_back_and_later_write_succeeds(tmp_path: Path):

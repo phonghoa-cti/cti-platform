@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -114,3 +116,65 @@ def test_cli_wrong_language_and_tlp_types_are_safe_and_do_not_write(tmp_path: Pa
     assert marker not in existing_result.stdout + existing_result.stderr
     assert get_draft(existing_db, first_id)["text"] == marker
     assert save_draft(existing_db, valid) == 2
+
+
+def test_cli_get_rejects_corrupt_row_without_overwriting_existing_output(tmp_path: Path):
+    db = tmp_path / "drafts.sqlite"
+    draft_id = save_draft(db, build_regex_draft("evil.example", source="synthetic.txt", language="vi"))
+    connection = sqlite3.connect(db)
+    try:
+        connection.execute(
+            "UPDATE drafts SET payload_json = ? WHERE id = ?",
+            ('{"status":"approved","text":"tampered-local-copy"}', draft_id),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    before_hash = hashlib.sha256(db.read_bytes()).hexdigest()
+    output = tmp_path / "existing.json"
+    output.write_text("KEEP THIS", encoding="utf-8")
+
+    result = run(
+        str(STORE_SCRIPT),
+        "get",
+        "--db",
+        str(db),
+        "--id",
+        str(draft_id),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    assert "tampered-local-copy" not in result.stdout + result.stderr
+    assert output.read_text(encoding="utf-8") == "KEEP THIS"
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before_hash
+
+
+@pytest.mark.parametrize("command", ["save", "get", "list"])
+@pytest.mark.parametrize("timeout", ["nan", "inf", "-inf", "-1"])
+def test_cli_rejects_invalid_timeout_before_database_or_output_io(tmp_path: Path, command: str, timeout: str):
+    db = tmp_path / f"missing-{command}-{timeout}.sqlite"
+    output = tmp_path / f"existing-{command}-{timeout}.json"
+    output.write_text("KEEP THIS", encoding="utf-8")
+    draft_path = tmp_path / "draft.json"
+    draft_path.write_text(
+        json.dumps(build_regex_draft("evil.example", source="synthetic.txt", language="vi")),
+        encoding="utf-8",
+    )
+    args = [str(STORE_SCRIPT), command, "--db", str(db), f"--timeout={timeout}"]
+    if command == "save":
+        args.extend(["--input", str(draft_path)])
+    elif command == "get":
+        args.extend(["--id", "1", "--output", str(output)])
+    else:
+        args.extend(["--output", str(output)])
+
+    result = run(*args)
+
+    assert result.returncode == 1
+    assert "timeout" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert not db.exists()
+    assert output.read_text(encoding="utf-8") == "KEEP THIS"

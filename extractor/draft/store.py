@@ -72,7 +72,7 @@ def main() -> int:
         if args.command == "get":
             stored = get_draft(args.db, args.id, timeout=args.timeout)
             _write_json(args.output, stored)
-            print(json.dumps({"id": args.id, "status": "pending"}))
+            print(json.dumps({"id": args.id, "status": stored["status"]}))
             return 0
 
         page = list_drafts(

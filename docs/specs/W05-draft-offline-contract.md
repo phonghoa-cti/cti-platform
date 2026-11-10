@@ -72,6 +72,11 @@ hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/
    thái chưa hỗ trợ trước khi đưa dữ liệu cho W05.
 7. `tlp` và `injection_warning` chỉ là dữ liệu hiển thị/kiểm soát; chúng không phải phép gửi cloud và cũng không
    chứng minh nội dung an toàn.
+8. `get` và mỗi hàng `list` được trả phải kiểm lại payload, schema/status/hash ở cột SQLite, ID và
+   `created_at` có múi giờ trước khi trả dữ liệu. Hàng `list` đã bị lọc ngoài trang hoặc không còn `pending`
+   không nằm trong lần kiểm này.
+9. `save`, `get` và `list` chỉ nhận timeout kiểu `int`/`float` hữu hạn, không âm và không nhận boolean; giá trị
+   sai phải bị từ chối trước khi mở SQLite.
 
 ## Unicode và span
 

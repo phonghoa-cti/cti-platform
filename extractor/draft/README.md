@@ -35,11 +35,15 @@ Lưu mỗi draft thành một bản ghi SQLite mới và đọc lại theo ID:
   --output .\draft-page-2.json
 ```
 
-`save` kiểm lại schema, `status`, SHA-256 và mọi `span` trước khi mở database. `language` và `tlp` phải
+`save` kiểm lại schema, `status`, SHA-256 và mọi `span` trước khi mở database. `get` và từng hàng `list`
+được trả cũng kiểm lại payload cùng metadata SQLite trước khi tạo output, nên dữ liệu cục bộ hỏng không bị
+trả như draft hợp lệ. `language` và `tlp` phải
 là chuỗi thuộc tập giá trị hỗ trợ. Với IOC được giữ, đúng IOC sau chuẩn hóa phải nằm trọn trong chính
 `span` đã khai báo; một quote ở vị trí khác không hợp thức hóa span sai. `get` chỉ đọc và không tự tạo
 database nếu đường dẫn không tồn tại. `id` cùng `created_at` UTC do kho quản lý, không được phép chèn sẵn
 trong draft đầu vào.
+
+Ba lệnh chỉ nhận `timeout` là số hữu hạn không âm; giá trị sai bị từ chối trước khi mở SQLite.
 
 `list` chỉ đọc draft `pending`, sắp xếp ID giảm dần và dùng cursor `before_id` thay vì OFFSET. Summary chỉ có
 ID/thời gian/trạng thái/source/ngôn ngữ/TLP/số item/cờ injection; không chứa toàn văn, evidence hoặc findings.
