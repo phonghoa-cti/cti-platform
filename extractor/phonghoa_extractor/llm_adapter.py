@@ -133,7 +133,14 @@ class _RetryableError(AdapterError):
 
 
 def _validate_request(text: str, language: str, tlp: object, config: str) -> ProviderRequest:
-    if not isinstance(text, str) or not text or language not in {"vi", "en"} or config not in {"C2", "C3"}:
+    if (
+        not isinstance(text, str)
+        or not text
+        or not isinstance(language, str)
+        or language not in {"vi", "en"}
+        or not isinstance(config, str)
+        or config not in {"C2", "C3"}
+    ):
         raise AdapterError("invalid_input")
     canonical_tlp = _canonical_tlp(tlp)
     return ProviderRequest(text=text, language=language, tlp=canonical_tlp, config=config)  # type: ignore[arg-type]

@@ -45,11 +45,18 @@ def _completed(payload: dict | None = None, *, model_id: object = "scripted-v1")
     )
 
 
-def _run(provider, *, config="C3", text="😀 Máy trạm kết nối evil[.]example.", tlp="TLP:AMBER"):
+def _run(
+    provider,
+    *,
+    config="C3",
+    language="vi",
+    text="😀 Máy trạm kết nối evil[.]example.",
+    tlp="TLP:AMBER",
+):
     module = _module()
     return module.run_extraction(
         text=text,
-        language="vi",
+        language=language,
         tlp=tlp,
         config=config,
         provider=provider,
@@ -126,6 +133,36 @@ class SpyProvider:
     def generate(self, request):
         self.calls += 1
         return self.responses.pop(0)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("language", []),
+        ("language", {}),
+        ("language", None),
+        ("language", False),
+        ("language", 1),
+        ("language", "fr"),
+        ("config", []),
+        ("config", {}),
+        ("config", None),
+        ("config", False),
+        ("config", 1),
+        ("config", "C4"),
+    ],
+)
+def test_invalid_language_and_config_are_stable_before_provider(field, value):
+    module = _module()
+    provider = SpyProvider([_completed()])
+    kwargs = {field: value, "text": "SOURCE_SECRET_MARKER"}
+
+    with pytest.raises(module.AdapterError) as exc:
+        _run(provider, **kwargs)
+
+    assert exc.value.code == "invalid_input"
+    assert "SOURCE_SECRET_MARKER" not in str(exc.value)
+    assert provider.calls == 0
 
 
 @pytest.mark.parametrize(
