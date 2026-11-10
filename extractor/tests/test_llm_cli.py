@@ -124,6 +124,19 @@ def test_cli_rejects_raw_response_file_over_one_mib_before_output(tmp_path):
     assert not output.exists()
 
 
+def test_cli_rejects_deep_json_without_traceback_or_output_change(tmp_path):
+    response = tmp_path / "deep.json"
+    response.write_text("[" * 1100 + "]" * 1100, encoding="utf-8")
+    output = tmp_path / "result.json"
+    output.write_text("keep-me", encoding="utf-8")
+
+    completed = _run(*_args(output, response=response))
+
+    assert completed.returncode == 1
+    assert output.read_text(encoding="utf-8") == "keep-me"
+    assert "Traceback" not in completed.stderr
+
+
 def test_cli_fallback_is_deterministic_and_reports_mock_only(tmp_path):
     response = tmp_path / "invalid-sequence.json"
     response.write_text(

@@ -1,0 +1,7 @@
+{
+  "provider": {"name": "scripted", "destination": "fake_offline", "egress": false},
+  "responses": [
+    {"status": "error", "retryable": true, "error_code": "synthetic_retry"},
+    {"status": "completed", "model_id": "scripted-v1", "payload": {"iocs": []}}
+  ]
+}

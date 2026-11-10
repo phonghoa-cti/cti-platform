@@ -1,0 +1,16 @@
+{
+  "provider": {"name": "scripted", "destination": "fake_offline", "egress": false},
+  "responses": [{
+    "status": "completed",
+    "model_id": "scripted-v1",
+    "payload": {
+      "iocs": [
+        {"type": "email", "value": "ops@mail.example", "role": "attacker", "evidence": "Hộp thư điều khiển là ops[@]mail[.]example; địa chỉ OPS[@]MAIL[.]EXAMPLE được lặp lại để kiểm tra khử trùng."},
+        {"type": "email", "value": "OPS[@]MAIL[.]EXAMPLE", "role": "attacker", "evidence": "Hộp thư điều khiển là ops[@]mail[.]example; địa chỉ OPS[@]MAIL[.]EXAMPLE được lặp lại để kiểm tra khử trùng."}
+      ],
+      "techniques": [], "malware": [], "actors": []
+    },
+    "retryable": false,
+    "error_code": null
+  }]
+}

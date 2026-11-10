@@ -46,12 +46,15 @@ Cập nhật lần cuối: 10/11/2026
 - X01 adapter C2/C3 ngoại tuyến: provider giả lập chỉ `fake_offline`/không egress, kiểm schema/TLP/metadata,
   retry một lần rồi fallback C1; C2 chỉ đánh giá, C3 dùng grounding/evidence hiện có. Đây là mock tổng hợp,
   chưa gọi hoặc đo model thật và không ghi SQLite/W05.
+- X01 evaluator C2/C3 ngoại tuyến: chạy 6 fixture tổng hợp qua adapter; C2 chấm raw prediction, C3 chấm IOC
+  sau grounding và giữ audit, metric tách `model_completed`/`regex_fallback`. C1 giữ nguyên; đây không phải
+  benchmark model/corpus thật và không nối W05.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
 - Capability upload/review/approve, work ID, trạng thái draft trước/sau và quyền thực tế chưa kiểm trên lab
 - Chưa gọi feed hoặc LLM, chưa có key/điều khoản OTX, chưa đo RAM/queue và chưa xác minh demo MITRE + OTX (#10)
-- X01 còn thiếu dataset báo cáo thật được hai người gán nhãn và các cấu hình C2–C4; smoke C1 không chứng minh
-  chất lượng extractor hoặc TTP
+- X01 còn thiếu dataset báo cáo thật được hai người gán nhãn, run model thật và C4/TTP; smoke C1/C2/C3 tổng
+  hợp không chứng minh chất lượng extractor hoặc model
 - Adapter mới chỉ chứng minh hợp đồng C2/C3 bằng response giả lập; chưa chọn provider/model, chưa có run model
   thật, token/chi phí/độ trễ, corpus hai người gán nhãn hoặc đánh giá TTP/C4
