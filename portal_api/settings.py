@@ -6,7 +6,7 @@ import json
 import math
 import os
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass
 from pathlib import Path
 from types import MappingProxyType
 from urllib.parse import urlsplit
@@ -14,6 +14,9 @@ from urllib.parse import urlsplit
 
 class SettingsError(ValueError):
     """Cấu hình runtime thiếu hoặc không an toàn."""
+
+
+_LOCAL_SETTINGS_GUARD = object()
 
 
 def _https_origin(value: str, label: str) -> tuple[str, str]:
@@ -40,6 +43,28 @@ def _portal_origin(value: str) -> str:
     return origin
 
 
+def _loopback_origin(value: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise SettingsError("PORTAL_ORIGIN loopback bắt buộc")
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise SettingsError("PORTAL_ORIGIN loopback không hợp lệ") from exc
+    if (
+        parsed.scheme != "http"
+        or parsed.hostname != "127.0.0.1"
+        or port is None
+        or parsed.netloc != f"127.0.0.1:{port}"
+        or not 1 <= port <= 65535
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise SettingsError("PORTAL_ORIGIN loopback phải là HTTP IPv4 chính xác")
+    return value
+
+
 @dataclass(frozen=True)
 class Settings:
     """Giá trị cấu hình đã kiểm trước khi tạo app."""
@@ -53,6 +78,7 @@ class Settings:
     sqlite_timeout: float = 5.0
     jwks_timeout: float = 5.0
     jwks_cache_seconds: int = 300
+    _local_guard: InitVar[object | None] = None
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
@@ -96,7 +122,27 @@ class Settings:
             jwks_cache_seconds=jwks_cache_seconds,
         )
 
-    def __post_init__(self) -> None:
+    @classmethod
+    def _for_local_integration(
+        cls,
+        *,
+        db_path: Path,
+        portal_origin: str,
+        roles_by_subject: Mapping[str, frozenset[str]],
+    ) -> Settings:
+        """Tạo cấu hình test loopback qua factory sở hữu DB; không dùng cho production."""
+
+        return cls(
+            db_path=db_path,
+            access_issuer="https://access.synthetic.test",
+            access_audience="w05-local-integration",
+            access_jwks_url="https://access.synthetic.test/certs",
+            portal_origin=portal_origin,
+            roles_by_subject=roles_by_subject,
+            _local_guard=_LOCAL_SETTINGS_GUARD,
+        )
+
+    def __post_init__(self, _local_guard: object | None) -> None:
         issuer_origin, issuer_path = _https_origin(self.access_issuer, "CF_ACCESS_ISSUER")
         if issuer_path or self.access_issuer != issuer_origin:
             raise SettingsError("CF_ACCESS_ISSUER phải là origin HTTPS chính xác")
@@ -105,7 +151,11 @@ class Settings:
             raise SettingsError("JWKS phải cùng origin với issuer và có path")
         if not isinstance(self.access_audience, str) or not self.access_audience.strip():
             raise SettingsError("CF_ACCESS_AUD bắt buộc")
-        portal_origin = _portal_origin(self.portal_origin)
+        portal_origin = (
+            _loopback_origin(self.portal_origin)
+            if _local_guard is _LOCAL_SETTINGS_GUARD
+            else _portal_origin(self.portal_origin)
+        )
         if not isinstance(self.db_path, Path):
             object.__setattr__(self, "db_path", Path(self.db_path))
         if not isinstance(self.roles_by_subject, Mapping):
