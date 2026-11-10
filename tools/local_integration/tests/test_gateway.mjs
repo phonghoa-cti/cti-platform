@@ -91,6 +91,72 @@ test("gateway does not synthesize Origin, rejects wrong Host and oversized body"
   }
 });
 
+test("gateway proxies only the four v1 draft routes and preserves query strings", async () => {
+  const paths = [];
+  const api = await listen((req, res) => {
+    paths.push(req.url);
+    res.writeHead(200, { "Cache-Control": "no-store" });
+    res.end("ok");
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: null });
+  try {
+    for (const path of [
+      "/api/v1/drafts?limit=20",
+      "/api/v1/drafts/1",
+      "/api/v1/drafts/1/selection",
+      "/api/v1/drafts/1/decision",
+    ]) {
+      const result = await request(gateway.address().port, path);
+      assert.equal(result.status, 200, path);
+      assert.equal(result.headers["cache-control"], "no-store", path);
+    }
+    for (const path of [
+      "/api/v1/drafts/0",
+      "/api/v1/drafts/1/other",
+      "/api/v1/other",
+      "/api/drafts/1/selection",
+    ]) {
+      assert.equal((await request(gateway.address().port, path)).status, 404, path);
+    }
+    assert.deepEqual(paths, [
+      "/api/v1/drafts?limit=20",
+      "/api/v1/drafts/1",
+      "/api/v1/drafts/1/selection",
+      "/api/v1/drafts/1/decision",
+    ]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
+test("v1 accepts chunked bodies through 65536 bytes without raising the legacy cap", async () => {
+  const sizes = [];
+  const api = await listen((req, res) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      sizes.push(Buffer.concat(chunks).length);
+      res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+      res.end("{}");
+    });
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: null });
+  try {
+    const aboveLegacy = " ".repeat(8193);
+    assert.equal((await request(gateway.address().port, "/api/v1/drafts/1/selection", { method: "POST", body: aboveLegacy })).status, 200);
+    assert.equal((await request(gateway.address().port, "/api/drafts/1/decision", { method: "POST", body: aboveLegacy })).status, 413);
+    assert.equal((await request(gateway.address().port, "/api/v1/drafts/1/selection", { method: "POST", body: " ".repeat(65536) })).status, 200);
+    const tooLarge = await request(gateway.address().port, "/api/v1/drafts/1/selection", { method: "POST", body: " ".repeat(65537) });
+    assert.equal(tooLarge.status, 413);
+    assert.equal(tooLarge.headers["cache-control"], "no-store");
+    assert.deepEqual(sizes, [8193, 65536]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
 test("gateway timeout returns sanitized 503 once without retry", async () => {
   let hits = 0;
   const api = await listen((_req, _res) => { hits += 1; });

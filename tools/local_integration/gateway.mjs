@@ -3,7 +3,8 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 const HOP_BY_HOP = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade"]);
-const API_PATH = /^\/api\/drafts(?:\/[1-9][0-9]*(?:\/decision)?)?$/;
+const LEGACY_API_PATH = /^\/api\/drafts(?:\/[1-9][0-9]*(?:\/decision)?)?$/;
+const V1_API_PATH = /^\/api\/v1\/drafts(?:\/[1-9][0-9]*(?:\/(?:selection|decision))?)?$/;
 
 function dynamicHopHeaders(headers) {
   const names = new Set(HOP_BY_HOP);
@@ -65,7 +66,7 @@ function readBody(request, limit) {
   });
 }
 
-export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, failRefreshAfterPost = false }) {
+export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false }) {
   for (const value of [apiPort, uiPort]) {
     if (!Number.isInteger(value) || value < 1 || value > 65535) throw new TypeError("upstream port không hợp lệ");
   }
@@ -82,11 +83,12 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
       return safeError(response, 400, "invalid_request_target");
     }
     const isApi = url.pathname.startsWith("/api/");
-    if (isApi && !API_PATH.test(url.pathname)) return safeError(response, 404, "not_found");
+    const isV1 = V1_API_PATH.test(url.pathname);
+    if (isApi && !isV1 && !LEGACY_API_PATH.test(url.pathname)) return safeError(response, 404, "not_found");
     if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") return safeError(response, 503, "synthetic_refresh_failure");
     let body;
     try {
-      body = await readBody(request, maxBodyBytes);
+      body = await readBody(request, isV1 ? maxV1BodyBytes : maxBodyBytes);
     } catch (error) {
       if (error.code === "BODY_TOO_LARGE") return safeError(response, 413, "request_too_large");
       return safeError(response, 400, "invalid_request");

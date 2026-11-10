@@ -66,6 +66,11 @@ Cập nhật lần cuối: 11/11/2026
   hai thao tác riêng, POST chưa rõ kết quả bị khóa đến khi tải lại có chủ ý, response/refresh được xử lý độc lập.
   `/duyet/mau` vẫn chỉ dùng fixture có nhãn và không gọi API. Đã kiểm Vitest/typecheck/lint/build cục bộ; chưa
   kiểm gateway v1, browser same-origin, Cloudflare/JWKS thật, lab, OpenCTI hoặc production.
+- W05 selection tích hợp cục bộ: gateway allowlist đúng bốn route API v1, giữ cap legacy 8.192 byte và cap v1
+  65.536 byte; fixture hai IOC chỉ có trong scenario selection. Ma trận HTTP thật kiểm save/no-op/empty,
+  approve/reject, auth/Origin/conflict, payload bất biến và snapshot/hash audit; trình duyệt same-origin đã kiểm
+  bỏ chọn → lưu → duyệt, empty/reject, dirty lock, trang mẫu và hai lỗi refresh 503 riêng. Chưa kiểm
+  Cloudflare/JWKS/HTTPS thật, lab, OpenCTI hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

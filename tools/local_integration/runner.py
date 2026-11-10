@@ -33,16 +33,28 @@ from portal_api.app import create_app
 from portal_api.auth import AccessJwtVerifier
 from tools.local_integration.local_settings import make_local_settings
 
-SCENARIOS = frozenset(
+SELECTION_SCENARIOS = frozenset(
     {
-        "admin-other",
-        "analyst-self",
-        "insufficient-role",
-        "missing-token",
-        "expired",
-        "wrong-signature",
-        "post-ok-refresh-503",
+        "selection-admin",
+        "selection-empty",
+        "selection-reject",
+        "selection-save-refresh-503",
+        "selection-decision-refresh-503",
     }
+)
+SCENARIOS = (
+    frozenset(
+        {
+            "admin-other",
+            "analyst-self",
+            "insufficient-role",
+            "missing-token",
+            "expired",
+            "wrong-signature",
+            "post-ok-refresh-503",
+        }
+    )
+    | SELECTION_SCENARIOS
 )
 
 
@@ -120,6 +132,7 @@ class LocalRun:
         self.temp_root = Path(tempfile.gettempdir()) / "w05-not-started"
         self.db_path = self.temp_root / "drafts.sqlite"
         self.draft_ids: tuple[int, ...] = ()
+        self.selection_draft_id: int | None = None
         self._temporary: tempfile.TemporaryDirectory[str] | None = None
         self._api_server: uvicorn.Server | None = None
         self._api_thread: threading.Thread | None = None
@@ -181,6 +194,24 @@ class LocalRun:
                 language="vi",
             )
             ids.append(store.save_draft(self.db_path, draft, created_by_subject=creator))
+        if self.scenario in SELECTION_SCENARIOS:
+            selection_draft = build_regex_draft(
+                "Synthetic selection report evil-one.example and evil-two.example",
+                source="selection-local-synthetic.txt",
+                language="vi",
+            )
+            self.selection_draft_id = store.save_draft(
+                self.db_path, selection_draft, created_by_subject="selection-author-sub"
+            )
+            ids.append(self.selection_draft_id)
+            if self.scenario == "selection-decision-refresh-503":
+                store.save_selection(
+                    self.db_path,
+                    self.selection_draft_id,
+                    actor=store.Actor("admin-sub", frozenset({"admin"})),
+                    selected_indices=[1],
+                    expected_version=0,
+                )
         self.draft_ids = tuple(ids)
 
     def start(self) -> LocalRun:
@@ -241,7 +272,11 @@ class LocalRun:
             )
             if token is not None:
                 env["W05_GATEWAY_JWT"] = token
-            if self.scenario == "post-ok-refresh-503":
+            if self.scenario in {
+                "post-ok-refresh-503",
+                "selection-save-refresh-503",
+                "selection-decision-refresh-503",
+            }:
                 env["W05_FAIL_REFRESH"] = "1"
             self._gateway_process = subprocess.Popen(
                 ["node", str(gateway)],

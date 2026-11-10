@@ -37,6 +37,35 @@ def test_runner_rejects_unknown_scenario_before_creating_resources() -> None:
         LocalRun("caller-selected-admin")
 
 
+def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixtures() -> None:
+    with LocalRun("selection-admin", duration_seconds=20, start_ui=False) as selection_run:
+        response = httpx.get(
+            f"{selection_run.url}/api/v1/drafts/{selection_run.selection_draft_id}", timeout=2
+        )
+        assert response.status_code == 200
+        assert len(selection_run.draft_ids) == 5
+        body = response.json()
+        assert [(item["kind"], item["keep"], item["status"]) for item in body["items"]] == [
+            ("ioc", True, "ok"),
+            ("ioc", True, "ok"),
+        ]
+        assert body["selection"]["ai_eligible_count"] == 2
+        assert body["selection"]["selected_indices"] == [0, 1]
+
+    with LocalRun("admin-other", duration_seconds=20, start_ui=False) as legacy_run:
+        assert len(legacy_run.draft_ids) == 4
+        assert legacy_run.selection_draft_id is None
+
+
+def test_decision_refresh_fault_starts_from_saved_selection_snapshot() -> None:
+    with LocalRun("selection-decision-refresh-503", duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/v1/drafts/{run.selection_draft_id}", timeout=2)
+        assert response.status_code == 200
+        assert response.json()["review"]["version"] == 1
+        assert response.json()["selection"]["selection_version"] == 1
+        assert response.json()["selection"]["selected_indices"] == [1]
+
+
 def test_runner_busy_gateway_port_does_not_stop_unowned_listener() -> None:
     sentinel = socket.socket()
     sentinel.bind(("127.0.0.1", 0))

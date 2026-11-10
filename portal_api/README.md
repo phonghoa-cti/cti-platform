@@ -40,3 +40,17 @@ Các license chính được đọc từ metadata package cài trong `.venv` ri�
 | Ruff | 0.17.4 | MIT |
 
 Tải/cài package từ registry chính thức chỉ xác minh dependency cục bộ, không chứng minh Cloudflare/lab production.
+
+## Harness tích hợp cục bộ
+
+`tools/local_integration/runner.py` dựng một stack loopback do từng run sở hữu: Uvicorn, production build Next,
+gateway same-origin, JWT RSA và SQLite đều là dữ liệu tổng hợp. Gateway chỉ chuyển tiếp ba route legacy và bốn
+route selection v1 đã allowlist; cap body legacy là 8.192 byte, cap v1 là 65.536 byte. Chạy ma trận riêng bằng:
+
+```powershell
+.\.venv\Scripts\python.exe tools\local_integration\tests\run_http_matrix.py
+.\.venv\Scripts\python.exe tools\local_integration\tests\run_selection_matrix.py
+```
+
+Mỗi scenario phải dùng `LocalRun` mới; `close()` chỉ dừng process/listener và xóa temp do chính run đó tạo.
+Harness không nới cấu hình HTTPS production, không dùng secret thật và không nối OpenCTI.
