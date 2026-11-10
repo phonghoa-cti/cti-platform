@@ -206,3 +206,43 @@ no-op hợp lệ tại cap vẫn không ghi event/version.
 Contract HTTP chính xác nằm tại [`api-portal.md`](api-portal.md). `/api/drafts` legacy không đổi;
 `/api/v1/drafts` mới là lát cắt in-process và chưa chứng minh listener, browser, Cloudflare/JWKS thật, lab,
 OpenCTI hoặc production.
+
+## Export STIX 2.1 ngoại tuyến từ final approve audit
+
+Lệnh export chỉ nhận SQLite schema v2 đã tồn tại và đọc bằng URI `mode=ro`. Transaction `BEGIN` được mở trước
+mọi lần đọc schema/data để payload, review, selection event và final audit thuộc cùng một snapshot. Nguồn quyền
+duy nhất là đúng một `draft_audit.action=approve` khớp review terminal; selection client, `items.keep` sau duyệt
+hoặc pointer hiện tại không thay thế final audit. Pending, rejected, legacy/future schema, self-review, creator
+null, reason khác null, selection rỗng/hỏng hoặc metadata không nhất quán đều bị từ chối; không migration/ghi DB.
+
+```powershell
+.\.venv\Scripts\python.exe extractor\draft\stix_export.py export-approved `
+  --db .\drafts.sqlite `
+  --id 1 `
+  --exporter-config .\extractor\draft\examples\stix\exporter-config.example.json `
+  --output .\approved-bundle.json
+```
+
+Config JSON exact gồm `schema_version=1`, UUID namespace riêng, tên exporter, `identity_class=organization`,
+timestamp UTC và TLP bằng TLP snapshot. Đây là cấu hình tổng hợp minh họa, không phải danh tính tổ chức thật.
+TLP:CLEAR ánh xạ TLP:WHITE; GREEN/AMBER/RED giữ nguyên; AMBER+STRICT bị từ chối trong profile v1.
+
+Artifact duy nhất là bundle JSON canonical UTF-8 có newline cuối, không có manifest sidecar. Thứ tự object là
+marking literal chuẩn, exporter Identity, các SCO theo final index sau khử trùng lặp, rồi Report. Chỉ hỗ trợ
+IPv4, IPv6, domain, URL, email, MD5, SHA-1 và SHA-256; không tạo Indicator, Pattern, Observed Data, Relationship
+hoặc TTP. `Report.external_references` chứa JSON canonical provenance v1 và SHA-256 của chính JSON đó; không có
+subject/hash subject người duyệt, source name, raw text, evidence, findings hoặc reason.
+
+SCO dùng namespace UUIDv5 chuẩn OASIS và đúng ID-contributing properties. Identity, Report và Bundle dùng ba
+child namespace UUIDv5 riêng sinh từ config. Vì SDO/Bundle UUIDv5 là ngoại lệ khuyến nghị UUIDv4, profile
+validator được gọi là **strict except 103**, không gọi là strict nguyên vẹn. Dependency kiểm test là
+`stix2-validator==3.3.2` trong `requirements-stix-test.lock`; runtime exporter không phụ thuộc SDK STIX.
+
+Publisher ghi đủ bytes vào temp độc quyền cùng thư mục, flush/fsync, đóng file rồi `os.link()` tạo output mới.
+Output đã tồn tại và byte-identical là thành công không ghi; nội dung khác bị từ chối, không replace/truncate.
+DB, `-wal/-shm/-journal`, config và alias/symlink/reparse của chúng được bảo vệ. Hỗ trợ đã kiểm trên local NTFS;
+không cam kết chống người có quyền đổi directory đồng thời, mất điện/crash hoặc network share.
+
+Thành công stdout đúng một dòng `{"draft_id":N,"bundle_sha256":"...","object_count":N}` và exit 0. Lỗi
+nghiệp vụ là một dòng an toàn trên stderr, exit 1; lỗi cú pháp/`--help` theo argparse dùng exit 2/0. Export không
+gọi mạng, không retry gửi/import, không cấp quyền chia sẻ TLP và không chứng minh OpenCTI nhận artifact.

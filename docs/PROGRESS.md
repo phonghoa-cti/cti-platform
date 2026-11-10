@@ -71,6 +71,11 @@ Cập nhật lần cuối: 11/11/2026
   approve/reject, auth/Origin/conflict, payload bất biến và snapshot/hash audit; trình duyệt same-origin đã kiểm
   bỏ chọn → lưu → duyệt, empty/reject, dirty lock, trang mẫu và hai lỗi refresh 503 riêng. Chưa kiểm
   Cloudflare/JWKS/HTTPS thật, lab, OpenCTI hoặc production.
+- W05 export STIX ngoại tuyến: CLI chỉ đọc SQLite v2, lấy final approve audit làm nguồn quyền và xuất đúng một
+  bundle STIX 2.1 gồm marking, exporter Identity, tám loại SCO hỗ trợ và Report có provenance dạng hash/metadata.
+  Output deterministic, không ghi đè và publish bằng hardlink temp hoàn chỉnh trên NTFS; validator 3.3.2 đạt
+  MUST/schema/ref và profile `strict except 103`. Đây chưa chứng minh import OpenCTI, mapping reviewer thật,
+  network share/crash durability, lab, Cloudflare hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

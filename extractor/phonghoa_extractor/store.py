@@ -7,8 +7,9 @@ import json
 import math
 import re
 import sqlite3
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from copy import deepcopy
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -165,6 +166,21 @@ class DraftReviewSelectionResult:
     selection_version: int
     selected_indices: tuple[int, ...]
     selected_sha256: str
+
+
+@dataclass(frozen=True)
+class ApprovedExportSnapshot:
+    """Snapshot final approved tự đủ để tạo artifact STIX ngoại tuyến."""
+
+    draft_id: int
+    payload: Mapping[str, Any]
+    approved_audit_id: int
+    review_version: int
+    decided_at: str
+    final_selection_version: int
+    selected_indices: tuple[int, ...]
+    selected_sha256: str
+    decided_by_subject: str = field(repr=False)
 
 
 def _require_exact_keys(value: dict[str, Any], expected: set[str], label: str) -> None:
@@ -1299,6 +1315,135 @@ def save_selection(
         if connection is not None:
             connection.rollback()
         raise DraftSQLiteError(f"Lỗi SQLite selection: {exc}") from exc
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def get_approved_export_snapshot(
+    db_path: str | Path, draft_id: int, *, timeout: float = 5.0
+) -> ApprovedExportSnapshot:
+    """Đọc final approve audit trong một transaction SQLite chỉ đọc, không migrate."""
+
+    timeout = _validate_timeout(timeout)
+    if not _is_int(draft_id) or not 1 <= draft_id <= SQLITE_MAX_INTEGER:
+        raise DraftInputError("draft_id phải là số nguyên dương trong miền INTEGER SQLite")
+    path = Path(db_path)
+    if not path.is_file():
+        raise DraftDatabaseNotFoundError(f"Database không tồn tại: {path}")
+
+    connection: sqlite3.Connection | None = None
+    try:
+        connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=timeout)
+        connection.execute("BEGIN")
+        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+            raise DraftSQLiteError("Export yêu cầu database schema v2")
+        _validate_current_schema(connection)
+        row = connection.execute(
+            "SELECT id, created_at, schema_version, status, source_sha256, payload_json, "
+            "created_by_subject, review_status, review_version, decided_by_subject, decided_at, "
+            "decision_reason, selection_version FROM drafts WHERE id=?",
+            (draft_id,),
+        ).fetchone()
+        if row is None:
+            raise DraftNotFoundError(f"không tìm thấy draft ID {draft_id}")
+        payload, stored_id, _created_at, review = _decode_draft_row(row, "current")
+        if review["status"] != "approved" or review["reason"] is not None:
+            raise DraftPolicyError("Chỉ export draft final approved không có reason")
+        creator = review["created_by_subject"]
+        reviewer = review["decided_by_subject"]
+        if creator is None or reviewer is None or creator == reviewer:
+            raise DraftPolicyError("Final approve phải có người tạo và người duyệt khác nhau")
+        selection_version = row[12]
+        if review["version"] != selection_version + 1:
+            raise DraftSQLiteError("Review version không khớp final selection version")
+
+        audit_rows = connection.execute(
+            "SELECT id, action, at, actor_subject, expected_version, previous_status, new_status, "
+            "previous_version, new_version, reason, selection_version, selected_indices_json, "
+            "selected_sha256 FROM draft_audit WHERE draft_id=?",
+            (draft_id,),
+        ).fetchall()
+        if len(audit_rows) != 1:
+            raise DraftSQLiteError("Draft phải có đúng một final approve audit")
+        audit = audit_rows[0]
+        if not _is_int(audit[0]) or audit[0] < 1:
+            raise DraftSQLiteError("Final approve audit ID không hợp lệ")
+        expected_audit = (
+            "approve",
+            review["decided_at"],
+            reviewer,
+            review["version"] - 1,
+            "pending",
+            "approved",
+            review["version"] - 1,
+            review["version"],
+            None,
+            selection_version,
+        )
+        if audit[1:11] != expected_audit:
+            raise DraftSQLiteError("Final approve audit không khớp review state")
+        selected = _validate_canonical_indices(audit[11], audit[12])
+        eligible = _eligible_ioc_indices(payload)
+        if not selected or not set(selected).issubset(eligible):
+            raise DraftPolicyError("Final selection phải là tập con IOC eligible không rỗng")
+
+        selection_rows = connection.execute(
+            "SELECT selection_version, review_version, action, at, actor_subject, "
+            "selected_indices_json, selected_sha256 FROM draft_selection_audit "
+            "WHERE draft_id=? ORDER BY selection_version",
+            (draft_id,),
+        ).fetchall()
+        if len(selection_rows) != selection_version:
+            raise DraftSQLiteError("Lịch sử selection không liên tiếp")
+        if selection_version == 0:
+            default_selected, serialized, digest = _canonical_selection(eligible)
+            if selected != default_selected or audit[11] != serialized or audit[12] != digest:
+                raise DraftSQLiteError("Final selection mặc định không khớp IOC eligible")
+        else:
+            latest_selected: tuple[int, ...] = ()
+            for expected_version, selection_row in enumerate(selection_rows, start=1):
+                event_selected = _validate_canonical_indices(selection_row[5], selection_row[6])
+                if (
+                    selection_row[0] != expected_version
+                    or selection_row[1] != expected_version
+                    or selection_row[2] != "save_selection"
+                    or not set(event_selected).issubset(eligible)
+                ):
+                    raise DraftSQLiteError("Selection audit event/version không hợp lệ")
+                _validate_subject(selection_row[4], "selection actor")
+                try:
+                    if datetime.fromisoformat(selection_row[3]).utcoffset() is None:
+                        raise ValueError
+                except (TypeError, ValueError) as exc:
+                    raise DraftSQLiteError("Selection audit time không hợp lệ") from exc
+                latest_selected = event_selected
+            latest = selection_rows[-1]
+            if (
+                latest[0] != selection_version
+                or latest[1] != selection_version
+                or latest[2] != "save_selection"
+                or latest_selected != selected
+                or latest[5] != audit[11]
+                or latest[6] != audit[12]
+            ):
+                raise DraftSQLiteError("Final selection audit không khớp approve audit")
+
+        return ApprovedExportSnapshot(
+            draft_id=stored_id,
+            payload=deepcopy(payload),
+            approved_audit_id=audit[0],
+            review_version=review["version"],
+            decided_at=review["decided_at"],
+            final_selection_version=selection_version,
+            selected_indices=selected,
+            selected_sha256=audit[12],
+            decided_by_subject=reviewer,
+        )
+    except DraftStoreError:
+        raise
+    except sqlite3.Error as exc:
+        raise DraftSQLiteError(f"Lỗi đọc SQLite export: {exc}") from exc
     finally:
         if connection is not None:
             connection.close()
