@@ -8,4 +8,7 @@
 - Quét evidence theo các mẫu chuỗi bí mật: không có match.
 - Source Backend và Frontend không bị sửa. `node_modules` vật lý trong target là bản sao ignored phục vụ build,
   không được commit và không thay lock/dependency.
-- Không có screenshot hay step ID vì phiên này không có bề mặt browser OpenMausBot phù hợp.
+- Bốn helper browser Technology đều kết thúc `status=stopped`, `gateway_port_closed=true`,
+  `temp_root_removed=true`; mỗi run giữ SQLite backup, summary và trace trước cleanup.
+- Có sáu screenshot desktop từ Browser tab OpenMausBot. Công cụ không trả `Recorded as step`, nên không có
+  step ID. Mobile 360 px không chạy vì Browser tab không có điều khiển resize viewport.
