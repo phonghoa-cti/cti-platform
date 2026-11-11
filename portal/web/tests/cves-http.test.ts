@@ -146,6 +146,17 @@ describe("W03 CVE strict parser", () => {
 });
 
 describe("W03 CVE HTTP provider", () => {
+  it("omits the KEV parameter when the all-CVE filter is selected", async () => {
+    const fetcher = vi.fn().mockResolvedValue(json(detail));
+    const provider = createCvesHttpProvider({ fetcher });
+    await provider.list({ kev: false, technologyId: null, q: "", limit: 10, cursor: null });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const [url, init] = fetcher.mock.calls[0];
+    expect(url).toBe("/api/cves?limit=10");
+    expect(init).toMatchObject({ method: "GET", cache: "no-store" });
+    expect(init.body).toBeUndefined();
+  });
+
   it("sends one GET with no-store and exact filters including opaque cursor", async () => {
     const fetcher = vi.fn().mockResolvedValue(json(detail));
     const provider = createCvesHttpProvider({ fetcher });

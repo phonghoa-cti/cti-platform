@@ -160,6 +160,10 @@ Cập nhật lần cuối: 11/11/2026
   hành nên detail cũ không kích hoạt provider mới trong lúc summary/detail kế tiếp còn chờ. Regression mới RED
   7/49 rồi GREEN 51/51, probe QA độc lập 3/3 và toàn bộ portal 356/356; typecheck/lint/build đều đạt sau khi chạy
   độc lập. API/gateway/browser/feed/OpenCTI/lab/production vẫn chưa được kiểm trong rework này.
+- W03 sửa parity bộ lọc KEV: adapter HTTP chỉ gửi `kev=true` khi bật “Chỉ KEV”; khi bỏ chọn thì bỏ hẳn tham số
+  để Backend trả cả KEV và non-KEV, đồng nhất với sample provider. Regression adapter RED 1/53 rồi GREEN 53/53;
+  kiểm thêm component giữ all-CVE qua phân trang/retry và probe Leader nguyên bản đạt 3/3 với alias sang frontend
+  tree. Đây chỉ là kiểm cục bộ; không chạy browser/backend/gateway/feed/OpenCTI/lab/production trong lượt sửa này.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
