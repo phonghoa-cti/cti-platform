@@ -84,6 +84,10 @@ Cập nhật lần cuối: 11/11/2026
   tổng hợp. Rework R1–R5 đã đóng lỗi kiểu JSON gây traceback, URL/userinfo/control, reparse ancestor, enumeration
   vượt cap, lỗi I/O fingerprint và manifest evidence hai chiều. Đây không phải corpus gold, quyền thật, hai người
   thật hay bằng chứng chất lượng model/RAG.
+- X01 local ingest ngoại tuyến: CLI mới nhận UTF-8 TXT hoặc PDF lớp text từ file regular local, bind raw hash với
+  snapshot bytes cho child `pypdf` đã pin/hash, kiểm strict/capped result rồi bọc draft C1 pending không đổi shape.
+  Output deterministic/no-clobber bằng hard-link; test synthetic có race/alias/timeout/reap/cleanup. Đây không phải
+  hard RAM/network sandbox, kiểm PDF đối kháng/thật, OCR hoặc bằng chứng chất lượng extractor/model.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -108,3 +112,5 @@ Cập nhật lần cuối: 11/11/2026
   contract deterministic trên fixture tổng hợp, không nâng mức bằng chứng chất lượng.
 - Gold-pilot mới chỉ kiểm cơ chế bằng fixture tổng hợp; quyền raw thật, độc lập hai annotator, adjudication,
   semantic TTP, corpus gold/model quality, hostile mutation, crash/power-loss và production chưa xác minh.
+- Local ingest chưa kiểm hostile filesystem mutation, hard RAM/network isolation trên Windows, PDF đối kháng/thật,
+  OCR, chất lượng text đa ngôn ngữ, corpus/model, lab hoặc production.

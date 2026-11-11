@@ -1,0 +1,5 @@
+# PyPI: https://pypi.org/project/pypdf/7.0.1/
+# License: BSD-3-Clause; Requires-Python: >=3.10
+pypdf==7.0.1 \
+    --hash=sha256:6131b764b046282357037309e7ef2a1b7679d4a5c53eed3db2bfbf7c673ddc2b \
+    --hash=sha256:0a78bb99efb41e9088260e9a8e5da134a5cbb9a322014744177bf29b5267ea6d
