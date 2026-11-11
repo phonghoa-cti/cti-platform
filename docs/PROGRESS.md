@@ -57,6 +57,10 @@ Cập nhật lần cuối: 11/11/2026
   snapshot local 55.277.605 byte thành 867 record (706 active, 161 inactive; 497 sub-technique), không cần
   provenance Phong Hỏa trong root MITRE. Synthetic giữ nguyên; asset không nằm trong repo và lookup vẫn
   `unverified`/không đủ điều kiện ghi draft. Đây là compatibility loader, không phải xác minh ngữ nghĩa TTP.
+- X01 audit technique ngoại tuyến: public API bind SHA-256 UTF-8 của nguyên văn kết quả C2/C3 giả lập, kiểm
+  quote literal/offset Unicode và trạng thái ID trên catalog đã nạp; output bất biến, luôn `unverified` và
+  không đủ điều kiện ghi draft. Test module mới và regression adapter/catalog/grounding/evaluate/eval CLI
+  đã đạt cục bộ; số đếm/lệnh/exit được lưu ở bằng chứng bàn giao của lát cắt này.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -68,3 +72,5 @@ Cập nhật lần cuối: 11/11/2026
   thật, token/chi phí/độ trễ, corpus hai người gán nhãn hoặc đánh giá TTP/C4
 - ATT&CK official mới chỉ kiểm đúng Enterprise v20.1 local; release khác, chữ ký tag/commit, NOTICE riêng,
   C4/RAG, semantics TTP, OpenCTI/lab/production vẫn chưa xác minh
+- Audit technique chỉ chứng minh source/quote/catalog consistency trên provider giả lập; semantic truth,
+  model/provider thật, corpus/gold/F1 và C4/RAG vẫn chưa xác minh.
