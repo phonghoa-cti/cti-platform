@@ -133,6 +133,11 @@ Cập nhật lần cuối: 11/11/2026
   duplicate chỉ map đúng identity active. Đã kiểm JWT/role, Origin/body, bound Unicode/actor/safe integer,
   rollback/corruption/giới hạn và regression assets/W02 bằng fixture tổng hợp. Chưa nối gateway, UI/browser,
   Cloudflare/JWKS thật, W03/OpenCTI, lab hoặc production.
+- W04 frontend công nghệ mẫu: `/tai-san/mau` được inject provider công nghệ tách riêng với CRUD và tab/bảng/form
+  theo DESIGN; `/tai-san` thật vẫn chỉ dùng domain/CIDR. Adapter technology giữ wire `software_version` chuỗi và
+  `version` số bản ghi, parser strict/code-point/UTC, mutation bất định không retry và chỉ GET đối soát; callback
+  cũ bị vô hiệu khi đổi tab/provider hoặc unmount. Bằng chứng chỉ dùng fixture/fetch giả cục bộ; API/gateway thật,
+  browser, Cloudflare/JWKS/HTTPS, lab, OpenCTI và production chưa được kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

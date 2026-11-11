@@ -9,6 +9,8 @@ import {
   type AssetItem,
   type AssetType,
 } from "@/data/assets";
+import type { TechnologyProvider } from "@/data/technologies";
+import { TechnologyPanel } from "@/components/technology-panel";
 import en from "@/messages/en.json";
 import vi from "@/messages/vi.json";
 
@@ -35,14 +37,17 @@ function validate(type: AssetType, value: string, messages: typeof vi.w04) {
 export function AssetsApp({
   dataSource,
   sourceMode = "sample",
+  technologyProvider,
 }: {
   dataSource?: AssetDataSource;
   sourceMode?: "sample" | "local-api";
+  technologyProvider?: TechnologyProvider;
 }) {
   const [sampleSource] = useState(createSampleAssetsDataSource);
   const source = dataSource ?? sampleSource;
   const [locale, setLocale] = useState<Locale>("vi");
   const [type, setType] = useState<AssetType>("domain");
+  const [technologyActive, setTechnologyActive] = useState(false);
   const [items, setItems] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<AssetErrorKind | null>(null);
@@ -54,6 +59,7 @@ export function AssetsApp({
   const requestRef = useRef(0);
   const contextRef = useRef(0);
   const messages = locale === "vi" ? vi.w04 : en.w04;
+  const technologyVisible = technologyActive && technologyProvider !== undefined;
 
   const load = useCallback(async (selectedType: AssetType, preserveCommitted = false) => {
     const request = ++requestRef.current;
@@ -85,13 +91,27 @@ export function AssetsApp({
   }, [load, type]);
 
   const switchType = (next: AssetType) => {
-    if (next === type) return;
+    if (next === type && !technologyActive) return;
+    const reloadCurrentType = next === type && technologyActive;
     requestRef.current += 1;
     contextRef.current += 1;
+    setTechnologyActive(false);
     setType(next);
     setItems([]);
     setLoading(true);
     setLoadError(null);
+    setForm(null);
+    setDeleteTarget(null);
+    setNotice(null);
+    setSaving(false);
+    if (reloadCurrentType) queueMicrotask(() => void load(next));
+  };
+
+  const switchTechnology = () => {
+    if (technologyActive || !technologyProvider) return;
+    requestRef.current += 1;
+    contextRef.current += 1;
+    setTechnologyActive(true);
     setForm(null);
     setDeleteTarget(null);
     setNotice(null);
@@ -210,10 +230,17 @@ export function AssetsApp({
 
       <section className="assets-app__workspace" aria-label={messages.workspace}>
         <div className="assets-app__tabs" role="tablist" aria-label={messages.assetTypes}>
-          <button type="button" role="tab" aria-selected={type === "domain"} onClick={() => switchType("domain")}>{messages.domain}</button>
-          <button type="button" role="tab" aria-selected={type === "ip_range"} onClick={() => switchType("ip_range")}>{messages.ipRange}</button>
+          <button type="button" role="tab" aria-selected={!technologyVisible && type === "domain"} onClick={() => switchType("domain")}>{messages.domain}</button>
+          <button type="button" role="tab" aria-selected={!technologyVisible && type === "ip_range"} onClick={() => switchType("ip_range")}>{messages.ipRange}</button>
+          {technologyProvider && (
+            <button type="button" role="tab" aria-selected={technologyActive} onClick={switchTechnology}>
+              {locale === "vi" ? vi.w04Technology.title : en.w04Technology.title}
+            </button>
+          )}
         </div>
 
+        {technologyVisible && <TechnologyPanel provider={technologyProvider} locale={locale} />}
+        {!technologyVisible && <>
         <header className="assets-app__panel-header">
           <div><h2>{typeLabel}</h2><p>{messages.context}</p></div>
           <button className="assets-app__primary" type="button" onClick={startCreate} disabled={saving}>
@@ -294,6 +321,7 @@ export function AssetsApp({
           </div>
         )}
         <footer className="assets-app__boundary">{messages.authority}</footer>
+        </>}
       </section>
     </main>
   );
