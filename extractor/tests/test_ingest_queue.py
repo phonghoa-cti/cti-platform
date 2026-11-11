@@ -162,6 +162,37 @@ def test_invalid_envelope_fails_before_database_mutation(tmp_path: Path, mutatio
     assert db.read_bytes() == before
 
 
+@pytest.mark.parametrize("control", ["\x00", "\x1f", "\x7f", "\x85", "\x9f"])
+def test_control_characters_in_matching_names_fail_before_database_mutation(tmp_path: Path, control: str):
+    db = tmp_path / "queue.sqlite"
+    store.save_draft(db, build_regex_draft("seed.example", source="seed.txt", language="vi"))
+    envelope = make_envelope()
+    invalid_name = f"bao{control}cao.txt"
+    envelope["input"]["display_name"] = invalid_name
+    envelope["draft"]["source"]["name"] = invalid_name
+    before = db.read_bytes()
+
+    with pytest.raises(IngestEnvelopeError) as captured:
+        save_ingested_envelope(db, envelope, created_by_subject="creator-1")
+
+    assert captured.value.code == "invalid_input_metadata"
+    assert db.read_bytes() == before
+
+
+def test_vietnamese_spaces_and_emoji_in_matching_names_are_valid(tmp_path: Path):
+    db = tmp_path / "queue.sqlite"
+    store.save_draft(db, build_regex_draft("seed.example", source="seed.txt", language="vi"))
+    envelope = make_envelope()
+    valid_name = "Báo cáo Việt Nam 😀 01.txt"
+    envelope["input"]["display_name"] = valid_name
+    envelope["draft"]["source"]["name"] = valid_name
+
+    result = save_ingested_envelope(db, envelope, created_by_subject="creator-1")
+
+    assert result.result == "imported"
+    assert get_ingest_provenance(db, result.draft_id).display_name == valid_name
+
+
 def test_pdf_separator_and_page_bounds_are_strict(tmp_path: Path):
     db = tmp_path / "queue.sqlite"
     store.save_draft(db, build_regex_draft("seed.example", source="seed.txt", language="vi"))

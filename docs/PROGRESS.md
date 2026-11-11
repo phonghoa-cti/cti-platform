@@ -82,7 +82,9 @@ Cập nhật lần cuối: 11/11/2026
   cùng draft, OpenCTI, Cloudflare/JWKS/HTTPS thật, chất lượng dataset/model, lab và production chưa được kiểm.
 - X01 ingest queue: CLI local/offline kiểm envelope TXT/PDF đã có, migrate SQLite v2→v3 và ghi draft pending cùng
   provenance nguyên tử; retry cùng creator không nhân bản, creator khác conflict, payload/selection/review/STIX cũ
-  giữ nguyên. Đây chỉ là importer/core synthetic; chưa kiểm browser, identity HTTP thật, OpenCTI, lab hoặc production.
+  giữ nguyên. Tên nguồn chặn toàn bộ ký tự điều khiển Unicode `Cc` ở library/CLI trước khi mở database, nhưng vẫn
+  nhận tên tiếng Việt, khoảng trắng và emoji. Đây chỉ là importer/core synthetic; chưa kiểm browser, identity HTTP
+  thật, OpenCTI, lab hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

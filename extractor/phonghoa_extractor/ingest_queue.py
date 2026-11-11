@@ -8,6 +8,7 @@ import math
 import os
 import sqlite3
 import stat
+import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -219,7 +220,7 @@ def _valid_name(value: Any) -> bool:
     return (
         isinstance(value, str)
         and bool(value)
-        and all(char not in "/\\" and ord(char) >= 32 and ord(char) != 127 for char in value)
+        and all(char not in "/\\" and unicodedata.category(char) != "Cc" for char in value)
     )
 
 

@@ -9,6 +9,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import pytest
 from test_ingest_queue import make_envelope
 
 from phonghoa_extractor import store
@@ -65,6 +66,26 @@ def test_cli_creator_is_validated_before_envelope_read(tmp_path: Path):
     assert result.stdout == ""
     assert result.stderr == "Lỗi: invalid_created_by_subject\n"
     assert str(tmp_path) not in result.stderr
+
+
+@pytest.mark.parametrize("control", ["\x85", "\x9f"])
+def test_cli_rejects_control_characters_without_database_mutation(tmp_path: Path, control: str):
+    db = tmp_path / "queue.sqlite"
+    store.save_draft(db, build_regex_draft("seed.example", source="seed.txt", language="vi"))
+    envelope_value = make_envelope()
+    invalid_name = f"bao{control}cao.txt"
+    envelope_value["input"]["display_name"] = invalid_name
+    envelope_value["draft"]["source"]["name"] = invalid_name
+    envelope = tmp_path / "envelope.json"
+    envelope.write_text(json.dumps(envelope_value, ensure_ascii=False), encoding="utf-8")
+    before = db.read_bytes()
+
+    result = run_cli("import", "--envelope", envelope, "--db", db, "--created-by-subject", "creator-1")
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr == "Lỗi: invalid_input_metadata\n"
+    assert db.read_bytes() == before
 
 
 def test_cli_argument_errors_and_help_are_closed(tmp_path: Path):
