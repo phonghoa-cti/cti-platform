@@ -386,6 +386,30 @@ def test_unbounded_provider_metadata_never_leaks_raw_value(response):
     assert "SECRET_MARKER" not in str(result)
 
 
+@pytest.mark.parametrize("config", ["C2", "C3", "C4"])
+@pytest.mark.parametrize("field", ["model_id", "error_code"])
+@pytest.mark.parametrize("recover", [True, False])
+def test_invalid_utf8_response_metadata_uses_retry_policy_without_leak(config, field, recover):
+    module = _module()
+    marker = "CTI_METADATA_NOT_FOR_LOG_\ud800"
+    bad = (
+        _completed(model_id=marker)
+        if field == "model_id"
+        else module.ProviderResponse(status="error", error_code=marker, retryable=True)
+    )
+    provider = SpyProvider([bad, _completed() if recover else bad])
+
+    result = _run_c4(provider) if config == "C4" else _run(provider, config=config)
+
+    assert provider.calls == 2
+    assert provider.requests[0] is provider.requests[1]
+    assert result["attempts"] == 2
+    assert result["result_mode"] == ("model_completed" if recover else "regex_fallback")
+    assert "CTI_METADATA_NOT_FOR_LOG" not in repr(result)
+    if not recover:
+        assert result["error_codes"] == ["invalid_response", "invalid_response"]
+
+
 def test_c2_c3_requests_keep_context_none_and_full_artifacts_stable():
     module = _module()
     text = "😀 Máy trạm kết nối evil[.]example."

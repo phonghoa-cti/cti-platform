@@ -272,7 +272,13 @@ def _handle_provider_error(response: ProviderResponse) -> tuple[dict[str, list[d
 
 
 def _bounded_metadata(value: object) -> str:
-    if not isinstance(value, str) or not value or len(value.encode("utf-8")) > MAX_METADATA_LENGTH:
+    if not isinstance(value, str) or not value:
+        raise _RetryableError("invalid_response")
+    try:
+        encoded = value.encode("utf-8")
+    except UnicodeEncodeError:
+        raise _RetryableError("invalid_response") from None
+    if len(encoded) > MAX_METADATA_LENGTH:
         raise _RetryableError("invalid_response")
     return value
 
