@@ -87,6 +87,45 @@ describe("W03 CVE strict parser", () => {
     expect(parsed.items[0]).not.toHaveProperty("advisoryUrl");
   });
 
+  it("rejects a modified detail notice", () => {
+    expect(() => parseCveResponse({ ...detail, notice: `${detail.notice} ` })).toThrow();
+  });
+
+  it("rejects a modified summary notice even when summary metadata remains valid", () => {
+    expect(() => parseCveResponse({
+      ...summary,
+      summary: { matched_cves: 1, kev_cves: 1 },
+      notice: "Liên quan theo tên sản phẩm; hãy tự xác minh.",
+    })).toThrow();
+  });
+
+  it.each([
+    { ...detail, items: [detailItem, { ...detailItem, priority: 2 }] },
+    { ...summary, items: [summary.items[0], { ...summary.items[0], priority: 2 }] },
+  ])("rejects duplicate CVE identifiers in either wire view", (value) => {
+    expect(() => parseCveResponse(value)).toThrow();
+  });
+
+  it("rejects duplicate technology matches in an otherwise valid detail item", () => {
+    expect(() => parseCveResponse({
+      ...detail,
+      items: [{ ...detailItem, matches: [detailItem.matches[0], { ...detailItem.matches[0] }] }],
+    })).toThrow();
+  });
+
+  it("rejects decreasing technology match identifiers in an otherwise valid detail item", () => {
+    expect(() => parseCveResponse({
+      ...detail,
+      items: [{
+        ...detailItem,
+        matches: [
+          { ...detailItem.matches[0], technology_id: 42 },
+          { ...detailItem.matches[0], technology_id: 41 },
+        ],
+      }],
+    })).toThrow();
+  });
+
   it.each([
     { ...detail, extra: true },
     { ...detail, view: "full" },
