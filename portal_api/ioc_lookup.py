@@ -327,13 +327,18 @@ def _validate_related(item: RelatedFact) -> None:
 def _validate_asset(item: AssetFact) -> None:
     if not isinstance(item, AssetFact):
         raise LookupUnavailable("invalid asset fact")
-    _bounded_text(item.name)
+    _bounded_asset_name(item.name)
     _validate_tlp(item.tlp)
 
 
 def _bounded_text(value: object) -> None:
     if not isinstance(value, str) or not 1 <= len(value) <= 128:
         raise LookupUnavailable("invalid bounded text")
+
+
+def _bounded_asset_name(value: object) -> None:
+    if not isinstance(value, str) or not 1 <= len(value) <= 253:
+        raise LookupUnavailable("invalid asset name")
 
 
 def _validate_tlp(value: object) -> None:

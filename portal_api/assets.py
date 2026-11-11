@@ -17,6 +17,7 @@ ASSET_TYPES = frozenset({"domain", "ip_range"})
 DOMAIN_SHAPE = re.compile(r"[^\s/@:*?\[\](){}<>,;]+\Z")
 MAX_ASSETS = 1000
 MAX_MATCHES = 100
+JSON_SAFE_INTEGER = 2**53 - 1
 
 
 class InvalidAsset(ValueError):
@@ -151,13 +152,15 @@ class AssetStore:
         with self._connect() as connection:
             connection.execute("BEGIN")
             rows = connection.execute(
-                "SELECT id,type,canonical_value FROM assets WHERE deleted_at IS NULL ORDER BY id LIMIT ?",
+                "SELECT id,type,canonical_value,note,created_by,created_at,updated_at,version "
+                "FROM assets WHERE deleted_at IS NULL ORDER BY id LIMIT ?",
                 (MAX_ASSETS + 1,),
             ).fetchall()
             connection.commit()
         if len(rows) > MAX_ASSETS:
             raise AssetsUnavailable("too many active assets")
-        return AssetSnapshot(tuple(SnapshotAsset(*row) for row in rows))
+        assets = tuple(_asset_from_row(row) for row in rows)
+        return AssetSnapshot(tuple(SnapshotAsset(item.id, item.type, item.value) for item in assets))
 
     def create(self, asset_type: str, value: str, note: str, actor: str) -> Asset:
         canonical = _canonical(asset_type, value)
@@ -166,17 +169,23 @@ class AssetStore:
         try:
             with self._connect() as connection:
                 connection.execute("BEGIN IMMEDIATE")
-                cursor = connection.execute(
-                    "INSERT INTO assets(type,canonical_value,note,version,created_by,created_at,updated_at) "
-                    "VALUES(?,?,?,1,?,?,?)",
-                    (asset_type, canonical, note, actor, now, now),
+                try:
+                    cursor = connection.execute(
+                        "INSERT INTO assets"
+                        "(type,canonical_value,note,version,created_by,created_at,updated_at) "
+                        "VALUES(?,?,?,1,?,?,?)",
+                        (asset_type, canonical, note, actor, now, now),
+                    )
+                except sqlite3.IntegrityError as exc:
+                    self._raise_write_integrity(connection, asset_type, canonical, exc)
+                asset = _validated_asset(
+                    Asset(cursor.lastrowid, asset_type, canonical, note, actor, now, now, 1)
                 )
-                asset = Asset(cursor.lastrowid, asset_type, canonical, note, actor, now, now, 1)
                 self._audit(connection, "asset_created", asset.id, actor, None, asset)
                 connection.commit()
                 return asset
-        except sqlite3.IntegrityError as exc:
-            raise AssetExists("active asset exists") from exc
+        except sqlite3.Error as exc:
+            raise AssetsUnavailable("asset storage failure") from exc
 
     def update(
         self,
@@ -199,44 +208,53 @@ class AssetStore:
                     raise AssetNotFound("asset not found")
                 if before.version != expected_version:
                     raise AssetConflict("stale asset version")
-                updated = Asset(
-                    before.id,
-                    asset_type,
-                    canonical,
-                    note,
-                    before.created_by,
-                    before.created_at,
-                    now,
-                    before.version + 1,
+                updated = _validated_asset(
+                    Asset(
+                        before.id,
+                        asset_type,
+                        canonical,
+                        note,
+                        before.created_by,
+                        before.created_at,
+                        now,
+                        _next_version(before.version),
+                    )
                 )
-                connection.execute(
-                    "UPDATE assets SET type=?,canonical_value=?,note=?,version=?,updated_at=? "
-                    "WHERE id=? AND deleted_at IS NULL",
-                    (asset_type, canonical, note, updated.version, now, asset_id),
-                )
+                try:
+                    connection.execute(
+                        "UPDATE assets SET type=?,canonical_value=?,note=?,version=?,updated_at=? "
+                        "WHERE id=? AND deleted_at IS NULL",
+                        (asset_type, canonical, note, updated.version, now, asset_id),
+                    )
+                except sqlite3.IntegrityError as exc:
+                    self._raise_write_integrity(connection, asset_type, canonical, exc)
                 self._audit(connection, "asset_updated", asset_id, actor, before, updated)
                 connection.commit()
                 return updated
-        except sqlite3.IntegrityError as exc:
-            raise AssetExists("active asset exists") from exc
+        except sqlite3.Error as exc:
+            raise AssetsUnavailable("asset storage failure") from exc
 
     def delete(self, asset_id: int, expected_version: int, actor: str) -> None:
         _validate_id_version(asset_id, expected_version)
         _validate_note_actor("", actor)
         now = _now()
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            before = self._active(connection, asset_id)
-            if before is None:
-                raise AssetNotFound("asset not found")
-            if before.version != expected_version:
-                raise AssetConflict("stale asset version")
-            connection.execute(
-                "UPDATE assets SET deleted_at=?,updated_at=?,version=version+1 WHERE id=?",
-                (now, now, asset_id),
-            )
-            self._audit(connection, "asset_deleted", asset_id, actor, before, None)
-            connection.commit()
+        try:
+            with self._connect() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                before = self._active(connection, asset_id)
+                if before is None:
+                    raise AssetNotFound("asset not found")
+                if before.version != expected_version:
+                    raise AssetConflict("stale asset version")
+                next_version = _next_version(before.version)
+                connection.execute(
+                    "UPDATE assets SET deleted_at=?,updated_at=?,version=? WHERE id=?",
+                    (now, now, next_version, asset_id),
+                )
+                self._audit(connection, "asset_deleted", asset_id, actor, before, None)
+                connection.commit()
+        except sqlite3.Error as exc:
+            raise AssetsUnavailable("asset storage failure") from exc
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=self.timeout, isolation_level=None)
@@ -251,6 +269,21 @@ class AssetStore:
             (asset_id,),
         ).fetchone()
         return None if row is None else _asset_from_row(row)
+
+    @staticmethod
+    def _raise_write_integrity(
+        connection: sqlite3.Connection,
+        asset_type: str,
+        canonical: str,
+        error: sqlite3.IntegrityError,
+    ) -> None:
+        duplicate = connection.execute(
+            "SELECT 1 FROM assets WHERE type=? AND canonical_value=? AND deleted_at IS NULL LIMIT 1",
+            (asset_type, canonical),
+        ).fetchone()
+        if error.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE and duplicate is not None:
+            raise AssetExists("active asset exists") from error
+        raise AssetsUnavailable("asset integrity failure") from error
 
     @staticmethod
     def _audit(
@@ -300,14 +333,13 @@ def _canonical(asset_type: str, raw: str) -> str:
 def _validate_note_actor(note: object, actor: object) -> None:
     if not isinstance(note, str) or len(note) > 500:
         raise InvalidAsset("invalid note")
-    if not isinstance(actor, str) or not actor:
+    if not isinstance(actor, str) or not 1 <= len(actor) <= 512:
         raise InvalidAsset("invalid actor")
 
 
 def _validate_id_version(asset_id: object, version: object) -> None:
-    maximum = 2**53 - 1
     for value in (asset_id, version):
-        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= maximum:
+        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= JSON_SAFE_INTEGER:
             raise InvalidAsset("invalid id or version")
 
 
@@ -329,7 +361,40 @@ def _match_candidate(ioc: Ioc) -> tuple[str, str] | None:
 
 
 def _asset_from_row(row: tuple[object, ...]) -> Asset:
-    return Asset(*row)
+    try:
+        return _validated_asset(Asset(*row))
+    except (InvalidAsset, TypeError, ValueError) as exc:
+        raise AssetsUnavailable("invalid stored asset") from exc
+
+
+def _validated_asset(asset: Asset) -> Asset:
+    try:
+        _validate_id_version(asset.id, asset.version)
+        if _canonical(asset.type, asset.value) != asset.value:
+            raise InvalidAsset("non-canonical stored asset")
+        _validate_note_actor(asset.note, asset.created_by)
+        _validate_timestamp(asset.created_at)
+        _validate_timestamp(asset.updated_at)
+    except InvalidAsset as exc:
+        raise AssetsUnavailable("invalid asset output") from exc
+    return asset
+
+
+def _validate_timestamp(value: object) -> None:
+    if not isinstance(value, str) or not value or len(value) > 64:
+        raise InvalidAsset("invalid timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise InvalidAsset("invalid timestamp") from exc
+    if parsed.utcoffset() != UTC.utcoffset(parsed):
+        raise InvalidAsset("invalid timestamp")
+
+
+def _next_version(version: int) -> int:
+    if version >= JSON_SAFE_INTEGER:
+        raise AssetsUnavailable("asset version overflow")
+    return version + 1
 
 
 def _audit_value(asset: Asset) -> dict[str, object]:

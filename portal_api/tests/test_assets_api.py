@@ -33,9 +33,11 @@ def _store(tmp_path):
     return store
 
 
-def _client(tmp_path, rsa_keys, *, asset_store=None, lookup_port=None):
+def _client(tmp_path, rsa_keys, *, asset_store=None, lookup_port=None, subjects=None):
     private_key, jwk = rsa_keys
     settings = _settings(tmp_path)
+    if subjects is not None:
+        settings = replace(settings, roles_by_subject=subjects)
     verifier = AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
     app = create_app(
         settings,
@@ -49,6 +51,20 @@ def _client(tmp_path, rsa_keys, *, asset_store=None, lookup_port=None):
 
 def _mutation_headers(private_key, subject="it-sub"):
     return {**_auth(private_key, subject), "Origin": "https://portal.synthetic.test"}
+
+
+def _replace_active_row(store, assignments, params=()):
+    with sqlite3.connect(store.path) as connection:
+        connection.execute("PRAGMA ignore_check_constraints=ON")
+        connection.execute(f"UPDATE assets SET {assignments} WHERE deleted_at IS NULL", params)
+
+
+def _row_counts(store):
+    with sqlite3.connect(store.path) as connection:
+        return (
+            connection.execute("SELECT count(*) FROM assets").fetchone()[0],
+            connection.execute("SELECT count(*) FROM asset_audit").fetchone()[0],
+        )
 
 
 def test_store_canonicalizes_domain_and_cidr_and_audits_atomically(tmp_path):
@@ -352,3 +368,256 @@ def test_hidden_record_remains_not_found_but_keeps_local_asset(tmp_path, rsa_key
 
     assert response.json()["state"] == "not_found"
     assert response.json()["asset_match"] == {"matched": True, "assets": ["congty.vn"]}
+
+
+@pytest.mark.parametrize(
+    ("assignments", "params"),
+    [
+        ("type='technology'", ()),
+        ("canonical_value='com'", ()),
+        ("canonical_value='EXAMPLE.com'", ()),
+        ("type='ip_range', canonical_value='203.0.113.1/24'", ()),
+        ("id=9007199254740992", ()),
+        ("version=9007199254740992", ()),
+        ("note=?", ("n" * 501,)),
+        ("created_by=?", ("s" * 513,)),
+        ("created_at=''", ()),
+    ],
+)
+def test_store_reads_fail_closed_for_invalid_active_rows(tmp_path, assignments, params):
+    store = _store(tmp_path)
+    store.create("domain", "example.com", "", "it-sub")
+    _replace_active_row(store, assignments, params)
+
+    with pytest.raises(assets.AssetsUnavailable):
+        store.list()
+    with pytest.raises(assets.AssetsUnavailable):
+        store.snapshot()
+
+
+def test_lookup_rejects_invalid_snapshot_before_adapter_call(tmp_path, rsa_keys):
+    store = _store(tmp_path)
+    store.create("domain", "example.com", "", "it-sub")
+    _replace_active_row(store, "canonical_value='com'")
+
+    class Port:
+        calls = 0
+
+        def lookup(self, _ioc, _allowed):
+            self.calls += 1
+            return None
+
+    port = Port()
+    client, private_key = _client(tmp_path, rsa_keys, asset_store=store, lookup_port=port)
+
+    response = client.get("/api/ioc?value=attacker.com", headers=_auth(private_key))
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "lookup_unavailable"
+    assert port.calls == 0
+
+
+@pytest.mark.parametrize("operation", ["update", "delete"])
+def test_mutation_read_rejects_invalid_stored_row_without_changes(tmp_path, operation):
+    store = _store(tmp_path)
+    item = store.create("domain", "example.com", "", "it-sub")
+    _replace_active_row(store, "created_by=?", ("s" * 513,))
+    before_counts = _row_counts(store)
+
+    with pytest.raises(assets.AssetsUnavailable):
+        if operation == "update":
+            store.update(item.id, "domain", "new.example", "", item.version, "it-sub")
+        else:
+            store.delete(item.id, item.version, "it-sub")
+
+    assert _row_counts(store) == before_counts
+    with sqlite3.connect(store.path) as connection:
+        row = connection.execute(
+            "SELECT canonical_value,deleted_at,version FROM assets WHERE id=?", (item.id,)
+        ).fetchone()
+    assert row == ("example.com", None, 1)
+
+
+def test_actor_bound_is_checked_before_all_mutation_transactions(tmp_path):
+    store = _store(tmp_path)
+    actor_512 = "s" * 512
+    item = store.create("domain", "example.com", "", actor_512)
+    assert item.created_by == actor_512
+    before_counts = _row_counts(store)
+
+    with pytest.raises(assets.InvalidAsset):
+        store.create("domain", "second.example", "", "s" * 513)
+    with pytest.raises(assets.InvalidAsset):
+        store.update(item.id, "domain", "new.example", "", item.version, "s" * 513)
+    with pytest.raises(assets.InvalidAsset):
+        store.delete(item.id, item.version, "s" * 513)
+
+    assert _row_counts(store) == before_counts
+    assert store.list() == (item,)
+
+
+def test_http_rejects_long_verified_subject_without_commit(tmp_path, rsa_keys):
+    subject = "s" * 513
+    store = _store(tmp_path)
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        asset_store=store,
+        subjects={subject: frozenset({"it"})},
+    )
+
+    response = client.post(
+        "/api/assets",
+        headers=_mutation_headers(private_key, subject),
+        json={"type": "domain", "value": "subject.example", "note": ""},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_asset"
+    assert subject not in response.text
+    assert _row_counts(store) == (0, 0)
+
+
+@pytest.mark.parametrize("operation", ["update", "delete"])
+def test_version_increment_overflow_rolls_back_without_audit(tmp_path, operation):
+    store = _store(tmp_path)
+    item = store.create("domain", "example.com", "", "it-sub")
+    maximum = 2**53 - 1
+    _replace_active_row(store, "version=?", (maximum,))
+    before_counts = _row_counts(store)
+
+    with pytest.raises(assets.AssetsUnavailable):
+        if operation == "update":
+            store.update(item.id, "domain", "new.example", "", maximum, "it-sub")
+        else:
+            store.delete(item.id, maximum, "it-sub")
+
+    assert _row_counts(store) == before_counts
+    with sqlite3.connect(store.path) as connection:
+        row = connection.execute(
+            "SELECT canonical_value,deleted_at,version FROM assets WHERE id=?", (item.id,)
+        ).fetchone()
+    assert row == ("example.com", None, maximum)
+
+
+def test_create_output_id_overflow_rolls_back_without_audit(tmp_path):
+    store = _store(tmp_path)
+    now = "2026-11-11T00:00:00Z"
+    maximum = 2**53 - 1
+    with sqlite3.connect(store.path) as connection:
+        connection.execute(
+            "INSERT INTO assets(id,type,canonical_value,note,version,created_by,created_at,updated_at) "
+            "VALUES(?,?,?,?,?,?,?,?)",
+            (maximum, "domain", "seed.example", "", 1, "seed", now, now),
+        )
+
+    with pytest.raises(assets.AssetsUnavailable):
+        store.create("domain", "overflow.example", "", "it-sub")
+
+    assert _row_counts(store) == (1, 0)
+
+
+@pytest.mark.parametrize(
+    ("name_length", "expected_status"),
+    [(128, 200), (129, 200), (253, 200), (254, 503)],
+)
+def test_asset_fact_name_uses_253_character_bound(tmp_path, rsa_keys, name_length, expected_status):
+    record = _record(assets=(w02_test_api.AssetFact(name="a" * name_length, tlp="TLP:GREEN"),))
+    port = w02_test_api.FixtureLookupPort({w02_test_api.EVIL_DOMAIN: record})
+    client, private_key = _client(tmp_path, rsa_keys, lookup_port=port)
+
+    response = client.get("/api/ioc?value=evil.example", headers=_auth(private_key))
+
+    assert response.status_code == expected_status
+    if expected_status == 200:
+        assert response.json()["asset_match"]["assets"] == ["a" * name_length]
+    else:
+        assert response.json()["error"]["code"] == "lookup_unavailable"
+
+
+@pytest.mark.parametrize("operation", ["create", "update"])
+def test_audit_integrity_failure_is_unavailable_and_rolls_back(tmp_path, rsa_keys, operation):
+    store = _store(tmp_path)
+    item = None
+    if operation == "update":
+        item = store.create("domain", "before.example", "", "it-sub")
+    before_counts = _row_counts(store)
+    with sqlite3.connect(store.path) as connection:
+        connection.execute(
+            "CREATE TRIGGER reject_asset_audit BEFORE INSERT ON asset_audit "
+            "BEGIN SELECT RAISE(ABORT, 'synthetic audit failure'); END"
+        )
+    client, private_key = _client(tmp_path, rsa_keys, asset_store=store)
+    body = {"type": "domain", "value": "after.example", "note": ""}
+
+    if operation == "create":
+        response = client.post("/api/assets", headers=_mutation_headers(private_key), json=body)
+    else:
+        response = client.put(
+            f"/api/assets/{item.id}",
+            headers=_mutation_headers(private_key),
+            json={**body, "expected_version": item.version},
+        )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "assets_unavailable"
+    assert _row_counts(store) == before_counts
+    if item is not None:
+        assert store.list() == (item,)
+
+
+@pytest.mark.parametrize("operation", ["create", "update"])
+def test_true_active_duplicate_is_conflict_without_extra_audit(tmp_path, rsa_keys, operation):
+    store = _store(tmp_path)
+    first = store.create("domain", "duplicate.example", "", "it-sub")
+    second = None
+    if operation == "update":
+        second = store.create("domain", "other.example", "", "it-sub")
+    before_counts = _row_counts(store)
+    client, private_key = _client(tmp_path, rsa_keys, asset_store=store)
+    body = {"type": "domain", "value": "duplicate.example", "note": ""}
+
+    if operation == "create":
+        response = client.post("/api/assets", headers=_mutation_headers(private_key), json=body)
+    else:
+        response = client.put(
+            f"/api/assets/{second.id}",
+            headers=_mutation_headers(private_key),
+            json={**body, "expected_version": second.version},
+        )
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "asset_exists"
+    assert _row_counts(store) == before_counts
+    assert store.list() == ((first,) if second is None else (first, second))
+
+
+@pytest.mark.parametrize("operation", ["create", "update"])
+def test_non_unique_asset_trigger_wins_over_existing_duplicate(tmp_path, rsa_keys, operation):
+    store = _store(tmp_path)
+    store.create("domain", "duplicate.example", "", "it-sub")
+    item = None
+    if operation == "update":
+        item = store.create("domain", "other.example", "", "it-sub")
+    before_counts = _row_counts(store)
+    with sqlite3.connect(store.path) as connection:
+        action = "INSERT" if operation == "create" else "UPDATE"
+        connection.execute(
+            f"CREATE TRIGGER reject_asset_write BEFORE {action} ON assets "
+            "BEGIN SELECT RAISE(ABORT, 'synthetic asset trigger failure'); END"
+        )
+    client, private_key = _client(tmp_path, rsa_keys, asset_store=store)
+    body = {"type": "domain", "value": "duplicate.example", "note": ""}
+
+    if operation == "create":
+        response = client.post("/api/assets", headers=_mutation_headers(private_key), json=body)
+    else:
+        response = client.put(
+            f"/api/assets/{item.id}",
+            headers=_mutation_headers(private_key),
+            json={**body, "expected_version": item.version},
+        )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "assets_unavailable"
+    assert _row_counts(store) == before_counts
