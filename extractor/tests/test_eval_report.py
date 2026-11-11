@@ -23,6 +23,11 @@ LIMITATIONS_10 = [
 LIMITATIONS_11 = LIMITATIONS_10 + [
     "TTP audit reports source, quote, and catalog consistency only; semantic TTP and C4 remain unverified."
 ]
+TTP_COUNT_PATHS = [
+    ("technique_items",),
+    *(("quote_status", status) for status in ("matched", "missing", "not_found", "ambiguous")),
+    *(("catalog_status", status) for status in ("active", "inactive", "unknown", "not_checked")),
+]
 
 
 def score(tp: int = 1, fp: int = 0, fn: int = 0) -> dict[str, int | float]:
@@ -268,6 +273,59 @@ def test_rejects_ttp_count_projection_and_markdown_grammar_breaks(tmp_path: Path
     assert result.returncode == 2
     assert result.stderr == "Lỗi: eval_report_invalid_input\n"
     assert not output.exists()
+
+
+@pytest.mark.parametrize("count_path", TTP_COUNT_PATHS, ids=lambda path: ".".join(path))
+@pytest.mark.parametrize("wrong_type", (bool, float), ids=("bool", "float"))
+def test_rejects_equivalent_noninteger_ttp_counts_before_any_publish(
+    tmp_path: Path, count_path: tuple[str, ...], wrong_type: type
+):
+    artifact = c23_artifact("C2", schema="1.1")
+    counts = artifact["ttp_audit"]["counts"]  # type: ignore[index]
+    target = counts
+    for key in count_path[:-1]:
+        target = target[key]
+    target[count_path[-1]] = wrong_type(target[count_path[-1]])
+    input_path = tmp_path / "invalid.json"
+    original_input = write_json(input_path, artifact)
+
+    new_output = tmp_path / "new-parent" / "report.md"
+    new_result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--input", str(input_path), "--output", str(new_output)],
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+    )
+    old_output = tmp_path / "old.md"
+    old_output.write_bytes(b"sentinel")
+    overwrite_result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--input",
+            str(input_path),
+            "--output",
+            str(old_output),
+            "--overwrite",
+        ],
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+    )
+
+    assert (new_result.returncode, new_result.stdout, new_result.stderr) == (
+        2,
+        "",
+        "Lỗi: eval_report_invalid_input\n",
+    )
+    assert not new_output.parent.exists()
+    assert (overwrite_result.returncode, overwrite_result.stdout, overwrite_result.stderr) == (
+        2,
+        "",
+        "Lỗi: eval_report_invalid_input\n",
+    )
+    assert old_output.read_bytes() == b"sentinel"
+    assert input_path.read_bytes() == original_input
 
 
 def test_rejects_mixed_schema_duplicate_config_and_cohort_mismatch(tmp_path: Path):

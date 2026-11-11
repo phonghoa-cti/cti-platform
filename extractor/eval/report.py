@@ -448,6 +448,13 @@ def _validate_modes(value: object, mode_documents: dict[str, list[dict[str, Any]
             raise InvalidInput
 
 
+def _validate_count_map(value: object, keys: tuple[str, ...]) -> dict[str, Any]:
+    counts = _exact_keys(value, frozenset(keys))
+    for count in counts.values():
+        _integer(count)
+    return counts
+
+
 def _validate_ttp_top(
     value: object, technique_items: int, quote_counts: dict[str, int], catalog_counts: dict[str, int]
 ) -> None:
@@ -459,10 +466,13 @@ def _validate_ttp_top(
         raise InvalidInput
     _validate_catalog(top["catalog"])
     counts = _exact_keys(top["counts"], frozenset(("technique_items", "quote_status", "catalog_status")))
+    _integer(counts["technique_items"])
+    provided_quote_counts = _validate_count_map(counts["quote_status"], QUOTE_STATUSES)
+    provided_catalog_counts = _validate_count_map(counts["catalog_status"], CATALOG_STATUSES)
     if (
         counts["technique_items"] != technique_items
-        or counts["quote_status"] != quote_counts
-        or counts["catalog_status"] != catalog_counts
+        or provided_quote_counts != quote_counts
+        or provided_catalog_counts != catalog_counts
     ):
         raise InvalidInput
 
