@@ -22,6 +22,22 @@ Nút lưu là ranh giới rõ ràng để quyết định không vô tình dùng
 `/duyet/mau` vẫn là ba bản nháp tổng hợp X01 có nhãn dữ liệu mẫu. Route mẫu không gọi API ghi, không xác thực
 và không nối OpenCTI. Gateway v1 và luồng trình duyệt same-origin được kiểm ở bước tích hợp riêng.
 
+## W04 — Tài sản mẫu
+
+`/tai-san/mau` quản lý hai loại tài sản tổng hợp là tên miền và dải IP trong bộ nhớ của phiên xem thử. Màn hình
+có thêm/sửa/xóa, xác nhận trước khi xóa, kiểm tra nhập liệu tiện dụng, trạng thái tải/rỗng/lỗi/quyền/xung đột và
+khóa gửi lặp. Nhãn trên trang nói rõ thay đổi không phải dữ liệu vận hành và không tồn tại sau khi tải lại ứng dụng.
+
+`AssetsDataSource` tách view khỏi nguồn dữ liệu. Provider mẫu không gọi mạng; adapter HTTP gọi cùng origin
+`/api/assets`, không tự thêm JWT/role, không retry mutation và dùng `expected_version` khi sửa/xóa. Nếu mutation
+thành công nhưng GET làm mới thất bại, giao diện chỉ cho tải lại danh sách; nếu mất kết nối trong mutation, giao
+diện coi kết quả chưa rõ và không gửi lại. Route API thật, gateway, xác thực và database sẽ được nối ở bước tích
+hợp sau khi Backend được nghiệm thu.
+
+Parser W02 nhận `asset_match` ở cả `found`, `allowlisted` và `not_found`. Ba fixture phản hồi tổng hợp cùng một
+fixture lỗi được sao chép nguyên byte từ gói Backend candidate đã được Leader đối chiếu SHA-256; đây là regression
+schema, chưa phải bằng chứng API/backend hoặc browser toàn luồng đã chạy.
+
 ## Chạy cục bộ
 
 Yêu cầu Node.js 22.12 trở lên (đã kiểm với Node.js 24.22.1).
@@ -31,7 +47,8 @@ npm ci
 npm run dev -- --port 3002
 ```
 
-Mở `http://localhost:3002/duyet`; `/` tự chuyển tới route này. Dùng `/duyet/mau` khi chỉ cần xem fixture.
+Mở `http://localhost:3002/duyet`; `/` tự chuyển tới route này. Dùng `/duyet/mau` khi chỉ cần xem fixture duyệt,
+hoặc `/tai-san/mau` để thử quản lý tài sản tổng hợp.
 
 ## Kiểm tra
 

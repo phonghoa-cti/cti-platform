@@ -1,0 +1,15 @@
+{
+  "ioc": {
+    "type": "url",
+    "value": "https://unknown.congty.vn/path",
+    "display": "hxxps://unknown[.]congty[.]vn/path"
+  },
+  "state": "not_found",
+  "found": false,
+  "allowlisted": false,
+  "score": null,
+  "sources": [],
+  "related": {"techniques": [], "malware": [], "actors": []},
+  "asset_match": {"matched": true, "assets": ["congty.vn"]},
+  "tlp": null
+}
