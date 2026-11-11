@@ -79,6 +79,9 @@ Cập nhật lần cuối: 11/11/2026
 - X01 evaluator/reporter C4 ngoại tuyến: query manifest explicit, preflight toàn dataset trước generate, artifact
   schema 1.2 no-clobber và reporter nhận C4 đơn hoặc C3-audit+C4 cùng provenance. Demo vẫn dùng response
   fake_offline tổng hợp; không phải benchmark model/RAG/TTP semantic hoặc corpus thật.
+- X01 gold-pilot readiness ngoại tuyến: validator/CLI kiểm inventory 5 record, quyền raw khai báo, hai annotation,
+  evidence IOC token và TTP active từ catalog đã ghim; report bất biến/no-clobber và agreement chỉ phản ánh nhãn
+  tổng hợp. Đây không phải corpus gold, quyền thật, hai người thật hay bằng chứng chất lượng model/RAG.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -101,3 +104,5 @@ Cập nhật lần cuối: 11/11/2026
 - C4 mới chỉ nối request với provider giả lập và query do caller truyền; chưa đo chống prompt injection, model thật,
   semantic/multilingual TTP, corpus hai người gán nhãn, OpenCTI, lab hoặc production. Evaluator/reporter chỉ kiểm
   contract deterministic trên fixture tổng hợp, không nâng mức bằng chứng chất lượng.
+- Gold-pilot mới chỉ kiểm cơ chế bằng fixture tổng hợp; quyền raw thật, độc lập hai annotator, adjudication,
+  semantic TTP, corpus gold/model quality, hostile mutation, crash/power-loss và production chưa xác minh.
