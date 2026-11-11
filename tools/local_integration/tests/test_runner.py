@@ -133,6 +133,24 @@ def test_stix_e2e_seed_failure_cleans_owned_temp_without_leaking_child_output(
     assert not run.temp_root.exists()
 
 
+def test_stix_e2e_exception_inside_run_cleans_owned_stack() -> None:
+    run = LocalRun("stix-e2e", duration_seconds=120, start_ui=False)
+    gateway = None
+    api_thread = None
+
+    with pytest.raises(RuntimeError, match="synthetic mid-run failure"):
+        with run:
+            temp_root = run.temp_root
+            gateway = run._gateway_process
+            api_thread = run._api_thread
+            raise RuntimeError("synthetic mid-run failure")
+
+    assert not temp_root.exists()
+    assert gateway is not None and gateway.poll() is not None
+    assert api_thread is not None and not api_thread.is_alive()
+    assert run._closed
+
+
 def test_decision_refresh_fault_starts_from_saved_selection_snapshot() -> None:
     with LocalRun("selection-decision-refresh-503", duration_seconds=20, start_ui=False) as run:
         response = httpx.get(f"{run.url}/api/v1/drafts/{run.selection_draft_id}", timeout=2)
