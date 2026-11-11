@@ -231,11 +231,75 @@ def run_matrix(output: Path, evidence_dir: Path) -> dict[str, Any]:
         restarted = assert_get_immutable(matrix, run, "/api/cves?limit=5", 200).json()
         matrix.check(restarted["summary"]["matched_cves"] == 1, "restart reflects new technology snapshot")
         matrix.check(restarted["items"][0]["cve_id"] == "CVE-2026-2013", "restart does not mix old page")
+
+        before_create = sql_snapshot(run.db_path)
+        created = httpx.post(
+            f"{run.url}/api/assets/technologies",
+            headers={"Origin": run.url},
+            json={
+                "vendor": "Fortinet",
+                "product": "FortiOS",
+                "software_version": "7.4.4",
+                "note": "Controlled W04 create for W03 matches",
+            },
+            timeout=3,
+        )
+        matrix.check(created.status_code == 201, "controlled W04 create 201")
+        created_id = created.json()["id"]
+        after_create = sql_snapshot(run.db_path)
+        matrix.check(before_create != after_create, "controlled W04 create changes SQL")
+        matrix.check(
+            before_create["schema_sha256"] == after_create["schema_sha256"]
+            and before_create["user_version"] == after_create["user_version"],
+            "controlled W04 create preserves schema and user_version",
+        )
+        created_matches_response = assert_get_immutable(matrix, run, "/api/cves?limit=5", 200)
+        created_matches = created_matches_response.json()
+        matrix.check(created_matches["summary"]["matched_cves"] == 16, "W04 create adds CVE matches")
+        created_cursor = created_matches["page"]["next_cursor"]
+        matrix.check(isinstance(created_cursor, str), "W04 create provides paging cursor")
+
+        before_delete = sql_snapshot(run.db_path)
+        deleted = httpx.delete(
+            f"{run.url}/api/assets/technologies/{created_id}",
+            headers={"Origin": run.url},
+            params={"expected_version": 1},
+            timeout=3,
+        )
+        matrix.check(deleted.status_code == 204, "controlled W04 delete 204")
+        after_delete = sql_snapshot(run.db_path)
+        matrix.check(before_delete != after_delete, "controlled W04 delete changes SQL")
+        matrix.check(
+            before_delete["schema_sha256"] == after_delete["schema_sha256"]
+            and before_delete["user_version"] == after_delete["user_version"],
+            "controlled W04 delete preserves schema and user_version",
+        )
+        stale_after_delete = assert_get_immutable(
+            matrix, run, f"/api/cves?limit=5&cursor={created_cursor}", 409
+        )
+        assert_headers(matrix, stale_after_delete)
+        after_delete_matches = assert_get_immutable(matrix, run, "/api/cves?limit=5", 200).json()
+        matrix.check(after_delete_matches["summary"]["matched_cves"] == 1, "W04 delete removes CVE matches")
         result["scenarios"]["w03-it"] = {
-            "controlled_mutation": {
-                "before": before_mutation,
-                "after": after_mutation,
-                "status": changed.status_code,
+            "controlled_mutations": {
+                "update": {
+                    "before": before_mutation,
+                    "after": after_mutation,
+                    "status": changed.status_code,
+                },
+                "create": {
+                    "before": before_create,
+                    "after": after_create,
+                    "status": created.status_code,
+                    "matched_cves": created_matches["summary"]["matched_cves"],
+                },
+                "delete": {
+                    "before": before_delete,
+                    "after": after_delete,
+                    "status": deleted.status_code,
+                    "matched_cves": after_delete_matches["summary"]["matched_cves"],
+                    "stale_cursor_status": stale_after_delete.status_code,
+                },
             },
             "initial_items": len(items),
             "setup_snapshot": setup_snapshot,

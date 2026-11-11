@@ -112,8 +112,31 @@ không tự bật nguồn CVE. Gateway chỉ cho `GET /api/cves`, giữ nguyên 
 server. Ma trận ghi wire API thật, SQL snapshot, trace và response gần/vượt cap 1 MiB:
 
 ```powershell
-..\cti-x01-ingest-browser-prep\.venv\Scripts\python.exe -X utf8 -B -m tools.local_integration.tests.run_w03_matrix --output ..\w03-integration-evidence\http-matrix.json --evidence-dir ..\w03-integration-evidence\http
+Set-Location C:\Users\ABC\.openmausbot\task-workspaces\0c356bb4-b9e0-4899-a6f5-232bc89b4048\7f8ce74d-7efd-4136-940a-c5fab132c149\cti-w03-read-integration
+..\cti-w03-read-backend\.venv\Scripts\python.exe -X utf8 -B -m tools.local_integration.tests.run_w03_matrix --output ..\w03-integration-rework-evidence\http-matrix.json --evidence-dir ..\w03-integration-rework-evidence\http
 ```
+
+Wire test dùng mặc định các response API đã capture và khóa hash trong
+`portal/web/tests/fixtures/w03-integration`, nên clone/worktree mới không cần biến môi trường:
+
+```powershell
+Set-Location .\portal\web
+Remove-Item Env:W03_WIRE_DIR -ErrorAction SilentlyContinue
+npm test -- --run tests/cves-wire-integration.test.ts
+```
+
+Muốn đối chiếu capture mới, đặt `W03_WIRE_DIR` tới thư mục `wire` do ma trận vừa tạo:
+
+```powershell
+$env:W03_WIRE_DIR='..\..\..\w03-integration-rework-evidence\http\wire'
+npm test -- --run tests/cves-wire-integration.test.ts
+```
+
+Preflight nạp và parse đủ chín fixture trước khi chạy assertions. Đường dẫn thiếu, file thiếu hoặc JSON hỏng
+làm suite dừng với thông báo `[W03 wire preflight]`; lỗi đầu vào không được adapter đổi thành một test 503 PASS.
+Near-cap được đọc qua HTTP provider thật với cả response có và không `Content-Length`; body vượt 1 MiB bị từ chối.
+Ma trận còn thực hiện W04 PUT/POST/DELETE trên cùng SQLite, chứng minh matches và cursor thay đổi trong khi mọi
+W03 GET vẫn giữ nguyên schema/row/audit/user version.
 
 Browser helper cho bốn scenario bounded: `w03-it`, `w03-leader`, `w03-snapshot-change`,
 `w03-refresh-503`. Helper lưu DB ban đầu/cuối, trace đã lược và cleanup; nó không tự mở

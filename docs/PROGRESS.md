@@ -173,6 +173,12 @@ Cập nhật lần cuối: 11/11/2026
   cursor 409, tải lại 200, 503→200, response gần/vượt cap và SQL bất biến. Browser desktop 1280×720
   kiểm detail 0/null, filter, paging 409, leader summary không gọi Technology API và retry thủ công;
   mobile 360 px, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab và production chưa kiểm.
+- W03 tích hợp rework R2: wire fixtures API thật đã capture được lưu portable trong repo với provenance/hash;
+  test mặc định và override hợp lệ đều qua HTTP provider, còn thư mục/file thiếu hoặc JSON hỏng dừng ở preflight
+  trước assertions. Near-cap chạy với cả có/không `Content-Length`; quá 1 MiB bị từ chối. Ma trận cùng SQLite
+  kiểm thêm W04 POST tạo match và DELETE bỏ match, cursor cũ trả 409, mọi W03 GET giữ SQL bất biến. **Toàn luồng
+  vẫn CHƯA ĐẠT:** R1 checkbox KEV thuộc frontend đang chờ commit riêng được review và ghép; rework này không sửa
+  component/provider sản phẩm, không tự coi R1 đã xong.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
