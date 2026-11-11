@@ -160,7 +160,7 @@ def _read_snapshot(snapshot: Path, max_bytes: int) -> bytes:
             payload = stream.read(max_bytes + 1)
     except FileNotFoundError:
         _fail("snapshot_not_found")
-    except OSError:
+    except (OSError, ValueError):
         _fail("snapshot_io_error")
     if len(payload) > max_bytes:
         _fail("snapshot_too_large")
@@ -352,10 +352,32 @@ def _canonical_relationships(
     return {stix_id: _select_version(versions) for stix_id, versions in grouped.items()}
 
 
+def _json_equal(first: object, second: object) -> bool:
+    if type(first) is bool or type(second) is bool:
+        return type(first) is bool and type(second) is bool and first == second
+    if isinstance(first, (int, Decimal)) or isinstance(second, (int, Decimal)):
+        return isinstance(first, (int, Decimal)) and isinstance(second, (int, Decimal)) and first == second
+    if type(first) is dict or type(second) is dict:
+        return (
+            type(first) is dict
+            and type(second) is dict
+            and first.keys() == second.keys()
+            and all(_json_equal(first[key], second[key]) for key in first)
+        )
+    if type(first) is list or type(second) is list:
+        return (
+            type(first) is list
+            and type(second) is list
+            and len(first) == len(second)
+            and all(_json_equal(left, right) for left, right in zip(first, second, strict=True))
+        )
+    return type(first) is type(second) and first == second
+
+
 def _select_version(versions):
     unique = []
     for version in versions:
-        if not any(version.raw == existing.raw for existing in unique):
+        if not any(_json_equal(version.raw, existing.raw) for existing in unique):
             unique.append(version)
     ordered = sorted(unique, key=lambda version: version.modified_key)
     for previous, following in zip(ordered, ordered[1:], strict=False):

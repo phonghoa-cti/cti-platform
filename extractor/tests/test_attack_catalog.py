@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import socket
@@ -395,6 +396,72 @@ def test_exact_duplicate_ignores_json_key_order(tmp_path: Path) -> None:
     assert set(load_catalog(snapshot, pin).records_by_external_id) == {"T1000"}
 
 
+def version_pair(
+    object_type: str,
+    first: object,
+    second: object,
+    *,
+    reverse: bool,
+) -> list[dict[str, object]]:
+    objects = valid_objects()
+    original = next(item for item in objects if item["type"] == object_type)
+    original["x_test_extra"] = {"nested": [first]}
+    duplicate = copy.deepcopy(original)
+    duplicate["x_test_extra"] = {"nested": [second]}
+    objects.append(duplicate)
+    return list(reversed(objects)) if reverse else objects
+
+
+@pytest.mark.parametrize("object_type", ["attack-pattern", "relationship"])
+@pytest.mark.parametrize(("first", "second"), [(True, 1), (False, 0)])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_exact_json_duplicate_distinguishes_nested_boolean_from_number(
+    tmp_path: Path,
+    object_type: str,
+    first: object,
+    second: object,
+    reverse: bool,
+) -> None:
+    snapshot, pin = write_snapshot(
+        tmp_path,
+        bundle(version_pair(object_type, first, second, reverse=reverse)),
+    )
+    assert_error("duplicate_conflict", lambda: load_catalog(snapshot, pin))
+
+
+@pytest.mark.parametrize("object_type", ["attack-pattern", "relationship"])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_exact_json_duplicate_still_ignores_nested_object_key_order(
+    tmp_path: Path,
+    object_type: str,
+    reverse: bool,
+) -> None:
+    snapshot, pin = write_snapshot(
+        tmp_path,
+        bundle(
+            version_pair(
+                object_type,
+                {"a": True, "b": 1},
+                {"b": 1, "a": True},
+                reverse=reverse,
+            )
+        ),
+    )
+    assert load_catalog(snapshot, pin).records_by_external_id
+
+
+@pytest.mark.parametrize("object_type", ["attack-pattern", "relationship"])
+def test_exact_json_duplicate_preserves_json_number_equality(
+    tmp_path: Path,
+    object_type: str,
+) -> None:
+    snapshot, pin = write_snapshot(
+        tmp_path,
+        bundle(version_pair(object_type, 1, 1.0, reverse=False)),
+    )
+    assert load_catalog(snapshot, pin).records_by_external_id
+
+
 def test_rejects_equal_time_payload_conflict_external_id_collision_and_resurrection(
     tmp_path: Path,
 ) -> None:
@@ -541,6 +608,22 @@ def test_loading_catalog_has_no_network_egress(tmp_path: Path, monkeypatch) -> N
 
     monkeypatch.setattr(socket.socket, "connect", forbidden)
     assert validate_technique(load_catalog(snapshot, pin), "T1000").catalog_status == "active"
+
+
+def test_embedded_nul_path_returns_safe_io_error() -> None:
+    pin = SnapshotPin(
+        kind="synthetic",
+        version="synthetic-nul-path",
+        sha256=hashlib.sha256(b"").hexdigest(),
+        source_url=None,
+        release_tag=None,
+        commit=None,
+        provenance="hand-authored-test-fixture",
+    )
+    assert_error(
+        "snapshot_io_error",
+        lambda: load_catalog(Path("private-test-marker\x00.json"), pin),
+    )
 
 
 def test_committed_fixtures_prove_valid_and_intentionally_broken_inputs() -> None:

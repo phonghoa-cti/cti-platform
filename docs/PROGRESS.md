@@ -51,7 +51,8 @@ Cập nhật lần cuối: 11/11/2026
   benchmark model/corpus thật và không nối W05.
 - X01 restricted ATT&CK catalog ngoại tuyến: loader stdlib đọc fixture STIX tổng hợp đã ghim hash, kiểm
   version/lifecycle/parent graph và tra active/inactive/unknown/invalid bằng kết quả bất biến. Semantic luôn
-  `unverified`, chưa dùng snapshot MITRE thật, chưa nối adapter/C4/RAG hoặc ghi draft.
+  `unverified`; rework R1/R2 đã phân biệt boolean với number trong exact JSON duplicate và chuyển đường dẫn
+  NUL thành lỗi I/O an toàn. Chưa dùng snapshot MITRE thật, chưa nối adapter/C4/RAG hoặc ghi draft.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
