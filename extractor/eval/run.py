@@ -20,13 +20,79 @@ for source_dir in (REPO_ROOT / "core", REPO_ROOT / "extractor"):
 
 from phonghoa_core.extract import extract_iocs  # noqa: E402
 from phonghoa_core.ioc import Ioc, normalize  # noqa: E402
+from phonghoa_extractor.attack_catalog import (  # noqa: E402
+    AttackCatalog,
+    AttackCatalogError,
+    SnapshotPin,
+    load_catalog,
+)
 from phonghoa_extractor.evaluate import Score, micro_average, score_iocs  # noqa: E402
 from phonghoa_extractor.llm_adapter import AdapterError, run_extraction  # noqa: E402
 from phonghoa_extractor.llm_fixture import load_scripted_provider  # noqa: E402
+from phonghoa_extractor.ttp_audit import (  # noqa: E402
+    TechniqueAudit,
+    TtpAuditError,
+    audit_techniques,
+)
+
+PIN_MAX_BYTES = 16 * 1024
+PIN_FIELDS = {
+    "kind",
+    "version",
+    "sha256",
+    "source_url",
+    "release_tag",
+    "commit",
+    "provenance",
+}
 
 
 class DatasetError(ValueError):
     """Dataset không đúng cấu trúc smoke đã công bố."""
+
+
+class _InvalidPinJson(ValueError):
+    pass
+
+
+def _pin_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise _InvalidPinJson
+        result[key] = value
+    return result
+
+
+def _load_snapshot_pin(path: Path) -> SnapshotPin:
+    try:
+        with path.open("rb") as stream:
+            payload = stream.read(PIN_MAX_BYTES + 1)
+    except (OSError, ValueError) as exc:
+        raise DatasetError("attack pin không hợp lệ") from exc
+    if len(payload) > PIN_MAX_BYTES:
+        raise DatasetError("attack pin không hợp lệ")
+    try:
+        text = payload.decode("utf-8", errors="strict")
+        if text.startswith("\ufeff"):
+            raise _InvalidPinJson
+        value = json.loads(
+            text,
+            object_pairs_hook=_pin_pairs,
+            parse_constant=lambda _value: (_ for _ in ()).throw(_InvalidPinJson()),
+        )
+    except (UnicodeError, json.JSONDecodeError, _InvalidPinJson, RecursionError, ValueError) as exc:
+        raise DatasetError("attack pin không hợp lệ") from exc
+    if type(value) is not dict or set(value) != PIN_FIELDS:
+        raise DatasetError("attack pin không hợp lệ")
+    if any(type(value[field]) is not str for field in ("kind", "version", "sha256", "provenance")):
+        raise DatasetError("attack pin không hợp lệ")
+    if any(
+        field_value is not None and type(field_value) is not str
+        for field_value in (value["source_url"], value["release_tag"], value["commit"])
+    ):
+        raise DatasetError("attack pin không hợp lệ")
+    return SnapshotPin(**value)
 
 
 def _load_json(path: Path) -> Any:
@@ -245,7 +311,64 @@ def _not_available_or_micro(scores: list[Score]) -> dict[str, Any]:
     return _score_dict(micro_average(scores)) if scores else {"status": "not_available"}
 
 
-def evaluate_llm_dataset(dataset: Path, responses_dir: Path, *, config: str, tlp: str) -> dict[str, Any]:
+def _serialize_technique_audit(item: TechniqueAudit) -> dict[str, Any]:
+    return {
+        "item_index": item.item_index,
+        "kind": item.kind,
+        "value": item.value,
+        "evidence": item.evidence,
+        "evidence_span": list(item.evidence_span) if item.evidence_span is not None else None,
+        "source_sha256": item.source_sha256,
+        "config": item.config,
+        "quote_status": item.quote_status,
+        "catalog_status": item.catalog_status,
+        "reason_code": item.reason_code,
+        "pin_kind": item.pin_kind,
+        "snapshot_version": item.snapshot_version,
+        "snapshot_sha256": item.snapshot_sha256,
+        "semantic_status": item.semantic_status,
+        "operational_draft_eligible": item.operational_draft_eligible,
+    }
+
+
+def _empty_ttp_counts() -> dict[str, Any]:
+    return {
+        "technique_items": 0,
+        "quote_status": {status: 0 for status in ("matched", "missing", "not_found", "ambiguous")},
+        "catalog_status": {status: 0 for status in ("active", "inactive", "unknown", "not_checked")},
+    }
+
+
+def _add_ttp_counts(counts: dict[str, Any], items: tuple[TechniqueAudit, ...]) -> None:
+    counts["technique_items"] += len(items)
+    for item in items:
+        counts["quote_status"][item.quote_status] += 1
+        counts["catalog_status"][item.catalog_status] += 1
+
+
+def _catalog_projection(catalog: AttackCatalog) -> dict[str, str | None]:
+    pin = catalog.pin
+    return {
+        "kind": pin.kind,
+        "version": pin.version,
+        "sha256": pin.sha256,
+        "source_url": pin.source_url,
+        "release_tag": pin.release_tag,
+        "commit": pin.commit,
+        "provenance": pin.provenance,
+    }
+
+
+def evaluate_llm_dataset(
+    dataset: Path,
+    responses_dir: Path,
+    *,
+    config: str,
+    tlp: str,
+    attack_catalog: AttackCatalog | None = None,
+) -> dict[str, Any]:
+    if attack_catalog is not None and type(attack_catalog) is not AttackCatalog:
+        raise DatasetError("attack catalog không hợp lệ")
     text_paths = _discover_text_paths(dataset)
     text_ids = {path.stem for path in text_paths}
     fixture_paths = sorted(responses_dir.glob("*.json"))
@@ -259,6 +382,7 @@ def evaluate_llm_dataset(dataset: Path, responses_dir: Path, *, config: str, tlp
     dataset_paths: list[Path] = []
     scores_by_mode: dict[str, list[Score]] = {"model_completed": [], "regex_fallback": []}
     scores_by_type: dict[str, list[Score]] = {}
+    ttp_counts = _empty_ttp_counts()
 
     for text_path in text_paths:
         document_id = text_path.stem
@@ -317,11 +441,25 @@ def evaluate_llm_dataset(dataset: Path, responses_dir: Path, *, config: str, tlp
             document["raw_audit"] = audit
         else:
             document["grounding_audit"] = audit
+        if attack_catalog is not None:
+            technique_audit = audit_techniques(
+                adapter_result=adapter_result,
+                source_text=text,
+                catalog=attack_catalog,
+            )
+            document["ttp_audit"] = [_serialize_technique_audit(item) for item in technique_audit]
+            _add_ttp_counts(ttp_counts, technique_audit)
         documents.append(document)
 
     all_scores = [_score_from_dict(document["score"]) for document in documents]
-    return {
-        "schema_version": "1.0",
+    limitations = [
+        "Synthetic fixtures and fake_offline provider only; no real model quality claim.",
+        "C3 adapter merges model candidates with regex extraction before grounding; "
+        "scores are not model-only.",
+        "Semantic TTP, malware, and actor items are not evaluated.",
+    ]
+    result = {
+        "schema_version": "1.1" if attack_catalog is not None else "1.0",
         "config": config,
         "purpose": "synthetic-smoke",
         "dataset_sha256": _dataset_hash(dataset, dataset_paths),
@@ -340,13 +478,20 @@ def evaluate_llm_dataset(dataset: Path, responses_dir: Path, *, config: str, tlp
             ioc_type: _score_dict(micro_average(scores))
             for ioc_type, scores in sorted(scores_by_type.items())
         },
-        "limitations": [
-            "Synthetic fixtures and fake_offline provider only; no real model quality claim.",
-            "C3 adapter merges model candidates with regex extraction before grounding; "
-            "scores are not model-only.",
-            "Semantic TTP, malware, and actor items are not evaluated.",
-        ],
+        "limitations": limitations,
     }
+    if attack_catalog is not None:
+        limitations.append(
+            "TTP audit reports source, quote, and catalog consistency only; semantic TTP and C4 "
+            "remain unverified."
+        )
+        result["ttp_audit"] = {
+            "enabled": True,
+            "catalog": _catalog_projection(attack_catalog),
+            "metric_note": "counts only; not TTP precision, recall, F1, or detection rate",
+            "counts": ttp_counts,
+        }
+    return result
 
 
 def _ensure_output_safe(output: Path, dataset: Path, responses_dir: Path, inputs: list[Path]) -> None:
@@ -375,7 +520,7 @@ def _write_json_atomic(path: Path, value: dict[str, Any]) -> None:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--config", required=True, choices=("C1", "C2", "C3", "C4"))
     parser.add_argument("--dataset", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -384,6 +529,9 @@ def _parse_args() -> argparse.Namespace:
         "--tlp",
         choices=("TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"),
     )
+    parser.add_argument("--ttp-audit", action="store_true")
+    parser.add_argument("--attack-snapshot", type=Path)
+    parser.add_argument("--attack-pin", type=Path)
     return parser.parse_args()
 
 
@@ -394,8 +542,14 @@ def main() -> int:
     if args.config == "C4":
         print("Lỗi: cấu hình C4 chưa được hỗ trợ", file=sys.stderr)
         return 2
-    if args.config == "C1" and (args.responses_dir is not None or args.tlp is not None):
-        print("Lỗi: C1 không nhận responses-dir/tlp", file=sys.stderr)
+    audit_flags = (args.ttp_audit, args.attack_snapshot is not None, args.attack_pin is not None)
+    audit_requested = any(audit_flags)
+    audit_complete = all(audit_flags)
+    if audit_requested and not audit_complete:
+        print("Lỗi: ttp-audit cần attack-snapshot và attack-pin", file=sys.stderr)
+        return 2
+    if args.config == "C1" and (args.responses_dir is not None or args.tlp is not None or audit_requested):
+        print("Lỗi: C1 không nhận responses-dir/tlp/ttp-audit", file=sys.stderr)
         return 2
     if args.config in {"C2", "C3"} and (args.responses_dir is None or args.tlp is None):
         print("Lỗi: C2/C3 cần responses-dir và tlp", file=sys.stderr)
@@ -421,17 +575,24 @@ def main() -> int:
             *dataset.rglob("*"),
             *responses_dir.rglob("*"),
         ]
+        if audit_complete:
+            input_paths.extend((args.attack_snapshot, args.attack_pin))
         _ensure_output_safe(
             args.output, dataset, responses_dir, [path for path in input_paths if path.is_file()]
         )
+        attack_catalog = None
+        if audit_complete:
+            pin = _load_snapshot_pin(args.attack_pin)
+            attack_catalog = load_catalog(args.attack_snapshot, pin)
         result = evaluate_llm_dataset(
             dataset,
             responses_dir,
             config=args.config,
             tlp=args.tlp,
+            attack_catalog=attack_catalog,
         )
         _write_json_atomic(args.output, result)
-    except (AdapterError, DatasetError, OSError, UnicodeError):
+    except (AdapterError, AttackCatalogError, DatasetError, OSError, TtpAuditError, UnicodeError):
         print("Lỗi: offline_eval_failed", file=sys.stderr)
         return 1
     print(

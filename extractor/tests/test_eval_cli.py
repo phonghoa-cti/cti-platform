@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -7,6 +8,8 @@ import sys
 from pathlib import Path
 
 import pytest
+
+from extractor.eval import run as eval_run
 
 REPO_ROOT = Path(__file__).parents[2]
 RUN_SCRIPT = REPO_ROOT / "extractor" / "eval" / "run.py"
@@ -50,6 +53,9 @@ def _run_cli(
     *,
     responses_dir: Path | None = None,
     tlp: str | None = None,
+    ttp_audit: bool = False,
+    attack_snapshot: Path | None = None,
+    attack_pin: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     command = [
         sys.executable,
@@ -65,6 +71,12 @@ def _run_cli(
         command.extend(["--responses-dir", str(responses_dir)])
     if tlp is not None:
         command.extend(["--tlp", tlp])
+    if ttp_audit:
+        command.append("--ttp-audit")
+    if attack_snapshot is not None:
+        command.extend(["--attack-snapshot", str(attack_snapshot)])
+    if attack_pin is not None:
+        command.extend(["--attack-pin", str(attack_pin)])
     return subprocess.run(
         command,
         cwd=REPO_ROOT,
@@ -113,6 +125,51 @@ def _completed(iocs: list[dict[str, str]]) -> dict:
         "retryable": False,
         "error_code": None,
     }
+
+
+def _completed_payload(payload: dict) -> dict:
+    return {
+        "status": "completed",
+        "model_id": "scripted-v1",
+        "payload": payload,
+        "retryable": False,
+        "error_code": None,
+    }
+
+
+def _write_synthetic_pin(snapshot: Path, pin: Path, *, raw: bytes | None = None) -> dict:
+    value = {
+        "kind": "synthetic",
+        "version": "synthetic-1",
+        "sha256": hashlib.sha256(snapshot.read_bytes()).hexdigest(),
+        "source_url": None,
+        "release_tag": None,
+        "commit": None,
+        "provenance": "hand-authored-test-fixture",
+    }
+    pin.write_bytes(raw if raw is not None else json.dumps(value).encode("utf-8"))
+    return value
+
+
+def _audit_cli(
+    dataset: Path,
+    output: Path,
+    responses: Path,
+    snapshot: Path,
+    pin: Path,
+    *,
+    config: str = "C2",
+) -> subprocess.CompletedProcess[str]:
+    return _run_cli(
+        dataset,
+        output,
+        config,
+        responses_dir=responses,
+        tlp="TLP:CLEAR",
+        ttp_audit=True,
+        attack_snapshot=snapshot,
+        attack_pin=pin,
+    )
 
 
 def test_cli_reports_hand_calculated_counts_and_does_not_score_ttps(tmp_path: Path):
@@ -547,3 +604,397 @@ def test_valid_label_roles_remain_supported(tmp_path: Path, config: str, role: s
 
     assert completed.returncode == 0, completed.stderr
     assert output.exists()
+
+
+@pytest.mark.parametrize("config", ["C2", "C3"])
+def test_ttp_audit_opt_in_serializes_full_provenance_without_changing_ioc_score(
+    tmp_path: Path, config: str
+) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    source_bytes = "😀 Đoạn mô tả\r\nCafe\u0301\rEVIL[.]example".encode()
+    normalized_text = "😀 Đoạn mô tả\nCafe\u0301\nEVIL[.]example"
+    _write_document(
+        dataset,
+        "case-01",
+        "placeholder",
+        [{"type": "domain", "value": "evil.example", "role": "attacker"}],
+    )
+    source_path = dataset / "raw" / "case-01.txt"
+    source_path.write_bytes(source_bytes)
+    responses = tmp_path / "responses"
+    payload = {
+        "iocs": [_ioc("EVIL[.]example", "EVIL[.]example")],
+        "techniques": [
+            {"id": "T1000", "evidence": "Đoạn mô tả"},
+            {"id": "T1000.001", "evidence": "Cafe\u0301"},
+            {"id": "T1000", "evidence": "Đoạn mô tả"},
+        ],
+        "malware": [{"name": "Demo", "evidence": "Đoạn mô tả"}],
+        "actors": [{"name": "Nhóm demo", "evidence": "Đoạn mô tả"}],
+    }
+    _write_fixture(responses, "case-01", [_completed_payload(payload)])
+    snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    pin = tmp_path / "pin.json"
+    expected_pin = _write_synthetic_pin(snapshot, pin)
+    baseline = tmp_path / "baseline.json"
+    audited = tmp_path / "audited.json"
+
+    without_audit = _run_cli(dataset, baseline, config, responses_dir=responses, tlp="TLP:CLEAR")
+    with_audit = _audit_cli(dataset, audited, responses, snapshot, pin, config=config)
+
+    assert without_audit.returncode == with_audit.returncode == 0, with_audit.stderr
+    old_result = json.loads(baseline.read_text(encoding="utf-8"))
+    result = json.loads(audited.read_text(encoding="utf-8"))
+    old_document = old_result["documents"][0]
+    document = result["documents"][0]
+    assert old_result["schema_version"] == "1.0"
+    assert "ttp_audit" not in old_result and "ttp_audit" not in old_document
+    assert result["schema_version"] == "1.1"
+    assert result["ttp_audit"]["catalog"] == expected_pin
+    assert result["ttp_audit"]["counts"] == {
+        "technique_items": 3,
+        "quote_status": {"matched": 3, "missing": 0, "not_found": 0, "ambiguous": 0},
+        "catalog_status": {"active": 3, "inactive": 0, "unknown": 0, "not_checked": 0},
+    }
+    assert [item["item_index"] for item in document["ttp_audit"]] == [0, 1, 2]
+    assert document["ttp_audit"][0]["evidence_span"] == [2, 12]
+    assert document["ttp_audit"][1]["evidence_span"] == [13, 18]
+    assert all(item["semantic_status"] == "unverified" for item in document["ttp_audit"])
+    assert all(item["operational_draft_eligible"] is False for item in document["ttp_audit"])
+    assert document["score"] == old_document["score"]
+    assert document["prediction"] == old_document["prediction"]
+    assert document["attempts"] == old_document["attempts"] == 1
+    assert document["operational_draft_eligible"] == old_document["operational_draft_eligible"]
+    assert document["source"]["sha256"] == hashlib.sha256(normalized_text.encode()).hexdigest()
+    assert document["source"]["sha256"] != hashlib.sha256(source_bytes).hexdigest()
+    assert set(result["ttp_audit"]) == {"enabled", "catalog", "metric_note", "counts"}
+    assert not ({"precision", "recall", "f1", "rate"} & set(result["ttp_audit"]))
+
+
+def test_ttp_audit_loads_catalog_once_and_preserves_attempt_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    responses = tmp_path / "responses"
+    for document_id in ("normal", "retry", "fallback"):
+        _write_document(dataset, document_id, f"Document {document_id}.", [])
+    _write_fixture(responses, "normal", [_completed([])])
+    _write_fixture(
+        responses,
+        "retry",
+        [
+            {"status": "error", "retryable": True, "error_code": "temporary"},
+            _completed([]),
+        ],
+    )
+    _write_fixture(
+        responses,
+        "fallback",
+        [
+            {"status": "error", "retryable": True, "error_code": "temporary"},
+            {"status": "error", "retryable": True, "error_code": "temporary"},
+        ],
+    )
+    snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    pin = tmp_path / "pin.json"
+    _write_synthetic_pin(snapshot, pin)
+    output = tmp_path / "result.json"
+    real_load = eval_run.load_catalog
+    calls = 0
+
+    def counted_load(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real_load(*args, **kwargs)
+
+    monkeypatch.setattr(eval_run, "load_catalog", counted_load)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(RUN_SCRIPT),
+            "--config",
+            "C2",
+            "--dataset",
+            str(dataset),
+            "--output",
+            str(output),
+            "--responses-dir",
+            str(responses),
+            "--tlp",
+            "TLP:CLEAR",
+            "--ttp-audit",
+            "--attack-snapshot",
+            str(snapshot),
+            "--attack-pin",
+            str(pin),
+        ],
+    )
+
+    exit_code = eval_run.main()
+    result = json.loads(output.read_text(encoding="utf-8"))
+    attempts = {document["id"]: document["attempts"] for document in result["documents"]}
+
+    assert exit_code == 0
+    assert calls == 1
+    assert attempts == {"fallback": 2, "normal": 1, "retry": 2}
+    assert next(item for item in result["documents"] if item["id"] == "fallback")["ttp_audit"] == []
+    assert result["ttp_audit"]["counts"] == {
+        "technique_items": 0,
+        "quote_status": {"matched": 0, "missing": 0, "not_found": 0, "ambiguous": 0},
+        "catalog_status": {"active": 0, "inactive": 0, "unknown": 0, "not_checked": 0},
+    }
+
+
+def test_ttp_audit_runtime_failure_preserves_old_output_without_leak(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capfd: pytest.CaptureFixture[str]
+) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(dataset, "case-01", "SOURCE_SECRET_MARKER", [])
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    pin = tmp_path / "pin.json"
+    _write_synthetic_pin(snapshot, pin)
+    output = tmp_path / "result.json"
+    output.write_bytes(b"keep-me")
+
+    def fail_audit(**_kwargs):
+        raise eval_run.TtpAuditError("AUDIT_SECRET_MARKER")
+
+    monkeypatch.setattr(eval_run, "audit_techniques", fail_audit)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(RUN_SCRIPT),
+            "--config",
+            "C2",
+            "--dataset",
+            str(dataset),
+            "--output",
+            str(output),
+            "--responses-dir",
+            str(responses),
+            "--tlp",
+            "TLP:CLEAR",
+            "--ttp-audit",
+            "--attack-snapshot",
+            str(snapshot),
+            "--attack-pin",
+            str(pin),
+        ],
+    )
+
+    exit_code = eval_run.main()
+    captured = capfd.readouterr()
+
+    assert exit_code == 1
+    assert output.read_bytes() == b"keep-me"
+    assert captured.err.strip() == "Lỗi: offline_eval_failed"
+    assert "SOURCE_SECRET_MARKER" not in captured.err
+    assert "AUDIT_SECRET_MARKER" not in captured.err
+
+
+def test_attack_snapshot_hash_mismatch_preserves_output_and_inputs(tmp_path: Path) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(dataset, "case-01", "SOURCE_SECRET_MARKER", [])
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    committed_snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    snapshot = tmp_path / "SNAPSHOT_SECRET_MARKER.json"
+    snapshot.write_bytes(committed_snapshot.read_bytes())
+    pin = tmp_path / "pin.json"
+    _write_synthetic_pin(snapshot, pin)
+    snapshot.write_bytes(snapshot.read_bytes() + b" ")
+    snapshot_before = snapshot.read_bytes()
+    pin_before = pin.read_bytes()
+    output = tmp_path / "result.json"
+    output.write_bytes(b"keep-me")
+
+    completed = _audit_cli(dataset, output, responses, snapshot, pin)
+
+    assert completed.returncode == 1
+    assert output.read_bytes() == b"keep-me"
+    assert snapshot.read_bytes() == snapshot_before
+    assert pin.read_bytes() == pin_before
+    assert "SOURCE_SECRET_MARKER" not in completed.stderr
+    assert "SNAPSHOT_SECRET_MARKER" not in completed.stderr
+    assert "Traceback" not in completed.stderr
+
+
+@pytest.mark.parametrize(
+    ("audit", "snapshot", "pin"),
+    [
+        (True, False, False),
+        (True, True, False),
+        (True, False, True),
+        (False, True, True),
+        (False, True, False),
+        (False, False, True),
+    ],
+)
+def test_ttp_audit_requires_all_three_flags_and_c1_rejects_them(
+    tmp_path: Path, audit: bool, snapshot: bool, pin: bool
+) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(dataset, "case-01", "Document.", [])
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    snapshot_path = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    pin_path = tmp_path / "pin.json"
+    _write_synthetic_pin(snapshot_path, pin_path)
+
+    c2 = _run_cli(
+        dataset,
+        tmp_path / "c2.json",
+        "C2",
+        responses_dir=responses,
+        tlp="TLP:CLEAR",
+        ttp_audit=audit,
+        attack_snapshot=snapshot_path if snapshot else None,
+        attack_pin=pin_path if pin else None,
+    )
+    c1 = _run_cli(
+        dataset,
+        tmp_path / "c1.json",
+        "C1",
+        ttp_audit=True,
+        attack_snapshot=snapshot_path,
+        attack_pin=pin_path,
+    )
+
+    assert c2.returncode == 2
+    assert c1.returncode == 2
+    assert not (tmp_path / "c2.json").exists()
+    assert not (tmp_path / "c1.json").exists()
+
+
+def test_ttp_audit_accepts_pin_at_16_kib_and_rejects_16_kib_plus_one(
+    tmp_path: Path,
+) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(dataset, "case-01", "Document.", [])
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    pin = tmp_path / "pin.json"
+    value = _write_synthetic_pin(snapshot, pin)
+    compact = json.dumps(value, separators=(",", ":")).encode()
+    pin.write_bytes(compact + b" " * (16 * 1024 - len(compact)))
+    accepted = tmp_path / "accepted.json"
+
+    valid = _audit_cli(dataset, accepted, responses, snapshot, pin)
+    pin.write_bytes(compact + b" " * (16 * 1024 + 1 - len(compact)))
+    rejected = tmp_path / "rejected.json"
+    rejected.write_bytes(b"keep-me")
+    invalid = _audit_cli(dataset, rejected, responses, snapshot, pin)
+
+    assert valid.returncode == 0, valid.stderr
+    assert invalid.returncode == 1
+    assert rejected.read_bytes() == b"keep-me"
+    assert "Traceback" not in invalid.stderr
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["malformed", "bom", "duplicate", "nonfinite", "deep", "extra", "missing", "wrong_type"],
+)
+def test_invalid_attack_pin_is_safe_and_preserves_output(tmp_path: Path, case: str) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(dataset, "case-01", "SOURCE_SECRET_MARKER", [])
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    pin = tmp_path / "PIN_SECRET_MARKER.json"
+    value = _write_synthetic_pin(snapshot, pin)
+    if case == "malformed":
+        raw = b"{PIN_CONTENT_SECRET_MARKER"
+    elif case == "bom":
+        raw = b"\xef\xbb\xbf" + json.dumps(value).encode()
+    elif case == "duplicate":
+        raw = json.dumps(value).replace('{"kind":', '{"kind":"synthetic","kind":').encode()
+    elif case == "nonfinite":
+        raw = json.dumps(value).replace('"version": "synthetic-1"', '"version": NaN').encode()
+    elif case == "deep":
+        raw = ("[" * 300 + "0" + "]" * 300).encode()
+    else:
+        changed = dict(value)
+        if case == "extra":
+            changed["extra"] = "no"
+        elif case == "missing":
+            changed.pop("commit")
+        else:
+            changed["version"] = False
+        raw = json.dumps(changed).encode()
+    pin.write_bytes(raw)
+    output = tmp_path / "result.json"
+    output.write_bytes(b"keep-me")
+
+    completed = _audit_cli(dataset, output, responses, snapshot, pin)
+
+    assert completed.returncode == 1
+    assert output.read_bytes() == b"keep-me"
+    assert "SOURCE_SECRET_MARKER" not in completed.stderr
+    assert "PIN_CONTENT_SECRET_MARKER" not in completed.stderr
+    assert "PIN_SECRET_MARKER" not in completed.stderr
+    assert "Traceback" not in completed.stderr
+
+
+@pytest.mark.parametrize("protected", ["snapshot", "pin"])
+@pytest.mark.parametrize("alias_kind", ["hardlink", "symlink"])
+def test_ttp_audit_output_cannot_alias_snapshot_or_pin(
+    tmp_path: Path, protected: str, alias_kind: str
+) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(dataset, "case-01", "Document.", [])
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    committed_snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    snapshot = tmp_path / "snapshot.json"
+    snapshot.write_bytes(committed_snapshot.read_bytes())
+    pin = tmp_path / "pin.json"
+    _write_synthetic_pin(snapshot, pin)
+    protected_path = snapshot if protected == "snapshot" else pin
+    before = protected_path.read_bytes()
+    output = tmp_path / "alias.json"
+    try:
+        if alias_kind == "hardlink":
+            os.link(protected_path, output)
+        else:
+            output.symlink_to(protected_path)
+    except OSError:
+        pytest.skip(f"filesystem không hỗ trợ {alias_kind}")
+
+    completed = _audit_cli(dataset, output, responses, snapshot, pin)
+
+    assert completed.returncode == 1
+    assert protected_path.read_bytes() == before
+
+
+def test_evaluator_rejects_wrong_catalog_type_before_loading_provider(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset = tmp_path / "synthetic-smoke"
+    _write_document(dataset, "case-01", "Document.", [])
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    provider_loaded = False
+
+    def unexpected_provider(_path: Path):
+        nonlocal provider_loaded
+        provider_loaded = True
+        raise AssertionError("provider must not load")
+
+    monkeypatch.setattr(eval_run, "load_scripted_provider", unexpected_provider)
+
+    with pytest.raises(eval_run.DatasetError, match="attack catalog"):
+        eval_run.evaluate_llm_dataset(
+            dataset,
+            responses,
+            config="C2",
+            tlp="TLP:CLEAR",
+            attack_catalog=object(),
+        )
+
+    assert provider_loaded is False

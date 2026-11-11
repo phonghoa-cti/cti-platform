@@ -61,6 +61,10 @@ Cập nhật lần cuối: 11/11/2026
   quote literal/offset Unicode và trạng thái ID trên catalog đã nạp; output bất biến, luôn `unverified` và
   không đủ điều kiện ghi draft. Test module mới và regression adapter/catalog/grounding/evaluate/eval CLI
   đã đạt cục bộ; số đếm/lệnh/exit được lưu ở bằng chứng bàn giao của lát cắt này.
+- X01 evaluator audit technique ngoại tuyến: C2/C3 có opt-in schema 1.1 để xuất từng quote/span và provenance
+  catalog ATT&CK đã pin; mặc định schema 1.0, prediction/score IOC và retry/fallback giữ nguyên. Pin được đọc
+  UTF-8 strict có bound 16 KiB, catalog chỉ nạp một lần và output atomic không được alias dataset/fixture/
+  snapshot/pin. Đây vẫn là smoke bằng provider giả lập, không phải đánh giá ngữ nghĩa TTP hoặc chất lượng model.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -74,3 +78,5 @@ Cập nhật lần cuối: 11/11/2026
   C4/RAG, semantics TTP, OpenCTI/lab/production vẫn chưa xác minh
 - Audit technique chỉ chứng minh source/quote/catalog consistency trên provider giả lập; semantic truth,
   model/provider thật, corpus/gold/F1 và C4/RAG vẫn chưa xác minh.
+- Artifact evaluator schema 1.1 mới chỉ được kiểm ngoại tuyến với snapshot synthetic; semantic truth TTP,
+  corpus hai người gán nhãn, model/provider thật, C4/RAG, lab và production vẫn chưa xác minh.
