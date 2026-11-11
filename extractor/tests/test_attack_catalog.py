@@ -198,6 +198,35 @@ def test_canonical_description_comes_only_from_newest_version(tmp_path: Path) ->
     assert load_catalog(snapshot, pin).records_by_external_id["T1000"].description is None
 
 
+@pytest.mark.parametrize(
+    "obsolete_description",
+    [None, [], 1, "\ud800", "a" * 32769],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+def test_obsolete_invalid_description_does_not_block_valid_canonical_version(
+    tmp_path: Path,
+    obsolete_description: object,
+    reverse: bool,
+) -> None:
+    obsolete = pattern(
+        PARENT_STIX_ID,
+        "T1000",
+        modified="2026-11-10T00:00:00Z",
+        description=obsolete_description,
+    )
+    canonical = pattern(
+        PARENT_STIX_ID,
+        "T1000",
+        modified="2026-11-11T00:00:00Z",
+        description="Canonical description",
+    )
+    objects = [canonical, obsolete] if reverse else [obsolete, canonical]
+    snapshot, pin = write_snapshot(tmp_path, bundle(objects))
+
+    record = load_catalog(snapshot, pin).records_by_external_id["T1000"]
+    assert record.description == "Canonical description"
+
+
 def test_loads_active_inactive_unknown_and_invalid_without_semantic_eligibility(
     tmp_path: Path,
 ) -> None:

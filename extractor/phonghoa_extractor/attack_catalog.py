@@ -84,7 +84,6 @@ class _PatternVersion:
     deprecated: bool
     is_subtechnique: bool
     enterprise: bool
-    description: str | None
 
 
 @dataclass(frozen=True)
@@ -352,7 +351,6 @@ def _parse_pattern(item: dict[str, object]) -> _PatternVersion:
         deprecated=deprecated,
         is_subtechnique=is_subtechnique,
         enterprise="enterprise-attack" in domains,
-        description=_description(item, code),
     )
 
 
@@ -509,7 +507,7 @@ def _build_records(
             parent_external_ids=tuple(
                 sorted(enterprise[parent_id].external_id for parent_id in parents.get(item.stix_id, set()))
             ),
-            description=item.description,
+            description=_description(item.raw, "invalid_attack_pattern"),
         )
         for item in enterprise.values()
     }
