@@ -144,6 +144,15 @@ def assert_code(code: str, action) -> None:
     assert str(caught.value) == code
 
 
+def mutate_json(path: Path, keys: tuple[object, ...], supplied: object) -> None:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    node = value
+    for key in keys[:-1]:
+        node = node[key]
+    node[keys[-1]] = supplied
+    dump(path, value)
+
+
 def test_ready_report_is_deterministic_bounded_and_non_sensitive(tmp_path: Path) -> None:
     dataset, snapshot, pin = make_inputs(tmp_path)
     before = {
@@ -341,3 +350,119 @@ def test_cli_ready_not_ready_invalid_and_api_parity(tmp_path: Path) -> None:
     assert completed.returncode == 2
     assert completed.stdout == b""
     assert completed.stderr == b'{"error":"invalid_arguments"}\n'
+
+
+@pytest.mark.parametrize("bad", [[], {}], ids=["list", "dict"])
+@pytest.mark.parametrize(
+    ("relative", "keys", "code"),
+    [
+        ("manifest.json", ("provenance",), "invalid_manifest"),
+        ("records/doc-0.meta.json", ("source", "source_license"), "invalid_record"),
+        ("records/doc-0.meta.json", ("source", "storage_right"), "invalid_record"),
+        ("records/doc-0.meta.json", ("language",), "invalid_record"),
+        ("records/doc-0.meta.json", ("tlp",), "invalid_record"),
+        ("annotations/doc-0.ann-0.json", ("iocs", 0, "type"), "invalid_annotation"),
+        ("annotations/doc-0.ann-0.json", ("iocs", 0, "role"), "invalid_annotation"),
+        (
+            "annotations/doc-0.ann-0.json",
+            ("iocs", 0, "evidence", 0, "quote_sha256"),
+            "invalid_annotation",
+        ),
+    ],
+)
+def test_wrong_json_types_return_closed_errors(
+    tmp_path: Path,
+    bad: object,
+    relative: str,
+    keys: tuple[object, ...],
+    code: str,
+) -> None:
+    dataset, snapshot, pin = make_inputs(tmp_path)
+    mutate_json(dataset / relative, keys, bad)
+    assert_code(code, lambda: validate_gold_pilot(dataset, snapshot, pin))
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://[SYNTHETIC_PRIVATE_MARKER/",
+        "https://@example.invalid/",
+        "https://example.invalid/\x7f",
+    ],
+)
+def test_malformed_userinfo_and_control_urls_are_safe_invalid_record(tmp_path: Path, url: str) -> None:
+    dataset, snapshot, pin = make_inputs(tmp_path)
+    mutate_json(dataset / "records/doc-0.meta.json", ("source", "url"), url)
+    assert_code("invalid_record", lambda: validate_gold_pilot(dataset, snapshot, pin))
+
+
+@pytest.mark.parametrize("kind", ["dataset", "pin", "snapshot", "output"])
+def test_reparse_ancestor_is_rejected_before_use(tmp_path: Path, monkeypatch, kind: str) -> None:
+    from phonghoa_extractor import gold_pilot as gp
+
+    ancestor = tmp_path / "unsafe-ancestor"
+    nested = ancestor / "nested"
+    nested.mkdir(parents=True)
+    if kind == "dataset":
+        dataset, snapshot, pin = make_inputs(nested)
+    else:
+        dataset, snapshot, pin = make_inputs(tmp_path / "safe")
+        if kind == "pin":
+            pin = pin.rename(nested / pin.name)
+        elif kind == "snapshot":
+            snapshot = snapshot.rename(nested / snapshot.name)
+    report = validate_gold_pilot(dataset, snapshot, pin) if kind == "output" else None
+    original = Path.lstat
+
+    class WithReparse:
+        def __init__(self, info):
+            self.info = info
+            self.st_file_attributes = info.st_file_attributes | gp.REPARSE
+
+        def __getattr__(self, name):
+            return getattr(self.info, name)
+
+    def marked(path, *args, **kwargs):
+        info = original(path, *args, **kwargs)
+        return WithReparse(info) if path == ancestor else info
+
+    monkeypatch.setattr(Path, "lstat", marked)
+    if kind == "output":
+        assert_code("unsafe_output", lambda: write_readiness(report, nested / "report.json"))
+    else:
+        with pytest.raises(GoldPilotError):
+            validate_gold_pilot(dataset, snapshot, pin)
+
+
+def test_inventory_stops_at_global_file_cap(tmp_path: Path, monkeypatch) -> None:
+    from phonghoa_extractor import gold_pilot as gp
+
+    dataset, _, _ = make_inputs(tmp_path)
+    raw = dataset / "raw"
+    for index in range(100):
+        (raw / f"extra-{index:03}.txt").write_bytes(b"x")
+    original = Path.iterdir
+    seen: list[str] = []
+
+    def tracked(path):
+        for entry in original(path):
+            if path == raw:
+                seen.append(entry.name)
+            yield entry
+
+    monkeypatch.setattr(Path, "iterdir", tracked)
+    assert_code("invalid_inventory", lambda: gp.inventory(dataset))
+    assert len(seen) <= 23
+
+
+def test_fingerprint_permission_failure_is_closed_io_error(tmp_path: Path, monkeypatch) -> None:
+    dataset, snapshot, pin = make_inputs(tmp_path)
+    original = Path.read_bytes
+
+    def denied(path):
+        if path == dataset / "manifest.json":
+            raise PermissionError("SYNTHETIC_PRIVATE_MARKER")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", denied)
+    assert_code("io_failure", lambda: validate_gold_pilot(dataset, snapshot, pin))

@@ -96,6 +96,12 @@ def pairs(items: list[tuple[str, object]]) -> dict[str, object]:
     return value
 
 
+def choice(value: object, allowed: set[str], code: str) -> str:
+    if type(value) is not str or value not in allowed:
+        fail(code)
+    return value
+
+
 def parse_float(value: str) -> Decimal:
     if len(value) > 128:
         raise _BadJson
@@ -105,7 +111,24 @@ def parse_float(value: str) -> Decimal:
     return Decimal(value)
 
 
+def safe_ancestors(path: Path, code: str) -> None:
+    try:
+        current = path.absolute().parent
+        while current != current.parent:
+            info = current.lstat()
+            if not stat.S_ISDIR(info.st_mode) or info.st_file_attributes & REPARSE:
+                fail(code)
+            current = current.parent
+    except GoldPilotError:
+        raise
+    except FileNotFoundError:
+        fail(code)
+    except (OSError, ValueError):
+        fail("io_failure")
+
+
 def safe_file(path: Path, code: str) -> os.stat_result:
+    safe_ancestors(path, code)
     try:
         info = path.lstat()
     except FileNotFoundError:
@@ -117,15 +140,31 @@ def safe_file(path: Path, code: str) -> os.stat_result:
     return info
 
 
-def safe_dir(path: Path) -> None:
+def safe_dir(path: Path, code: str = "invalid_inventory") -> None:
+    safe_ancestors(path, code)
     try:
         info = path.lstat()
     except FileNotFoundError:
-        fail("invalid_inventory")
+        fail(code)
     except (OSError, ValueError):
         fail("io_failure")
     if not stat.S_ISDIR(info.st_mode) or info.st_file_attributes & REPARSE:
-        fail("invalid_inventory")
+        fail(code)
+
+
+def bounded_entries(path: Path, limit: int) -> list[Path]:
+    entries: list[Path] = []
+    try:
+        with os.scandir(path) as iterator:
+            for entry in iterator:
+                entries.append(Path(entry.path))
+                if len(entries) > limit:
+                    fail("invalid_inventory")
+    except GoldPilotError:
+        raise
+    except OSError:
+        fail("io_failure")
+    return sorted(entries, key=lambda item: item.name)
 
 
 def read(path: Path, limit: int, code: str) -> bytes:
@@ -211,7 +250,7 @@ def inventory(root: Path) -> list[Path]:
     files: list[Path] = []
     total = 0
     try:
-        entries = sorted(root.iterdir(), key=lambda item: item.name)
+        entries = bounded_entries(root, 10)
         for entry in entries:
             info = entry.lstat()
             if info.st_file_attributes & REPARSE:
@@ -220,7 +259,7 @@ def inventory(root: Path) -> list[Path]:
                 if entry.name not in allowed:
                     fail("invalid_inventory")
                 seen.add(entry.name)
-                children = sorted(entry.iterdir(), key=lambda item: item.name)
+                children = bounded_entries(entry, 23 - len(files))
                 if entry.name in {"adjudications", "suggestions"} and children:
                     fail("invalid_inventory")
                 for child in children:
@@ -250,10 +289,11 @@ def parse_manifest(root: Path) -> tuple[dict[str, object], bytes]:
         value, {"schema_version", "dataset_id", "purpose", "provenance", "document_count"}, "invalid_manifest"
     )
     identifier(value["dataset_id"], ID64, "invalid_manifest")
+    provenance = choice(value["provenance"], {"synthetic-fixture", "human-supplied"}, "invalid_manifest")
     if (
         value["schema_version"] != "gold-pilot-v1"
         or value["purpose"] != "human-annotation-pilot"
-        or value["provenance"] not in {"synthetic-fixture", "human-supplied"}
+        or provenance not in {"synthetic-fixture", "human-supplied"}
         or type(value["document_count"]) is not int
         or value["document_count"] != 5
     ):
@@ -281,29 +321,41 @@ def parse_source(value: object) -> dict[str, object]:
         "invalid_record",
     )
     url = text(source["url"], "invalid_record")
-    parsed = urlsplit(url)
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        fail("invalid_record")
     publisher = text(source["publisher"], "invalid_record", maximum=256)
     if (
         parsed.scheme != "https"
         or not parsed.hostname
-        or parsed.username
-        or parsed.password
-        or any(char.isspace() or ord(char) < 32 for char in url)
+        or parsed.username is not None
+        or parsed.password is not None
+        or "@" in parsed.netloc
+        or any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url)
         or any(ord(char) < 32 or ord(char) == 127 for char in publisher)
     ):
         fail("invalid_record")
     if day(source["published_date"], "invalid_record") > day(source["retrieved_at"], "invalid_record"):
         fail("invalid_record")
-    if source["source_license"] not in {
-        "public-domain",
-        "cc-by-4.0",
-        "cc-by-sa-4.0",
-        "publisher-permission",
-        "unknown",
-    } or source["storage_right"] not in {"repo-allowed", "local-only", "link-only", "prohibited"}:
-        fail("invalid_record")
+    source_license = choice(
+        source["source_license"],
+        {
+            "public-domain",
+            "cc-by-4.0",
+            "cc-by-sa-4.0",
+            "publisher-permission",
+            "unknown",
+        },
+        "invalid_record",
+    )
+    storage_right = choice(
+        source["storage_right"],
+        {"repo-allowed", "local-only", "link-only", "prohibited"},
+        "invalid_record",
+    )
     if source["storage_right"] == "prohibited" or (
-        source["source_license"] == "unknown" and source["storage_right"] != "link-only"
+        source_license == "unknown" and storage_right != "link-only"
     ):
         fail("invalid_record")
     return source
@@ -325,11 +377,13 @@ def parse_record(root: Path, path: Path, pin: SnapshotPin) -> _Record:
     exact(value, required, "invalid_record", {"translation_of"})
     record_id = identifier(value["id"], ID64, "invalid_record")
     source = parse_source(value["source"])
+    language = choice(value["language"], {"vi", "en"}, "invalid_record")
+    tlp = choice(value["tlp"], {"TLP:CLEAR", "TLP:GREEN"}, "invalid_record")
     if (
         path.name != f"{record_id}.meta.json"
         or value["schema_version"] != "gold-pilot-v1"
-        or value["language"] not in {"vi", "en"}
-        or value["tlp"] not in {"TLP:CLEAR", "TLP:GREEN"}
+        or language not in {"vi", "en"}
+        or tlp not in {"TLP:CLEAR", "TLP:GREEN"}
         or value["split"] != "pilot"
     ):
         fail("invalid_record")
@@ -382,11 +436,10 @@ def evidence_list(value: object, raw: str, expected_ioc=None) -> None:
             or end - start > 2048
         ):
             fail("invalid_annotation")
-        marker = (start, end, item["quote_sha256"])
+        quote_hash = digest(item["quote_sha256"], "invalid_annotation")
+        marker = (start, end, quote_hash)
         quote = raw[start:end]
-        if marker in seen or hashlib.sha256(quote.encode()).hexdigest() != digest(
-            item["quote_sha256"], "invalid_annotation"
-        ):
+        if marker in seen or hashlib.sha256(quote.encode()).hexdigest() != quote_hash:
             fail("invalid_annotation")
         seen.add(marker)
         if expected_ioc is not None:
@@ -441,19 +494,15 @@ def parse_annotation(path: Path, record: _Record, catalog) -> dict[str, object]:
     ioc_seen = set()
     for item in value["iocs"]:
         ioc = exact(item, {"type", "value", "role", "evidence"}, "invalid_annotation")
-        if ioc["type"] not in {kind.value for kind in IocType} or ioc["role"] not in {
-            "attacker",
-            "victim",
-            "benign",
-        }:
-            fail("invalid_annotation")
+        ioc_type = choice(ioc["type"], {kind.value for kind in IocType}, "invalid_annotation")
+        role = choice(ioc["role"], {"attacker", "victim", "benign"}, "invalid_annotation")
         declared = text(ioc["value"], "invalid_annotation")
         try:
             normalized = normalize(declared)
         except (TypeError, ValueError):
             fail("invalid_annotation")
-        canonical = (normalized.type.value, normalized.value, ioc["role"])
-        if canonical != (ioc["type"], declared, ioc["role"]) or canonical in ioc_seen:
+        canonical = (normalized.type.value, normalized.value, role)
+        if canonical != (ioc_type, declared, role) or canonical in ioc_seen:
             fail("invalid_annotation")
         ioc_seen.add(canonical)
         evidence_list(ioc["evidence"], record.text, normalized)
@@ -537,6 +586,19 @@ def cohort(records: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
+def fingerprint_hash(path: Path, limit: int) -> str:
+    info = safe_file(path, "invalid_inventory")
+    if info.st_size > limit:
+        fail("invalid_inventory")
+    try:
+        raw = path.read_bytes()
+    except (OSError, ValueError):
+        fail("io_failure")
+    if len(raw) > limit:
+        fail("invalid_inventory")
+    return hashlib.sha256(raw).hexdigest()
+
+
 def validate_gold_pilot(dataset: Path, snapshot: Path, pin_path: Path) -> GoldPilotReadiness:
     files = inventory(dataset)
     manifest, _ = parse_manifest(dataset)
@@ -603,10 +665,15 @@ def validate_gold_pilot(dataset: Path, snapshot: Path, pin_path: Path) -> GoldPi
     if not reasons and summary["ioc_agreement"]["union"] + summary["ttp_agreement"]["union"] == 0:
         reasons.append("NO_FINDINGS_ONLY")
     status = "READY_FOR_ADJUDICATION" if not reasons else "NOT_READY"
-    fingerprint = [
-        [path.relative_to(dataset).as_posix(), hashlib.sha256(path.read_bytes()).hexdigest()]
-        for path in files
-    ]
+    fingerprint = []
+    for path in files:
+        if path.name == ".gitignore":
+            limit = 4 * 1024
+        elif path.parent.name == "raw":
+            limit = 512 * 1024
+        else:
+            limit = 256 * 1024
+        fingerprint.append([path.relative_to(dataset).as_posix(), fingerprint_hash(path, limit)])
     dataset_hash = hashlib.sha256(
         json.dumps(fingerprint, ensure_ascii=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -650,7 +717,7 @@ def write_readiness(
         or type(protected_inputs) is not tuple
     ):
         fail("invalid_arguments")
-    safe_dir(output.parent)
+    safe_dir(output.parent, "unsafe_output")
     if output.exists() or output.is_symlink():
         fail("unsafe_output")
     resolved = output.resolve(strict=False)

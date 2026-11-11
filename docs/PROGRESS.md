@@ -81,7 +81,9 @@ Cập nhật lần cuối: 11/11/2026
   fake_offline tổng hợp; không phải benchmark model/RAG/TTP semantic hoặc corpus thật.
 - X01 gold-pilot readiness ngoại tuyến: validator/CLI kiểm inventory 5 record, quyền raw khai báo, hai annotation,
   evidence IOC token và TTP active từ catalog đã ghim; report bất biến/no-clobber và agreement chỉ phản ánh nhãn
-  tổng hợp. Đây không phải corpus gold, quyền thật, hai người thật hay bằng chứng chất lượng model/RAG.
+  tổng hợp. Rework R1–R5 đã đóng lỗi kiểu JSON gây traceback, URL/userinfo/control, reparse ancestor, enumeration
+  vượt cap, lỗi I/O fingerprint và manifest evidence hai chiều. Đây không phải corpus gold, quyền thật, hai người
+  thật hay bằng chứng chất lượng model/RAG.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
