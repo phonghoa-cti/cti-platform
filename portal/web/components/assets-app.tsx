@@ -239,7 +239,9 @@ export function AssetsApp({
           )}
         </div>
 
-        {technologyVisible && <TechnologyPanel provider={technologyProvider} locale={locale} />}
+        {technologyProvider && (
+          <TechnologyPanel provider={technologyProvider} locale={locale} active={technologyVisible} />
+        )}
         {!technologyVisible && <>
         <header className="assets-app__panel-header">
           <div><h2>{typeLabel}</h2><p>{messages.context}</p></div>

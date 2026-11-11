@@ -113,6 +113,44 @@ describe("W04 technology panel", () => {
     expect(source.create).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["create", "update", "delete"] as const)("keeps committed %s notice across failed GET retries and clears it only on GET success", async (operation) => {
+    const initial = operation === "create" ? [] : [technology];
+    const final = operation === "delete" ? [] : [technology];
+    const source = provider({
+      list: vi.fn()
+        .mockResolvedValueOnce(initial)
+        .mockRejectedValueOnce(new AssetDataError("unavailable"))
+        .mockRejectedValueOnce(new AssetDataError("unavailable"))
+        .mockResolvedValueOnce(final),
+    });
+    const user = userEvent.setup();
+    render(<TechnologyPanel provider={source} locale="vi" />);
+    if (operation === "create") {
+      await screen.findByText(/Chưa có công nghệ nào/);
+      await openCreate(user);
+      await user.click(screen.getByRole("button", { name: "Lưu công nghệ" }));
+    } else {
+      await screen.findByText("FortiOS");
+      if (operation === "update") {
+        await user.click(screen.getByRole("button", { name: "Sửa Fortinet FortiOS" }));
+        await user.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+      } else {
+        await user.click(screen.getByRole("button", { name: "Xóa Fortinet FortiOS" }));
+        await user.click(screen.getByRole("button", { name: "Xác nhận xóa Fortinet FortiOS" }));
+      }
+    }
+    expect(await screen.findByRole("alert")).toHaveTextContent("Đã lưu nhưng chưa tải lại được danh sách công nghệ");
+    await user.click(screen.getByRole("button", { name: "Tải lại danh sách công nghệ" }));
+    await waitFor(() => expect(source.list).toHaveBeenCalledTimes(3));
+    expect(screen.getByRole("alert")).toHaveTextContent("Đã lưu nhưng chưa tải lại được danh sách công nghệ");
+    expect(source[operation === "delete" ? "remove" : operation]).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: "Tải lại danh sách công nghệ" }));
+    if (operation === "delete") await screen.findByText(/Chưa có công nghệ nào/);
+    else await screen.findByText("FortiOS");
+    expect(screen.queryByText(/Đã lưu nhưng chưa tải lại được danh sách công nghệ/)).not.toBeInTheDocument();
+    expect(source[operation === "delete" ? "remove" : operation]).toHaveBeenCalledTimes(1);
+  });
+
   it("locks after an unknown create and reconciles with GET only", async () => {
     const reconciliation = deferred<TechnologyItem[]>();
     const source = provider({
@@ -245,6 +283,32 @@ describe("W04 technology panel", () => {
 });
 
 describe("W04 technology tab injection", () => {
+  it("keeps a pending mutation owned by the same provider across tabs and requires a later successful reconcile", async () => {
+    const mutation = deferred<TechnologyItem>();
+    const source = provider({
+      list: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([technology]).mockResolvedValueOnce([technology]),
+      create: vi.fn().mockReturnValue(mutation.promise),
+    });
+    const user = userEvent.setup();
+    render(<AssetsApp dataSource={assets} technologyProvider={source} />);
+    await user.click(screen.getByRole("tab", { name: "Công nghệ" }));
+    await screen.findByText(/Chưa có công nghệ nào/);
+    await openCreate(user);
+    await user.click(screen.getByRole("button", { name: "Lưu công nghệ" }));
+    await user.click(screen.getByRole("tab", { name: "Tên miền" }));
+    await user.click(screen.getByRole("tab", { name: "Công nghệ" }));
+    await waitFor(() => expect(source.list).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("button", { name: "Thêm công nghệ" })).toBeDisabled();
+
+    await act(async () => mutation.reject(new AssetDataError("unknown-mutation")));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Chưa xác định yêu cầu công nghệ đã được ghi hay chưa");
+    expect(screen.getByRole("button", { name: "Thêm công nghệ" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Đối soát danh sách công nghệ" }));
+    await waitFor(() => expect(source.list).toHaveBeenCalledTimes(3));
+    expect(screen.getByRole("button", { name: "Thêm công nghệ" })).toBeEnabled();
+    expect(source.create).toHaveBeenCalledTimes(1);
+  });
+
   it("falls back to the existing domain view if the optional provider is removed", async () => {
     const user = userEvent.setup();
     const view = render(<AssetsApp dataSource={assets} technologyProvider={provider()} />);

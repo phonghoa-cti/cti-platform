@@ -20,6 +20,7 @@ type TechnologyForm = {
   note: string;
 };
 type Notice = { kind: "error" | "success" | "committed-refresh" | "unknown"; message: string };
+type LoadMode = "normal" | "background" | "mutation-refresh" | "committed-retry" | "unknown-reconcile";
 
 function errorKind(error: unknown): AssetErrorKind {
   return error instanceof AssetDataError ? error.kind : "unavailable";
@@ -41,7 +42,15 @@ function validate(form: TechnologyForm, messages: typeof vi.w04Technology) {
     ?? (Array.from(form.note).length > 500 ? messages.noteMaximum : null);
 }
 
-export function TechnologyPanel({ provider, locale }: { provider: TechnologyProvider; locale: Locale }) {
+export function TechnologyPanel({
+  provider,
+  locale,
+  active = true,
+}: {
+  provider: TechnologyProvider;
+  locale: Locale;
+  active?: boolean;
+}) {
   const [items, setItems] = useState<TechnologyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<AssetErrorKind | null>(null);
@@ -52,25 +61,35 @@ export function TechnologyPanel({ provider, locale }: { provider: TechnologyProv
   const [notice, setNotice] = useState<Notice | null>(null);
   const requestRef = useRef(0);
   const contextRef = useRef(0);
+  const activeRef = useRef(active);
+  const savingRef = useRef(saving);
+  const noticeRef = useRef(notice);
+  const wasActiveRef = useRef(active);
   const messages = locale === "vi" ? vi.w04Technology : en.w04Technology;
-  const locked = notice?.kind === "unknown";
+  const locked = saving || notice?.kind === "unknown";
 
-  const load = useCallback(async (preserveCommitted = false, preserveUnknown = false) => {
+  useEffect(() => {
+    activeRef.current = active;
+    savingRef.current = saving;
+    noticeRef.current = notice;
+  }, [active, notice, saving]);
+
+  const load = useCallback(async (mode: LoadMode = "normal") => {
     const request = ++requestRef.current;
     setLoading(true);
     setLoadError(null);
-    if (!preserveCommitted && !preserveUnknown) setNotice(null);
+    if (mode === "normal") setNotice(null);
     try {
       const next = await provider.list();
       if (request !== requestRef.current) return true;
       setItems(next);
       setLoading(false);
-      if (preserveUnknown) setNotice(null);
+      if (mode === "committed-retry" || mode === "unknown-reconcile") setNotice(null);
       return true;
     } catch (error) {
       if (request !== requestRef.current) return false;
       setLoading(false);
-      if (!preserveCommitted && !preserveUnknown) setLoadError(errorKind(error));
+      if (mode === "normal") setLoadError(errorKind(error));
       return false;
     }
   }, [provider]);
@@ -94,6 +113,20 @@ export function TechnologyPanel({ provider, locale }: { provider: TechnologyProv
       contextRef.current += 1;
     };
   }, [load]);
+
+  useEffect(() => {
+    const becameActive = active && !wasActiveRef.current;
+    wasActiveRef.current = active;
+    if (!becameActive) return;
+    queueMicrotask(() => {
+      if (!activeRef.current) return;
+      if (savingRef.current) {
+        void load("background");
+      } else if (noticeRef.current?.kind === "unknown") {
+        void load("unknown-reconcile");
+      }
+    });
+  }, [active, load]);
 
   const startCreate = () => {
     if (locked) return;
@@ -145,7 +178,7 @@ export function TechnologyPanel({ provider, locale }: { provider: TechnologyProv
       if (context !== contextRef.current) return;
       setForm(null);
       setNotice({ kind: "success", message: messages.saved });
-      const refreshed = await load(true);
+      const refreshed = await load("mutation-refresh");
       if (context !== contextRef.current) return;
       if (!refreshed) setNotice({ kind: "committed-refresh", message: messages.committedRefresh });
     } catch (error) {
@@ -176,7 +209,7 @@ export function TechnologyPanel({ provider, locale }: { provider: TechnologyProv
       if (context !== contextRef.current) return;
       setDeleteTarget(null);
       setNotice({ kind: "success", message: messages.deleted });
-      const refreshed = await load(true);
+      const refreshed = await load("mutation-refresh");
       if (context !== contextRef.current) return;
       if (!refreshed) setNotice({ kind: "committed-refresh", message: messages.committedRefresh });
     } catch (error) {
@@ -196,6 +229,8 @@ export function TechnologyPanel({ provider, locale }: { provider: TechnologyProv
   };
 
   const loadErrorMessage = loadError ? messages.errors[loadError] ?? messages.errors.unavailable : "";
+
+  if (!active) return null;
 
   return (
     <>
@@ -242,7 +277,11 @@ export function TechnologyPanel({ provider, locale }: { provider: TechnologyProv
         <div className={`assets-app__notice assets-app__notice--${notice.kind}`} role={notice.kind === "success" ? "status" : "alert"}>
           <p>{notice.message}</p>
           {(notice.kind === "committed-refresh" || notice.kind === "unknown") && (
-            <button className="assets-app__secondary" type="button" onClick={() => void load(false, notice.kind === "unknown")}>
+            <button
+              className="assets-app__secondary"
+              type="button"
+              onClick={() => void load(notice.kind === "unknown" ? "unknown-reconcile" : "committed-retry")}
+            >
               {notice.kind === "unknown" ? messages.reconcile : messages.reload}
             </button>
           )}
