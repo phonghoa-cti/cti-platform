@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import threading
+from argparse import Namespace
 from pathlib import Path
 
 import pytest
@@ -83,6 +84,31 @@ def test_cli_argument_errors_are_closed_and_do_not_echo_values(args: tuple[str, 
     assert completed.stdout == ""
     assert completed.stderr == "Lỗi: invalid_arguments\n"
     assert "secret" not in completed.stderr
+
+
+def test_cli_closes_invalid_child_result_without_traceback_or_output(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    source = FIXTURES / "two-text-pages.pdf"
+    output = tmp_path / "must-not-exist.json"
+    marker = "raw-child-marker"
+
+    def fail_ingest(_path: Path):
+        raise LocalIngestError("pdf_child_invalid_result")
+
+    monkeypatch.setattr(
+        ingest_cli,
+        "_parse_args",
+        lambda _argv: Namespace(input=source, output=output, language="en", tlp="TLP:AMBER"),
+    )
+    monkeypatch.setattr(ingest_cli, "ingest_local_file", fail_ingest)
+    assert ingest_cli.main([]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "Lỗi: pdf_child_invalid_result\n"
+    assert marker not in captured.err
+    assert source.is_file()
+    assert not output.exists()
 
 
 def test_cli_injection_text_remains_pending_without_actions(tmp_path: Path) -> None:

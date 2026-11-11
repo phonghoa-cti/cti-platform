@@ -88,6 +88,8 @@ Cập nhật lần cuối: 11/11/2026
   snapshot bytes cho child `pypdf` đã pin/hash, kiểm strict/capped result rồi bọc draft C1 pending không đổi shape.
   Output deterministic/no-clobber bằng hard-link; test synthetic có race/alias/timeout/reap/cleanup. Đây không phải
   hard RAM/network sandbox, kiểm PDF đối kháng/thật, OCR hoặc bằng chứng chất lượng extractor/model.
+  Rework R1–R3 đã đóng kiểu `code` list/dict trong result, tiếp tục kill/reap khi wait/terminate lỗi, giữ temp owned
+  nếu chưa xác nhận child dừng và từ chối symlink/reparse ở mọi ancestor lexical trước khi đọc leaf.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

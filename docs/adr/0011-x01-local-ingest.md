@@ -22,6 +22,11 @@ và chỉ truyền snapshot cho đúng một child. Child sở hữu toàn bộ 
 áp timeout, reap, cap kết quả, strict JSON/schema rồi tự kiểm lại page/text
 limits và dựng canonical text/range.
 
+Cleanup process là một state machine hữu hạn: dù wait/terminate lỗi vẫn thử
+kill/reap. Snapshot/result chỉ bị xóa khi đã xác nhận child kết thúc; nếu không
+xác nhận được, CLI trả `pdf_child_failed` và giữ thư mục temp owned để tránh xóa
+dữ liệu mà process còn sống có thể đang dùng.
+
 TXT giữ nguyên UTF-8 BOM/newline. PDF giữ nguyên text từng trang do parser trả
 về, nối bằng `"\n\f\n"`; range là chỉ số Unicode trong canonical text, không
 phải byte hay tọa độ PDF. Envelope bọc draft C1 `pending` không đổi shape.
@@ -35,6 +40,8 @@ Output được ghi vào temp cùng thư mục, flush+fsync rồi publish đúng
 - Tốt: hash/parser cùng một snapshot; output deterministic/no-clobber; lỗi đóng.
 - Tốt: không import parser PDF ở parent, không OCR/decrypt/converter/model/mạng.
 - Xấu: timeout không phải hard RAM limit hay network sandbox; child vẫn cùng host.
+- Xấu: lỗi hệ điều hành khiến không xác nhận được reap có thể để lại một thư mục
+  `x01-pdf-*`; đây là trạng thái lỗi được báo, không được gọi là cleanup thành công.
 - Xấu: text PDF không chứng minh đầy đủ nội dung, layout hoặc chất lượng PDF thật.
 - Giảm thiểu: cap raw/page/text/result, terminate→reap→kill→reap, fixture tổng
   hợp và người duyệt trước mọi hành động ghi tiếp theo.

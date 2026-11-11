@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
+import stat
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from ingest import pdf_child
@@ -228,6 +231,8 @@ class FakeProcess:
     [
         ("missing", None, 32, "pdf_child_failed"),
         ("invalid", b'{"ok":true,"ok":false,"pages":[]}', 64, "pdf_child_invalid_result"),
+        ("code-list", b'{"ok":false,"code":[]}', 64, "pdf_child_invalid_result"),
+        ("code-dict", b'{"ok":false,"code":{}}', 64, "pdf_child_invalid_result"),
         ("nonfinite", b'{"ok":true,"pages":[NaN]}', 32, "pdf_child_invalid_result"),
         ("oversize", b"x" * 33, 32, "pdf_child_result_too_large"),
     ],
@@ -298,21 +303,91 @@ def test_timeout_escalates_to_kill_and_reaps(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_lifecycle_failure_is_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    created: list[FakeProcess] = []
+    roots: list[Path] = []
+
     class BrokenTerminate(FakeProcess):
+        def wait(self, timeout: float | None = None) -> int:
+            self.wait_count += 1
+            if self.killed:
+                self.returncode = 1
+                return 1
+            raise subprocess.TimeoutExpired(self.command, timeout)
+
         def terminate(self) -> None:
             raise OSError("terminate failed")
 
-    monkeypatch.setattr(
-        local_ingest,
-        "_spawn_pdf_child",
-        lambda command: BrokenTerminate(command, "timeout"),
-    )
+    def spawn(command: list[str]) -> BrokenTerminate:
+        roots.append(Path(command[3]).parent)
+        process = BrokenTerminate(command, "timeout")
+        created.append(process)
+        return process
+
+    monkeypatch.setattr(local_ingest, "_spawn_pdf_child", spawn)
     assert_error(
         "pdf_child_failed",
         ingest_local_file,
         FIXTURES / "two-text-pages.pdf",
         limits=IngestLimits(pdf_timeout_seconds=1),
     )
+    assert created[0].killed is True
+    assert created[0].returncode == 1
+    assert roots and not roots[0].exists()
+
+
+def test_unreaped_child_preserves_owned_temp(monkeypatch: pytest.MonkeyPatch) -> None:
+    roots: list[Path] = []
+
+    class UnrecoverableProcess(FakeProcess):
+        def wait(self, timeout: float | None = None) -> int:
+            raise OSError("wait failed")
+
+        def terminate(self) -> None:
+            raise OSError("terminate failed")
+
+        def kill(self) -> None:
+            raise OSError("kill failed")
+
+        def poll(self) -> None:
+            return None
+
+    def spawn(command: list[str]) -> UnrecoverableProcess:
+        roots.append(Path(command[3]).parent)
+        return UnrecoverableProcess(command, "broken")
+
+    monkeypatch.setattr(local_ingest, "_spawn_pdf_child", spawn)
+    assert_error("pdf_child_failed", ingest_local_file, FIXTURES / "two-text-pages.pdf")
+    assert roots and roots[0].is_dir()
+    assert (roots[0] / "input.pdf").is_file()
+    shutil.rmtree(roots[0])
+
+
+def test_dead_child_after_terminate_error_allows_temp_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
+    roots: list[Path] = []
+
+    class DiedDuringTerminate(FakeProcess):
+        def wait(self, timeout: float | None = None) -> int:
+            raise subprocess.TimeoutExpired(self.command, timeout)
+
+        def terminate(self) -> None:
+            self.returncode = 1
+            raise OSError("already exited")
+
+        def poll(self) -> int:
+            return 1
+
+    def spawn(command: list[str]) -> DiedDuringTerminate:
+        roots.append(Path(command[3]).parent)
+        return DiedDuringTerminate(command, "dead")
+
+    monkeypatch.setattr(local_ingest, "_spawn_pdf_child", spawn)
+    assert_error(
+        "pdf_child_failed",
+        ingest_local_file,
+        FIXTURES / "two-text-pages.pdf",
+        limits=IngestLimits(pdf_timeout_seconds=1),
+    )
+    assert roots and not roots[0].exists()
 
 
 def test_abnormal_child_exit_wins_over_result(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -363,5 +438,40 @@ def test_snapshot_temp_creation_failure_is_closed(monkeypatch: pytest.MonkeyPatc
     def fail_temp(*_args, **_kwargs):
         raise OSError("temp unavailable")
 
-    monkeypatch.setattr(local_ingest.tempfile, "TemporaryDirectory", fail_temp)
+    monkeypatch.setattr(local_ingest.tempfile, "mkdtemp", fail_temp)
     assert_error("input_read_failed", ingest_local_file, FIXTURES / "two-text-pages.pdf")
+
+
+@pytest.mark.parametrize("ancestor_level", [1, 2])
+def test_reparse_ancestor_is_rejected_before_read(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, ancestor_level: int
+) -> None:
+    parent = tmp_path / "one" / "two"
+    parent.mkdir(parents=True)
+    source = parent / "input.txt"
+    source.write_text("192.0.2.1", encoding="utf-8")
+    flagged = source.parents[ancestor_level - 1]
+    real_lstat = Path.lstat
+    reads: list[Path] = []
+
+    def lstat(path: Path, *args, **kwargs):
+        original = real_lstat(path, *args, **kwargs)
+        if path == flagged:
+            return SimpleNamespace(
+                st_mode=stat.S_IFDIR,
+                st_file_attributes=getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400),
+            )
+        return original
+
+    monkeypatch.setattr(Path, "lstat", lstat)
+    monkeypatch.setattr(local_ingest, "_read_capped", lambda path, cap: reads.append(path))
+    assert_error("input_not_regular", ingest_local_file, source)
+    assert reads == []
+
+
+def test_regular_ancestors_remain_supported(tmp_path: Path) -> None:
+    parent = tmp_path / "one" / "two"
+    parent.mkdir(parents=True)
+    source = parent / "input.txt"
+    source.write_text("192.0.2.1", encoding="utf-8")
+    assert ingest_local_file(source).canonical_text == "192.0.2.1"

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import shutil
 import stat
 import subprocess
 import sys
@@ -52,6 +53,12 @@ class LocalIngestError(ValueError):
 
     def __init__(self, code: str) -> None:
         self.code = code
+        super().__init__(code)
+
+
+class _ChildLifecycleError(LocalIngestError):
+    def __init__(self, code: str, *, reaped: bool) -> None:
+        self.reaped = reaped
         super().__init__(code)
 
 
@@ -103,6 +110,7 @@ def _validate_input(path: Path) -> str:
 def _validate_regular_local(path: Path) -> None:
     if str(path).startswith(("\\\\", "//")):
         raise LocalIngestError("input_not_regular")
+    _validate_ancestor_chain(path)
     try:
         info = path.lstat()
     except FileNotFoundError as exc:
@@ -111,7 +119,39 @@ def _validate_regular_local(path: Path) -> None:
         raise LocalIngestError("input_read_failed") from exc
     reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
     attributes = getattr(info, "st_file_attributes", 0)
-    if path.is_symlink() or attributes & reparse or not stat.S_ISREG(info.st_mode):
+    if stat.S_ISLNK(info.st_mode) or attributes & reparse or not stat.S_ISREG(info.st_mode):
+        raise LocalIngestError("input_not_regular")
+
+
+def _validate_ancestor_chain(path: Path) -> None:
+    if path.drive and not path.is_absolute():
+        raise LocalIngestError("input_not_regular")
+    if path.is_absolute():
+        current = Path(path.anchor)
+        _validate_directory_node(current)
+        parts = path.parts[1:-1]
+    else:
+        current = Path.cwd()
+        for ancestor in (current, *current.parents):
+            _validate_directory_node(ancestor)
+        parts = path.parts[:-1]
+    for part in parts:
+        if part in {"", "."}:
+            continue
+        current = current.parent if part == ".." else current / part
+        _validate_directory_node(current)
+
+
+def _validate_directory_node(path: Path) -> None:
+    try:
+        info = path.lstat()
+    except FileNotFoundError as exc:
+        raise LocalIngestError("input_missing") from exc
+    except OSError as exc:
+        raise LocalIngestError("input_read_failed") from exc
+    reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    attributes = getattr(info, "st_file_attributes", 0)
+    if stat.S_ISLNK(info.st_mode) or attributes & reparse or not stat.S_ISDIR(info.st_mode):
         raise LocalIngestError("input_not_regular")
 
 
@@ -151,26 +191,38 @@ def _extract_pdf_pages(raw: bytes, limits: IngestLimits) -> list[str]:
     if not raw.startswith(b"%PDF-"):
         raise LocalIngestError("not_pdf")
     try:
-        temporary = tempfile.TemporaryDirectory(prefix="x01-pdf-")
+        root = Path(tempfile.mkdtemp(prefix="x01-pdf-"))
     except OSError as exc:
         raise LocalIngestError("input_read_failed") from exc
+    cleanup_allowed = True
     try:
-        root = Path(temporary.name)
         snapshot = root / "input.pdf"
         result = root / "result.json"
         snapshot.write_bytes(raw)
         _snapshot_ready_hook(snapshot)
         pages = _run_pdf_child(snapshot, result, limits)
+    except _ChildLifecycleError as exc:
+        cleanup_allowed = exc.reaped
+        raise LocalIngestError(exc.code) from exc
     except LocalIngestError:
         raise
     except (OSError, ValueError) as exc:
         raise LocalIngestError("input_read_failed") from exc
     finally:
-        try:
-            temporary.cleanup()
-        except OSError as exc:
-            raise LocalIngestError("pdf_child_failed") from exc
+        if cleanup_allowed:
+            _cleanup_pdf_temp(root)
     return pages
+
+
+def _cleanup_pdf_temp(root: Path) -> None:
+    expected_parent = Path(tempfile.gettempdir()).resolve(strict=False)
+    actual = root.resolve(strict=False)
+    if actual.parent != expected_parent or not actual.name.startswith("x01-pdf-"):
+        raise LocalIngestError("pdf_child_failed")
+    try:
+        shutil.rmtree(actual)
+    except OSError as exc:
+        raise LocalIngestError("pdf_child_failed") from exc
 
 
 def _run_pdf_child(snapshot: Path, result: Path, limits: IngestLimits) -> list[str]:
@@ -212,34 +264,57 @@ def _wait_for_child(
     command: list[str],
     timeout: int,
 ) -> None:
-    try:
-        _wait_for_child_bounded(process, command, timeout)
-    except LocalIngestError:
-        raise
-    except OSError as exc:
-        raise LocalIngestError("pdf_child_failed") from exc
-
-
-def _wait_for_child_bounded(
-    process: subprocess.Popen[bytes],
-    command: list[str],
-    timeout: int,
-) -> None:
     deadline = time.monotonic() + timeout
-    try:
-        process.wait(timeout=max(0.0, deadline - time.monotonic()))
+    reaped, failed = _bounded_wait(process, max(0.0, deadline - time.monotonic()))
+    if reaped and not failed:
         return
-    except subprocess.TimeoutExpired:
-        process.terminate()
+    had_oserror = failed
+    if _process_exited(process):
+        raise _ChildLifecycleError("pdf_child_failed", reaped=True)
     try:
-        process.wait(timeout=2)
-    except subprocess.TimeoutExpired:
+        process.terminate()
+    except OSError:
+        had_oserror = True
+    if _process_exited(process):
+        code = "pdf_child_failed" if had_oserror else "pdf_child_timeout"
+        raise _ChildLifecycleError(code, reaped=True)
+    reaped, failed = _bounded_wait(process, 2)
+    had_oserror = had_oserror or failed
+    if reaped:
+        code = "pdf_child_failed" if had_oserror else "pdf_child_timeout"
+        raise _ChildLifecycleError(code, reaped=True)
+    try:
         process.kill()
-        try:
-            process.wait(timeout=2)
-        except subprocess.TimeoutExpired as exc:
-            raise LocalIngestError("pdf_child_failed") from exc
-    raise LocalIngestError("pdf_child_timeout")
+    except OSError:
+        had_oserror = True
+    if _process_exited(process):
+        code = "pdf_child_failed" if had_oserror else "pdf_child_timeout"
+        raise _ChildLifecycleError(code, reaped=True)
+    reaped, failed = _bounded_wait(process, 2)
+    if reaped:
+        code = "pdf_child_failed" if had_oserror or failed else "pdf_child_timeout"
+        raise _ChildLifecycleError(code, reaped=True)
+    raise _ChildLifecycleError("pdf_child_failed", reaped=False)
+
+
+def _bounded_wait(process: subprocess.Popen[bytes], timeout: float) -> tuple[bool, bool]:
+    try:
+        process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return False, False
+    except OSError:
+        return _process_exited(process), True
+    return True, False
+
+
+def _process_exited(process: subprocess.Popen[bytes]) -> bool:
+    poll = getattr(process, "poll", None)
+    if poll is None:
+        return process.returncode is not None
+    try:
+        return poll() is not None
+    except OSError:
+        return process.returncode is not None
 
 
 def _read_child_result(path: Path, cap: int) -> bytes:
@@ -275,9 +350,10 @@ def _decode_child_result(payload: bytes) -> list[str]:
     if type(data) is not dict or type(data.get("ok")) is not bool:
         raise LocalIngestError("pdf_child_invalid_result")
     if data["ok"] is False:
-        if set(data) != {"ok", "code"} or data.get("code") not in _PDF_ERROR_CODES:
+        code = data.get("code")
+        if set(data) != {"ok", "code"} or type(code) is not str or code not in _PDF_ERROR_CODES:
             raise LocalIngestError("pdf_child_invalid_result")
-        raise LocalIngestError(data["code"])
+        raise LocalIngestError(code)
     if set(data) != {"ok", "pages"} or type(data.get("pages")) is not list:
         raise LocalIngestError("pdf_child_invalid_result")
     if any(type(page) is not str for page in data["pages"]):
