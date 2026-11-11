@@ -35,6 +35,16 @@ from portal_api.cves import (
     InvalidCveQuery,
     parse_cve_query,
 )
+from portal_api.cves_status import (
+    CveStatusService,
+    CveStatusStore,
+    InvalidStatusRequest,
+    StatusContextChanged,
+    StatusRelationNotFound,
+    StatusSnapshotChanged,
+    StatusUnavailable,
+    StatusVersionConflict,
+)
 from portal_api.ioc_lookup import (
     InvalidIoc,
     IocLookupPort,
@@ -82,6 +92,7 @@ LOOKUP_ROLES = {"it", "analyst", "admin"}
 POSITIVE_INTEGER = re.compile(r"[1-9][0-9]*\Z")
 V1_BODY_LIMIT = 65_536
 ASSET_BODY_LIMIT = 8_192
+STATUS_BODY_LIMIT = 16_384
 
 
 def _error(status: int, code: str, message: str) -> JSONResponse:
@@ -97,7 +108,7 @@ def _is_lookup_path(path: str) -> bool:
 
 
 def _is_cves_path(path: str) -> bool:
-    return path == "/api/cves"
+    return path == "/api/cves" or path.startswith("/api/cves/")
 
 
 def _is_assets_path(path: str) -> bool:
@@ -174,6 +185,29 @@ async def _read_limited_json(request: Request, limit: int) -> Any:
     return json.loads(b"".join(chunks))
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate json key")
+        result[key] = value
+    return result
+
+
+async def _read_status_json(request: Request) -> dict[str, object]:
+    chunks: list[bytes] = []
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > STATUS_BODY_LIMIT:
+            raise ApiFailure(413, "request_too_large", "Nội dung yêu cầu quá lớn")
+        chunks.append(chunk)
+    value = json.loads(b"".join(chunks), object_pairs_hook=_reject_duplicate_keys)
+    if not isinstance(value, dict):
+        raise ValueError("status body must be object")
+    return value
+
+
 async def _read_v1_json(request: Request) -> Any:
     return await _read_limited_json(request, V1_BODY_LIMIT)
 
@@ -187,6 +221,7 @@ def create_app(
     asset_store: AssetStore | None = None,
     technology_store: TechnologyStore | None = None,
     cve_port: CveReadPort | None = None,
+    cve_status_store: CveStatusStore | None = None,
 ) -> FastAPI:
     """Tạo app; cấu hình đã được Settings kiểm fail-closed trước đó."""
 
@@ -196,6 +231,9 @@ def create_app(
     lookup_service = LookupService(lookup_port, asset_store=asset_store)
     cve_service = (
         None if cve_port is None or technology_store is None else CveReadService(cve_port, technology_store)
+    )
+    cve_status_service = (
+        None if cve_port is None or cve_status_store is None else CveStatusService(cve_port, cve_status_store)
     )
 
     @app.middleware("http")
@@ -311,6 +349,18 @@ def create_app(
             raise ApiFailure(403, "forbidden", "Tài khoản chưa được cấp quyền xem lỗ hổng")
         return principal
 
+    def require_status_role(request: Request) -> Principal:
+        token = request.headers.get(JWT_HEADER)
+        try:
+            principal = jwt_verifier.verify(token)
+        except AuthenticationUnavailable as exc:
+            raise ApiFailure(503, "status_unavailable", "Dịch vụ trạng thái tạm thời không sẵn sàng") from exc
+        except AuthenticationError as exc:
+            raise ApiFailure(401, "authentication_required", "Cần xác thực hợp lệ") from exc
+        if not principal.roles.intersection(LOOKUP_ROLES):
+            raise ApiFailure(403, "forbidden", "Tài khoản chưa được cấp quyền ghi trạng thái")
+        return principal
+
     def configured_asset_store() -> AssetStore:
         if asset_store is None:
             raise ApiFailure(503, "assets_unavailable", "Dịch vụ tài sản tạm thời không sẵn sàng")
@@ -352,6 +402,26 @@ def create_app(
 
     def as_technology_view(item) -> TechnologyView:
         return TechnologyView.model_validate(asdict(item))
+
+    def status_failure(exc: Exception, *, put: bool = False) -> ApiFailure:
+        if isinstance(exc, InvalidStatusRequest):
+            return ApiFailure(422, "invalid_status_request", "Yêu cầu trạng thái không hợp lệ")
+        if isinstance(exc, StatusRelationNotFound):
+            code = "status_context_changed" if put else "status_relation_not_found"
+            return ApiFailure(
+                409 if put else 404,
+                code,
+                "Quan hệ trạng thái đã thay đổi" if put else "Không tìm thấy quan hệ trạng thái",
+            )
+        if isinstance(exc, StatusContextChanged):
+            return ApiFailure(409, "status_context_changed", "Ngữ cảnh trạng thái đã thay đổi")
+        if isinstance(exc, StatusVersionConflict):
+            return ApiFailure(409, "status_version_conflict", "Phiên bản trạng thái đã thay đổi")
+        if isinstance(exc, StatusSnapshotChanged):
+            return ApiFailure(409, "status_snapshot_changed", "Lịch sử trạng thái đã thay đổi")
+        if isinstance(exc, StatusUnavailable):
+            return ApiFailure(503, "status_unavailable", "Dịch vụ trạng thái tạm thời không sẵn sàng")
+        raise exc
 
     @app.get("/api/ioc", response_model=IocLookupResponse)
     def lookup_ioc(
@@ -398,6 +468,115 @@ def create_app(
             raise ApiFailure(409, "cve_snapshot_changed", "Dữ liệu lỗ hổng đã thay đổi") from exc
         except CvesUnavailable as exc:
             raise ApiFailure(503, "cves_unavailable", "Dịch vụ lỗ hổng tạm thời không sẵn sàng") from exc
+
+    @app.get("/api/cves/{cve_id}/technologies/{technology_id}/status")
+    def get_cve_status(
+        request: Request,
+        cve_id: str,
+        technology_id: str,
+        _principal: Principal = Depends(require_status_role),  # noqa: B008
+    ):
+        if request.url.query and len(request.url.query.encode("utf-8")) > 4096:
+            raise ApiFailure(422, "invalid_status_request", "Yêu cầu trạng thái không hợp lệ")
+        if request.query_params:
+            raise ApiFailure(422, "invalid_status_request", "Yêu cầu trạng thái không hợp lệ")
+        try:
+            parsed_id = _parse_positive_integer(technology_id, "technology", maximum=JSON_SAFE_INTEGER)
+            if cve_status_service is None:
+                raise StatusUnavailable("status not configured")
+            context = cve_status_service.context(cve_id, parsed_id)
+            return cve_status_store.get(cve_id, parsed_id, context)
+        except ApiFailure as exc:
+            if exc.code == "invalid_request":
+                raise ApiFailure(422, "invalid_status_request", "Yêu cầu trạng thái không hợp lệ") from exc
+            raise
+        except Exception as exc:
+            raise status_failure(exc) from exc
+
+    @app.put("/api/cves/{cve_id}/technologies/{technology_id}/status")
+    async def put_cve_status(
+        request: Request,
+        cve_id: str,
+        technology_id: str,
+        principal: Principal = Depends(require_status_role),  # noqa: B008
+    ):
+        _require_origin(request, settings)
+        _require_json(request)
+        try:
+            parsed_id = _parse_positive_integer(technology_id, "technology", maximum=JSON_SAFE_INTEGER)
+            if request.query_params:
+                raise InvalidStatusRequest("query not allowed")
+            body = await _read_status_json(request)
+            if set(body) != {
+                "status",
+                "note",
+                "expected_status_version",
+                "expected_technology_record_version",
+                "expected_dataset_id",
+            }:
+                raise InvalidStatusRequest("invalid body keys")
+            if cve_status_service is None:
+                raise StatusUnavailable("status not configured")
+            context = cve_status_service.context(cve_id, parsed_id)
+            if (
+                body["expected_technology_record_version"] != context["technology_record_version"]
+                or body["expected_dataset_id"] != context["dataset_id"]
+            ):
+                raise StatusContextChanged("expected context changed")
+            result, _audit_id = cve_status_store.put(
+                cve_id,
+                parsed_id,
+                context,
+                body["status"],
+                body["note"],
+                body["expected_status_version"],
+                principal.subject,
+            )
+            return result
+        except ApiFailure:
+            raise
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as exc:
+            if isinstance(exc, (InvalidStatusRequest, StatusContextChanged)):
+                raise status_failure(exc, put=True) from exc
+            raise ApiFailure(422, "invalid_status_request", "Yêu cầu trạng thái không hợp lệ") from exc
+        except Exception as exc:
+            raise status_failure(exc, put=True) from exc
+
+    @app.get("/api/cves/{cve_id}/technologies/{technology_id}/status-history")
+    def get_cve_status_history(
+        request: Request,
+        cve_id: str,
+        technology_id: str,
+        principal: Principal = Depends(require_status_role),  # noqa: B008
+    ):
+        try:
+            if len(request.url.query.encode("utf-8")) > 4096 or set(request.query_params) - {
+                "limit",
+                "cursor",
+            }:
+                raise InvalidStatusRequest("invalid history query")
+            if any(len(request.query_params.getlist(key)) > 1 for key in ("limit", "cursor")):
+                raise InvalidStatusRequest("duplicate history query")
+            parsed_id = _parse_positive_integer(technology_id, "technology", maximum=JSON_SAFE_INTEGER)
+            raw_limit = request.query_params.get("limit", "25")
+            if not re.fullmatch(r"[1-9][0-9]*", raw_limit):
+                raise InvalidStatusRequest("invalid limit")
+            limit = int(raw_limit)
+            if not 1 <= limit <= 100:
+                raise InvalidStatusRequest("invalid limit")
+            if cve_status_service is None:
+                raise StatusUnavailable("status not configured")
+            context = cve_status_service.context(cve_id, parsed_id)
+            role_key = ",".join(sorted(principal.roles.intersection(LOOKUP_ROLES)))
+            return cve_status_store.history(
+                cve_id, parsed_id, context, limit, request.query_params.get("cursor"), role_key
+            )
+        except ApiFailure as exc:
+            if exc.code == "invalid_request":
+                raise ApiFailure(422, "invalid_status_request", "Yêu cầu trạng thái không hợp lệ") from exc
+            raise
+        except Exception as exc:
+            raise status_failure(exc) from exc
 
     @app.get("/api/assets/technologies", response_model=TechnologyPage)
     def list_technologies(

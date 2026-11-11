@@ -18,6 +18,9 @@ Cập nhật lần cuối: 11/11/2026
 - F01/#9: gói demo MITRE + bundle STIX mẫu đã kiểm cấu hình ngoại tuyến; chờ chạy và đo trên lab
 
 ## Đã xong gần đây
+- W03-S1 Backend cục bộ: ba route status/history opt-in dùng cùng SQLite W04, migration explicit, GET read-only,
+  PUT `BEGIN IMMEDIATE` với optimistic version và audit nguyên tử; cursor history gắn context/snapshot. Đã kiểm
+  bằng JWT/dataset/SQLite tổng hợp in-process; chưa nối frontend/gateway/browser, feed/OpenCTI, lab hay production.
 - Tạo organization phonghoa-cti và repo cti-platform
 - Thư viện phonghoa_core (47 test), spec MVP + portal + Hermes, mockup 5 màn, đề cương nháp
 - Chi tiết bàn giao: docs/HANDOFF.md
