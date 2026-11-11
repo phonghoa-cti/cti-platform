@@ -1,5 +1,14 @@
 # Portal web — W05 review selection
 
+## W02 — Tra cứu IOC mẫu
+
+`/tra-cuu/mau` là view tra cứu một IOC bằng dữ liệu tổng hợp có nhãn rõ. Route không gọi mạng; nguồn dữ liệu
+fixture triển khai qua `LookupDataSource` để bước sau thay bằng adapter HTTP đã được chốt hợp đồng. Giá trị không
+khớp fixture luôn trả “không tìm thấy”, không được coi là an toàn và không được frontend tự chấm điểm hay
+chuẩn hóa. Fixture có sẵn: `hxxp://Evil[.]COM/a` và `allowlisted.example`.
+
+View này chưa có API, xác thực, OpenCTI, enrichment thật, lịch sử, batch, đề xuất chặn hoặc dữ liệu vận hành.
+
 `/duyet` đọc hàng đợi API v1, cho analyst chỉnh tập IOC đủ điều kiện, bấm **Lưu lựa chọn**, rồi duyệt hoặc từ
 chối đúng snapshot đã lưu. `savedSelection` là tập server đã ghi; `editingSelection` là tập analyst đang sửa.
 Nút lưu là ranh giới rõ ràng để quyết định không vô tình dùng một tập khác với tập đang hiển thị.

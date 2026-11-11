@@ -91,4 +91,39 @@
   ,"selectionSaved": "The selection was saved."
   ,"selectionNoop": "The selection already matches the saved state."
   ,"selectionRefreshFailed": "The selection was saved, but the latest state could not be loaded. Reload before deciding."
+  ,"w02": {
+    "title": "Look up one IOC",
+    "description": "Check known information, sources, and assessment reasons for one value at a time.",
+    "sampleLabel": "Synthetic data · No network calls · Not an operational result",
+    "language": "Interface language",
+    "inputLabel": "IOC to look up",
+    "placeholder": "IP, domain, URL, hash, or email",
+    "hint": "Defanged input is accepted, for example hxxp://evil[.]com/a.",
+    "submit": "Look up",
+    "loadingButton": "Looking up…",
+    "loading": "Looking up the IOC…",
+    "resultRegion": "Lookup result",
+    "copy": "Copy original value",
+    "copySuccess": "Original value copied.",
+    "copyError": "Could not copy. Check clipboard permission and try again.",
+    "found": "Reported by a source",
+    "notFound": "Not reported by a source",
+    "allowlisted": "Legitimate infrastructure (allowlist)",
+    "score": "Assessment score",
+    "sources": "Reporting sources",
+    "noSources": "No source is present in this fixture.",
+    "related": "Related",
+    "noRelated": "No relationship is present in this fixture.",
+    "enrichment": "Enrichment",
+    "noEnrichment": "No enrichment is present in this fixture.",
+    "levels": { "high": "High", "medium": "Medium", "low": "Low" },
+    "types": { "url": "URL", "domain": "Domain", "ipv4": "IPv4", "email": "Email", "hash": "Hash" },
+    "states": {
+      "not-found": { "title": "No source has reported this IOC", "body": "Not found does not mean safe. The fixture does not calculate a score or infer one." },
+      "invalid": { "title": "Invalid IOC", "body": "Enter a valid IP, domain, URL, hash, or email." },
+      "private-ip": { "title": "This is a private IP", "body": "Private IP addresses are not looked up on the Internet." },
+      "unavailable": { "title": "Lookup is temporarily unavailable", "body": "The data source is unavailable. Try again later." },
+      "forbidden": { "title": "You cannot view this result", "body": "Permission and TLP must be checked by the data service." }
+    }
+  }
 }

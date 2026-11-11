@@ -80,6 +80,10 @@ Cập nhật lần cuối: 11/11/2026
   selection `[1]` + approve và STIX CLI trên cùng draft/DB; ma trận kiểm source/TLP/audit/provenance, export
   read-only/idempotent/non-clobber và cleanup owned resource. Đây chỉ là CLI + HTTP synthetic cục bộ; browser
   cùng draft, OpenCTI, Cloudflare/JWKS/HTTPS thật, chất lượng dataset/model, lab và production chưa được kiểm.
+- W02 view tra cứu IOC mẫu: `/tra-cuu/mau` tra một giá trị qua nguồn fixture thay được, có VI/EN, trạng thái
+  idle/loading/result/not-found/invalid/private-IP/unavailable/forbidden, chống response cũ ghi đè và copy giá trị
+  gốc theo kết quả Promise. Dữ liệu tổng hợp không gọi mạng; desktop loopback `/tra-cuu/mau` đã được kiểm bằng
+  trình duyệt tích hợp; mobile viewport thật và API/auth/OpenCTI/enrichment/lab/production chưa kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

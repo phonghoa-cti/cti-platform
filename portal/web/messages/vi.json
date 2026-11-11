@@ -91,4 +91,39 @@
   ,"selectionSaved": "Lựa chọn đã được lưu."
   ,"selectionNoop": "Lựa chọn đã khớp trạng thái được lưu."
   ,"selectionRefreshFailed": "Lựa chọn đã được lưu nhưng chưa tải lại được trạng thái. Tải lại trạng thái trước khi quyết định."
+  ,"w02": {
+    "title": "Tra cứu một IOC",
+    "description": "Kiểm tra thông tin đã biết, nguồn và lý do đánh giá cho một giá trị mỗi lần.",
+    "sampleLabel": "Dữ liệu tổng hợp · Không gọi mạng · Không phải kết quả vận hành",
+    "language": "Ngôn ngữ giao diện",
+    "inputLabel": "IOC cần tra cứu",
+    "placeholder": "IP, tên miền, URL, hash hoặc email",
+    "hint": "Có thể dán dạng defang, ví dụ hxxp://evil[.]com/a.",
+    "submit": "Tra cứu",
+    "loadingButton": "Đang tra cứu…",
+    "loading": "Đang tra cứu IOC…",
+    "resultRegion": "Kết quả tra cứu",
+    "copy": "Sao chép giá trị gốc",
+    "copySuccess": "Đã sao chép giá trị gốc.",
+    "copyError": "Không thể sao chép. Kiểm tra quyền clipboard rồi thử lại.",
+    "found": "Đã có nguồn báo",
+    "notFound": "Chưa có nguồn báo",
+    "allowlisted": "Hạ tầng hợp pháp (allowlist)",
+    "score": "Điểm đánh giá",
+    "sources": "Nguồn đã báo",
+    "noSources": "Không có nguồn trong fixture này.",
+    "related": "Liên quan",
+    "noRelated": "Không có quan hệ trong fixture này.",
+    "enrichment": "Làm giàu",
+    "noEnrichment": "Không có dữ liệu làm giàu trong fixture này.",
+    "levels": { "high": "Cao", "medium": "Trung bình", "low": "Thấp" },
+    "types": { "url": "URL", "domain": "Tên miền", "ipv4": "IPv4", "email": "Email", "hash": "Hash" },
+    "states": {
+      "not-found": { "title": "Chưa có nguồn nào báo IOC này", "body": "Không tìm thấy không có nghĩa là an toàn. Fixture không tự chấm điểm hoặc suy diễn." },
+      "invalid": { "title": "Không phải IOC hợp lệ", "body": "Nhập một IP, tên miền, URL, hash hoặc email hợp lệ." },
+      "private-ip": { "title": "Đây là IP nội bộ", "body": "IP nội bộ không được tra cứu trên Internet." },
+      "unavailable": { "title": "Tạm thời không thể tra cứu", "body": "Nguồn dữ liệu không khả dụng. Hãy thử lại sau." },
+      "forbidden": { "title": "Bạn không có quyền xem kết quả này", "body": "Quyền và TLP phải được kiểm tra ở dịch vụ dữ liệu." }
+    }
+  }
 }
