@@ -1,0 +1,6 @@
+warning: in the working copy of 'docs/PROGRESS.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/components/assets-http-client.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/tests/assets-http-client.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tools/local_integration/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tools/local_integration/gateway.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tools/local_integration/tests/test_gateway.mjs', LF will be replaced by CRLF the next time Git touches it

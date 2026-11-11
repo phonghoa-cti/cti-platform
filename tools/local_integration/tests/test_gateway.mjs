@@ -188,6 +188,35 @@ test("gateway proxies only exact asset collection and positive-id routes", async
   }
 });
 
+test("gateway proxies exact technology routes, rejects traversal, and streams a response over 1 MiB", async () => {
+  const payload = JSON.stringify({ items: [{ note: "x".repeat(1_200_000) }] });
+  const seen = [];
+  const api = await listen((req, res) => {
+    seen.push(req.url);
+    res.writeHead(200, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) });
+    res.end(payload);
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: "gateway-token" });
+  try {
+    for (const route of ["/api/assets/technologies", "/api/assets/technologies/41?expected_version=1"]) {
+      const result = await request(gateway.address().port, route);
+      assert.equal(result.status, 200, route);
+      assert.equal(result.body, payload, route);
+    }
+    for (const route of [
+      "/api/assets/technologies/", "/api/assets/technologies/0", "/api/assets/technologies/01",
+      "/api/assets/technologies/-1", "/api/assets/technologies/1/extra", "/api/assets/technology",
+      "/api/assets/technologies/../1", "/api/assets/technologies/%2e%2e/1",
+    ]) {
+      assert.equal((await request(gateway.address().port, route)).status, 404, route);
+    }
+    assert.deepEqual(seen, ["/api/assets/technologies", "/api/assets/technologies/41?expected_version=1"]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
 test("asset refresh fault fires once after a successful mutation then recovers", async () => {
   const seen = [];
   const api = await listen((req, res) => {

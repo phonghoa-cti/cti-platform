@@ -1,0 +1,88 @@
+{
+  "assertions": 51,
+  "corrupt_timestamp": {
+    "counts": {
+      "asset_audit": 0,
+      "assets": 0,
+      "technologies": 1,
+      "technology_audit": 1
+    },
+    "statuses": [
+      503,
+      503
+    ]
+  },
+  "faults": {
+    "w04-technology-refresh-503": {
+      "counts": {
+        "asset_audit": 0,
+        "assets": 0,
+        "technologies": 1,
+        "technology_audit": 1
+      },
+      "get_statuses": [
+        503,
+        503,
+        200
+      ],
+      "mutation_status": 201
+    },
+    "w04-technology-unknown-outcome": {
+      "counts": {
+        "asset_audit": 0,
+        "assets": 0,
+        "technologies": 1,
+        "technology_audit": 1
+      },
+      "get_statuses": [
+        503,
+        200
+      ],
+      "mutation_status": 503
+    }
+  },
+  "limits": {
+    "counts": {
+      "asset_audit": 0,
+      "assets": 0,
+      "technologies": 1000,
+      "technology_audit": 1000
+    },
+    "listed": 1000,
+    "rejected_status": 503
+  },
+  "primary": {
+    "actions": [
+      "technology_created",
+      "technology_updated",
+      "technology_deleted",
+      "technology_created"
+    ],
+    "after_technology": {
+      "asset_audit": 0,
+      "assets": 0,
+      "technologies": 2,
+      "technology_audit": 4
+    },
+    "before": {
+      "asset_audit": 0,
+      "assets": 0,
+      "technologies": 0,
+      "technology_audit": 0
+    },
+    "final": {
+      "asset_audit": 2,
+      "assets": 2,
+      "technologies": 2,
+      "technology_audit": 4
+    }
+  },
+  "roles": {
+    "w04-technology-analyst": 200,
+    "w04-technology-forbidden": 403,
+    "w04-technology-it": 200,
+    "w04-technology-missing-token": 401,
+    "w04-technology-multi-role": 200
+  },
+  "status": "PASS"
+}

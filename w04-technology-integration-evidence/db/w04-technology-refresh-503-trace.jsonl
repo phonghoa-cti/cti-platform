@@ -1,0 +1,4 @@
+{"counter":1,"method":"POST","path":"/api/assets/technologies","status":201}
+{"counter":2,"method":"GET","path":"/api/assets/technologies","status":503}
+{"counter":3,"method":"GET","path":"/api/assets/technologies","status":503}
+{"counter":4,"method":"GET","path":"/api/assets/technologies","status":200}

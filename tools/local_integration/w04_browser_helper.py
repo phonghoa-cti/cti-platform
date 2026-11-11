@@ -15,7 +15,16 @@ from typing import Any
 
 from tools.local_integration.runner import LocalRun
 
-ALLOWED_SCENARIOS = ("w04-it", "w04-forbidden", "w04-refresh-503", "w04-unknown-outcome")
+ALLOWED_SCENARIOS = (
+    "w04-it",
+    "w04-forbidden",
+    "w04-refresh-503",
+    "w04-unknown-outcome",
+    "w04-technology-it",
+    "w04-technology-forbidden",
+    "w04-technology-refresh-503",
+    "w04-technology-unknown-outcome",
+)
 
 
 def _write_json(path: Path, value: dict[str, Any]) -> None:
@@ -29,17 +38,36 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
 def snapshot_assets_database(db_path: Path, evidence_dir: Path) -> dict[str, int]:
     evidence_dir.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
-        asset_rows = int(connection.execute("SELECT count(*) FROM assets").fetchone()[0])
-        active_assets = int(
-            connection.execute("SELECT count(*) FROM assets WHERE deleted_at IS NULL").fetchone()[0]
-        )
-        audit_rows = int(connection.execute("SELECT count(*) FROM asset_audit").fetchone()[0])
+
+        def count(table: str, where: str = "") -> int:
+            exists = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+            ).fetchone()
+            if exists is None:
+                return 0
+            return int(connection.execute(f"SELECT count(*) FROM {table} {where}").fetchone()[0])
+
+        asset_rows = count("assets")
+        active_assets = count("assets", "WHERE deleted_at IS NULL")
+        audit_rows = count("asset_audit")
+        technology_rows = count("technology_assets")
+        active_technologies = count("technology_assets", "WHERE deleted_at IS NULL")
+        technology_audit_rows = count("technology_asset_audit")
+        draft_rows = count("drafts")
         destination = sqlite3.connect(evidence_dir / "assets-before-cleanup.sqlite")
         try:
             connection.backup(destination)
         finally:
             destination.close()
-    summary = {"active_assets": active_assets, "asset_rows": asset_rows, "audit_rows": audit_rows}
+    summary = {
+        "active_assets": active_assets,
+        "active_technologies": active_technologies,
+        "asset_rows": asset_rows,
+        "audit_rows": audit_rows,
+        "draft_rows": draft_rows,
+        "technology_audit_rows": technology_audit_rows,
+        "technology_rows": technology_rows,
+    }
     _write_json(evidence_dir / "db-summary.json", summary)
     return summary
 
@@ -47,9 +75,7 @@ def snapshot_assets_database(db_path: Path, evidence_dir: Path) -> dict[str, int
 def request_stop(state_path: Path) -> Path:
     state = json.loads(state_path.read_text(encoding="utf-8"))
     valid = (
-        isinstance(state, dict)
-        and state.get("status") == "running"
-        and isinstance(state.get("run_id"), str)
+        isinstance(state, dict) and state.get("status") == "running" and isinstance(state.get("run_id"), str)
     )
     if not valid:
         raise RuntimeError("session không ở trạng thái running")

@@ -74,3 +74,33 @@ Set-Location C:\Users\ABC\.openmausbot\task-workspaces\0c356bb4-b9e0-4899-a6f5-2
 Mỗi run cần evidence/state riêng. Trước cleanup, helper sao lưu SQLite bằng backup nhất quán, ghi count tổng hợp và
 giữ `gateway-trace.jsonl` chỉ có counter/method/path/status. Browser vẫn phải được mở bằng bề mặt OpenMausBot;
 helper không tự mở browser và không chứng minh browser acceptance.
+
+## W04 — Technology qua cùng gateway và SQLite
+
+Các scenario `w04-technology-it`, `w04-technology-analyst`, `w04-technology-multi-role`,
+`w04-technology-missing-token`, `w04-technology-forbidden`, `w04-technology-refresh-503` và
+`w04-technology-unknown-outcome` bật cả `AssetStore` lẫn `TechnologyStore` trên cùng file SQLite. Hai schema
+được tạo trong setup trước khi listener nhận request. Gateway chỉ mở chính xác collection
+`/api/assets/technologies` và item `/api/assets/technologies/<positive-id>`; route gần đúng hoặc traversal trả
+404, không mở proxy `/api/*` tổng quát.
+
+Chạy ma trận HTTP Technology ngoại tuyến:
+
+```powershell
+Set-Location C:\Users\ABC\.openmausbot\task-workspaces\0c356bb4-b9e0-4899-a6f5-232bc89b4048\7f8ce74d-7efd-4136-940a-c5fab132c149\cti-w04-technology-integration
+..\cti-x01-ingest-browser-prep\.venv\Scripts\python.exe -X utf8 -B -m tools.local_integration.tests.run_w04_technology_matrix --output .\w04-technology-integration-evidence\http-assertions.json --evidence-dir .\w04-technology-integration-evidence\db
+```
+
+Fault refresh trả hai GET 503 rồi 200 sau một mutation thành công. Fault unknown để upstream commit đúng một
+lần nhưng gateway trả 503, sau đó GET đối soát trả 503 rồi 200. Cả hai chỉ được bật bằng scenario nội bộ, không
+có endpoint điều khiển công khai.
+
+Helper browser dùng bốn scenario Technology tương ứng:
+
+```powershell
+..\cti-x01-ingest-browser-prep\.venv\Scripts\python.exe -X utf8 -B -m tools.local_integration.w04_browser_helper start --scenario w04-technology-it --duration 300 --evidence ..\w04-technology-integration-evidence\browser-technology-it --state ..\w04-technology-integration-evidence\browser-technology-it.json
+```
+
+Đổi scenario sang `w04-technology-forbidden`, `w04-technology-refresh-503` hoặc
+`w04-technology-unknown-outcome`. Helper không tự mở browser; phải dùng bề mặt OpenMausBot và viewport thật.
+Nếu bề mặt hoặc resize không có, ghi browser/mobile là UNVERIFIED.

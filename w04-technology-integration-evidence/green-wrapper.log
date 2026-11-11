@@ -1,0 +1,10 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-technology-integration/portal/web
+
+ ✓ tests/assets-http-client.test.tsx > route client uses stable same-origin asset and technology providers in local-api mode 123ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  00:20:07
+   Duration  1.47s (environment 48%, setup 25%, import 12%, tests 9%, transform 5%)
+

@@ -108,6 +108,30 @@ def test_w04_asset_store_is_shared_with_w02_lookup_and_cleaned() -> None:
     assert not temp_root.exists()
 
 
+@pytest.mark.parametrize(
+    ("scenario", "status"),
+    [
+        ("w04-technology-it", 200),
+        ("w04-technology-analyst", 200),
+        ("w04-technology-multi-role", 200),
+        ("w04-technology-missing-token", 401),
+        ("w04-technology-forbidden", 403),
+        ("w04-technology-refresh-503", 200),
+        ("w04-technology-unknown-outcome", 200),
+    ],
+)
+def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(scenario: str, status: int) -> None:
+    with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/assets/technologies", timeout=2)
+        assert response.status_code == status
+        assert response.headers["cache-control"] == "no-store"
+        assert response.headers["vary"] == "Cf-Access-Jwt-Assertion"
+        assert run.asset_store is not None
+        assert run.technology_store is not None
+        assert run.asset_store.path == run.db_path
+        assert run.technology_store.path == run.db_path
+
+
 def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixtures() -> None:
     with LocalRun("selection-admin", duration_seconds=20, start_ui=False) as selection_run:
         response = httpx.get(

@@ -143,6 +143,12 @@ Cập nhật lần cuối: 11/11/2026
   khi GET thành công; trạng thái mutation pending/unknown thuộc provider và sống qua đổi tab, không mở khóa bởi
   GET sớm. Probe Leader 4/4, regression focused 120/120, typecheck, lint và build đều đạt ở evidence bàn giao
   rework; API/gateway/browser/lab/production vẫn chưa được kiểm.
+- W04 Technology tích hợp cục bộ: `/tai-san` dùng provider HTTP Technology thật; gateway allowlist chính xác hai
+  route Technology và runner inject `TechnologyStore` cùng SQLite với `AssetStore`, schema setup trước request.
+  Ma trận HTTP loopback 51 assertion kiểm CRUD/duplicate/stale/xóa-tạo lại, IT/analyst/multi-role, 401/403,
+  timestamp hỏng không ghi, danh sách đủ 1.000 và từ chối 1.001, non-impact assets/W02, domain/CIDR lookup và
+  hai chuỗi fault không replay. Frontend focused 120/120, Python harness 42/42, gateway 14/14, typecheck/lint/
+  build 9/9 route đều đạt; browser OpenMausBot và viewport desktop/mobile vẫn UNVERIFIED trong lượt này.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

@@ -34,9 +34,10 @@ from phonghoa_extractor.drafts import build_regex_draft
 from portal_api.app import create_app
 from portal_api.assets import AssetStore
 from portal_api.auth import AccessJwtVerifier
+from portal_api.technologies import TechnologyStore
 from tools.local_integration.local_settings import make_local_settings
 from tools.local_integration.w02_fixture import build_w02_fixture
-from tools.local_integration.w04_fixture import build_w04_fixture
+from tools.local_integration.w04_fixture import build_w04_fixture, build_w04_technology_fixture
 
 SELECTION_SCENARIOS = frozenset(
     {
@@ -70,6 +71,17 @@ W04_SCENARIOS = frozenset(
         "w04-unknown-outcome",
     }
 )
+W04_TECHNOLOGY_SCENARIOS = frozenset(
+    {
+        "w04-technology-it",
+        "w04-technology-analyst",
+        "w04-technology-multi-role",
+        "w04-technology-missing-token",
+        "w04-technology-forbidden",
+        "w04-technology-refresh-503",
+        "w04-technology-unknown-outcome",
+    }
+)
 SCENARIOS = (
     frozenset(
         {
@@ -86,6 +98,7 @@ SCENARIOS = (
     | STIX_E2E_SCENARIOS
     | W02_SCENARIOS
     | W04_SCENARIOS
+    | W04_TECHNOLOGY_SCENARIOS
 )
 E2E_SOURCE_BYTES = "Cảnh báo thử nghiệm 😀 ghi nhận evil-one.example và evil-two.example.\n".encode()
 E2E_CREATOR_SUBJECT = "e2e-author-sub"
@@ -173,6 +186,7 @@ class LocalRun:
         self.draft_ids: tuple[int, ...] = ()
         self.selection_draft_id: int | None = None
         self.asset_store: AssetStore | None = None
+        self.technology_store: TechnologyStore | None = None
         self._temporary: tempfile.TemporaryDirectory[str] | None = None
         self._api_server: uvicorn.Server | None = None
         self._api_thread: threading.Thread | None = None
@@ -195,7 +209,7 @@ class LocalRun:
             "e": _b64uint(public.e),
         }
         now = datetime.now(UTC)
-        if self.scenario in {"analyst-self", "w02-analyst", "w04-analyst"}:
+        if self.scenario in {"analyst-self", "w02-analyst", "w04-analyst", "w04-technology-analyst"}:
             subject = "analyst-sub"
         elif self.scenario in {
             "insufficient-role",
@@ -203,13 +217,15 @@ class LocalRun:
             "w02-it-hidden-mutated",
             "w04-it",
             "w04-unknown-outcome",
+            "w04-technology-it",
+            "w04-technology-unknown-outcome",
         }:
             subject = "it-sub"
-        elif self.scenario in {"w02-multi-role", "w04-multi-role"}:
+        elif self.scenario in {"w02-multi-role", "w04-multi-role", "w04-technology-multi-role"}:
             subject = "multi-sub"
         elif self.scenario == "w02-forbidden":
             subject = "viewer-sub"
-        elif self.scenario == "w04-forbidden":
+        elif self.scenario in {"w04-forbidden", "w04-technology-forbidden"}:
             subject = "leader-sub"
         else:
             subject = "admin-sub"
@@ -230,7 +246,8 @@ class LocalRun:
         )
         token = (
             None
-            if self.scenario in {"missing-token", "w02-missing-token", "w04-missing-token"}
+            if self.scenario
+            in {"missing-token", "w02-missing-token", "w04-missing-token", "w04-technology-missing-token"}
             else jwt.encode(claims, signing_key, algorithm="RS256", headers={"kid": "w05-local"})
         )
         return token, AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
@@ -369,6 +386,7 @@ class LocalRun:
             token, verifier = self._token_and_verifier(settings)
             lookup_port = None
             asset_store = None
+            technology_store = None
             if self.scenario in W02_SCENARIOS:
                 lookup_port = build_w02_fixture(
                     fail=self.scenario == "w02-lookup-503",
@@ -377,12 +395,17 @@ class LocalRun:
             elif self.scenario in W04_SCENARIOS:
                 asset_store, lookup_port = build_w04_fixture(self.db_path)
                 self.asset_store = asset_store
+            elif self.scenario in W04_TECHNOLOGY_SCENARIOS:
+                asset_store, technology_store, lookup_port = build_w04_technology_fixture(self.db_path)
+                self.asset_store = asset_store
+                self.technology_store = technology_store
             app = create_app(
                 settings,
                 store,
                 verifier=verifier,
                 lookup_port=lookup_port,
                 asset_store=asset_store,
+                technology_store=technology_store,
             )
             self._api_server = uvicorn.Server(
                 uvicorn.Config(app, host="127.0.0.1", port=self.api_port, log_level="warning", lifespan="off")
@@ -432,6 +455,10 @@ class LocalRun:
                 env["W04_FAIL_ASSET_REFRESH_ONCE"] = "1"
             if self.scenario == "w04-unknown-outcome":
                 env["W04_FAIL_ASSET_MUTATION_RESPONSE_ONCE"] = "1"
+            if self.scenario == "w04-technology-refresh-503":
+                env["W04_FAIL_TECHNOLOGY_REFRESH_TWICE"] = "1"
+            if self.scenario == "w04-technology-unknown-outcome":
+                env["W04_FAIL_TECHNOLOGY_MUTATION_RESPONSE_ONCE"] = "1"
             if self.trace_path is not None:
                 self.trace_path.parent.mkdir(parents=True, exist_ok=True)
                 env["W04_TRACE_PATH"] = str(self.trace_path)
@@ -517,7 +544,9 @@ class LocalRun:
                 try:
                     if self.asset_store is not None:
                         self.asset_store = None
-                        gc.collect()
+                    if self.technology_store is not None:
+                        self.technology_store = None
+                    gc.collect()
                     self._temporary.cleanup()
                     self._temporary = None
                 except Exception as exc:

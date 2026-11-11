@@ -1,0 +1,353 @@
+FFFFFFFF                                                                 [100%]
+================================== FAILURES ===================================
+_ test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-it-200] _
+
+scenario = 'w04-technology-it', status = 200
+
+    @pytest.mark.parametrize(
+        ("scenario", "status"),
+        [
+            ("w04-technology-it", 200),
+            ("w04-technology-analyst", 200),
+            ("w04-technology-multi-role", 200),
+            ("w04-technology-missing-token", 401),
+            ("w04-technology-forbidden", 403),
+            ("w04-technology-refresh-503", 200),
+            ("w04-technology-unknown-outcome", 200),
+        ],
+    )
+    def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(
+        scenario: str, status: int
+    ) -> None:
+>       with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\local_integration\tests\test_runner.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tools.local_integration.runner.LocalRun object at 0x000001AE72189730>
+scenario = 'w04-technology-it', duration_seconds = 20, start_ui = False
+gateway_port = None, trace_path = None
+
+    def __init__(
+        self,
+        scenario: str,
+        duration_seconds: int = 300,
+        *,
+        start_ui: bool = True,
+        gateway_port: int | None = None,
+        trace_path: Path | None = None,
+    ):
+        if scenario not in SCENARIOS:
+>           raise ValueError("scenario không được phép")
+E           ValueError: scenario không được phép
+
+tools\local_integration\runner.py:156: ValueError
+_ test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-analyst-200] _
+
+scenario = 'w04-technology-analyst', status = 200
+
+    @pytest.mark.parametrize(
+        ("scenario", "status"),
+        [
+            ("w04-technology-it", 200),
+            ("w04-technology-analyst", 200),
+            ("w04-technology-multi-role", 200),
+            ("w04-technology-missing-token", 401),
+            ("w04-technology-forbidden", 403),
+            ("w04-technology-refresh-503", 200),
+            ("w04-technology-unknown-outcome", 200),
+        ],
+    )
+    def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(
+        scenario: str, status: int
+    ) -> None:
+>       with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\local_integration\tests\test_runner.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tools.local_integration.runner.LocalRun object at 0x000001AE7218B6E0>
+scenario = 'w04-technology-analyst', duration_seconds = 20, start_ui = False
+gateway_port = None, trace_path = None
+
+    def __init__(
+        self,
+        scenario: str,
+        duration_seconds: int = 300,
+        *,
+        start_ui: bool = True,
+        gateway_port: int | None = None,
+        trace_path: Path | None = None,
+    ):
+        if scenario not in SCENARIOS:
+>           raise ValueError("scenario không được phép")
+E           ValueError: scenario không được phép
+
+tools\local_integration\runner.py:156: ValueError
+_ test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-multi-role-200] _
+
+scenario = 'w04-technology-multi-role', status = 200
+
+    @pytest.mark.parametrize(
+        ("scenario", "status"),
+        [
+            ("w04-technology-it", 200),
+            ("w04-technology-analyst", 200),
+            ("w04-technology-multi-role", 200),
+            ("w04-technology-missing-token", 401),
+            ("w04-technology-forbidden", 403),
+            ("w04-technology-refresh-503", 200),
+            ("w04-technology-unknown-outcome", 200),
+        ],
+    )
+    def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(
+        scenario: str, status: int
+    ) -> None:
+>       with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\local_integration\tests\test_runner.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tools.local_integration.runner.LocalRun object at 0x000001AE721A3BF0>
+scenario = 'w04-technology-multi-role', duration_seconds = 20, start_ui = False
+gateway_port = None, trace_path = None
+
+    def __init__(
+        self,
+        scenario: str,
+        duration_seconds: int = 300,
+        *,
+        start_ui: bool = True,
+        gateway_port: int | None = None,
+        trace_path: Path | None = None,
+    ):
+        if scenario not in SCENARIOS:
+>           raise ValueError("scenario không được phép")
+E           ValueError: scenario không được phép
+
+tools\local_integration\runner.py:156: ValueError
+_ test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-missing-token-401] _
+
+scenario = 'w04-technology-missing-token', status = 401
+
+    @pytest.mark.parametrize(
+        ("scenario", "status"),
+        [
+            ("w04-technology-it", 200),
+            ("w04-technology-analyst", 200),
+            ("w04-technology-multi-role", 200),
+            ("w04-technology-missing-token", 401),
+            ("w04-technology-forbidden", 403),
+            ("w04-technology-refresh-503", 200),
+            ("w04-technology-unknown-outcome", 200),
+        ],
+    )
+    def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(
+        scenario: str, status: int
+    ) -> None:
+>       with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\local_integration\tests\test_runner.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tools.local_integration.runner.LocalRun object at 0x000001AE721A00E0>
+scenario = 'w04-technology-missing-token', duration_seconds = 20
+start_ui = False, gateway_port = None, trace_path = None
+
+    def __init__(
+        self,
+        scenario: str,
+        duration_seconds: int = 300,
+        *,
+        start_ui: bool = True,
+        gateway_port: int | None = None,
+        trace_path: Path | None = None,
+    ):
+        if scenario not in SCENARIOS:
+>           raise ValueError("scenario không được phép")
+E           ValueError: scenario không được phép
+
+tools\local_integration\runner.py:156: ValueError
+_ test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-forbidden-403] _
+
+scenario = 'w04-technology-forbidden', status = 403
+
+    @pytest.mark.parametrize(
+        ("scenario", "status"),
+        [
+            ("w04-technology-it", 200),
+            ("w04-technology-analyst", 200),
+            ("w04-technology-multi-role", 200),
+            ("w04-technology-missing-token", 401),
+            ("w04-technology-forbidden", 403),
+            ("w04-technology-refresh-503", 200),
+            ("w04-technology-unknown-outcome", 200),
+        ],
+    )
+    def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(
+        scenario: str, status: int
+    ) -> None:
+>       with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\local_integration\tests\test_runner.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tools.local_integration.runner.LocalRun object at 0x000001AE72189EE0>
+scenario = 'w04-technology-forbidden', duration_seconds = 20, start_ui = False
+gateway_port = None, trace_path = None
+
+    def __init__(
+        self,
+        scenario: str,
+        duration_seconds: int = 300,
+        *,
+        start_ui: bool = True,
+        gateway_port: int | None = None,
+        trace_path: Path | None = None,
+    ):
+        if scenario not in SCENARIOS:
+>           raise ValueError("scenario không được phép")
+E           ValueError: scenario không được phép
+
+tools\local_integration\runner.py:156: ValueError
+_ test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-refresh-503-200] _
+
+scenario = 'w04-technology-refresh-503', status = 200
+
+    @pytest.mark.parametrize(
+        ("scenario", "status"),
+        [
+            ("w04-technology-it", 200),
+            ("w04-technology-analyst", 200),
+            ("w04-technology-multi-role", 200),
+            ("w04-technology-missing-token", 401),
+            ("w04-technology-forbidden", 403),
+            ("w04-technology-refresh-503", 200),
+            ("w04-technology-unknown-outcome", 200),
+        ],
+    )
+    def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(
+        scenario: str, status: int
+    ) -> None:
+>       with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\local_integration\tests\test_runner.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tools.local_integration.runner.LocalRun object at 0x000001AE721891F0>
+scenario = 'w04-technology-refresh-503', duration_seconds = 20, start_ui = False
+gateway_port = None, trace_path = None
+
+    def __init__(
+        self,
+        scenario: str,
+        duration_seconds: int = 300,
+        *,
+        start_ui: bool = True,
+        gateway_port: int | None = None,
+        trace_path: Path | None = None,
+    ):
+        if scenario not in SCENARIOS:
+>           raise ValueError("scenario không được phép")
+E           ValueError: scenario không được phép
+
+tools\local_integration\runner.py:156: ValueError
+_ test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-unknown-outcome-200] _
+
+scenario = 'w04-technology-unknown-outcome', status = 200
+
+    @pytest.mark.parametrize(
+        ("scenario", "status"),
+        [
+            ("w04-technology-it", 200),
+            ("w04-technology-analyst", 200),
+            ("w04-technology-multi-role", 200),
+            ("w04-technology-missing-token", 401),
+            ("w04-technology-forbidden", 403),
+            ("w04-technology-refresh-503", 200),
+            ("w04-technology-unknown-outcome", 200),
+        ],
+    )
+    def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(
+        scenario: str, status: int
+    ) -> None:
+>       with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tools\local_integration\tests\test_runner.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tools.local_integration.runner.LocalRun object at 0x000001AE72189310>
+scenario = 'w04-technology-unknown-outcome', duration_seconds = 20
+start_ui = False, gateway_port = None, trace_path = None
+
+    def __init__(
+        self,
+        scenario: str,
+        duration_seconds: int = 300,
+        *,
+        start_ui: bool = True,
+        gateway_port: int | None = None,
+        trace_path: Path | None = None,
+    ):
+        if scenario not in SCENARIOS:
+>           raise ValueError("scenario không được phép")
+E           ValueError: scenario không được phép
+
+tools\local_integration\runner.py:156: ValueError
+_ test_snapshot_assets_database_includes_technology_and_legacy_non_impact_counts _
+
+tmp_path = WindowsPath('C:/Users/ABC/AppData/Local/Temp/pytest-of-ABC/pytest-528/test_snapshot_assets_database_0')
+
+    def test_snapshot_assets_database_includes_technology_and_legacy_non_impact_counts(tmp_path: Path) -> None:
+        db_path = tmp_path / "shared.sqlite"
+        with sqlite3.connect(db_path) as connection:
+            connection.executescript(
+                "CREATE TABLE assets(id INTEGER PRIMARY KEY, deleted_at TEXT);"
+                "CREATE TABLE asset_audit(id INTEGER PRIMARY KEY);"
+                "CREATE TABLE technology_assets(id INTEGER PRIMARY KEY, deleted_at TEXT);"
+                "CREATE TABLE technology_asset_audit(id INTEGER PRIMARY KEY);"
+                "CREATE TABLE ioc_drafts(id INTEGER PRIMARY KEY);"
+                "INSERT INTO technology_assets(id,deleted_at) VALUES(1,NULL),(2,'2026-11-12T00:00:00Z');"
+                "INSERT INTO technology_asset_audit(id) VALUES(1),(2),(3);"
+                "INSERT INTO ioc_drafts(id) VALUES(1),(2),(3),(4);"
+            )
+    
+        summary = snapshot_assets_database(db_path, tmp_path / "evidence")
+    
+>       assert summary == {
+            "active_assets": 0,
+            "active_technologies": 1,
+            "asset_rows": 0,
+            "audit_rows": 0,
+            "draft_rows": 4,
+            "technology_audit_rows": 3,
+            "technology_rows": 2,
+        }
+E       AssertionError: assert {'active_asse...udit_rows': 0} == {'active_asse...rows': 0, ...}
+E         
+E         Omitting 3 identical items, use -vv to show
+E         Right contains 4 more items:
+E         {'active_technologies': 1,
+E          'draft_rows': 4,
+E          'technology_audit_rows': 3,
+E          'technology_rows': 2}
+E         Use -v to get more diff
+
+tools\local_integration\tests\test_w04_browser_helper.py:43: AssertionError
+=========================== short test summary info ===========================
+FAILED tools/local_integration/tests/test_runner.py::test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-it-200]
+FAILED tools/local_integration/tests/test_runner.py::test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-analyst-200]
+FAILED tools/local_integration/tests/test_runner.py::test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-multi-role-200]
+FAILED tools/local_integration/tests/test_runner.py::test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-missing-token-401]
+FAILED tools/local_integration/tests/test_runner.py::test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-forbidden-403]
+FAILED tools/local_integration/tests/test_runner.py::test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-refresh-503-200]
+FAILED tools/local_integration/tests/test_runner.py::test_w04_technology_scenarios_opt_in_both_stores_on_one_database[w04-technology-unknown-outcome-200]
+FAILED tools/local_integration/tests/test_w04_browser_helper.py::test_snapshot_assets_database_includes_technology_and_legacy_non_impact_counts
+8 failed in 0.88s
