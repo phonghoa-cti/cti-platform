@@ -86,6 +86,45 @@ describe("IOC lookup interaction", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
+  it("shows asset membership for a found result without calling it safe", async () => {
+    await submit(found.input, source(vi.fn().mockResolvedValue({
+      ...found,
+      assetMatch: { matched: true, assets: ["congty.vn"] },
+    })));
+    expect(await screen.findByText("Thuộc tài sản của bạn")).toBeInTheDocument();
+    expect(screen.getByText("congty.vn")).toBeInTheDocument();
+    expect(screen.queryByText(/^An toàn$/i)).not.toBeInTheDocument();
+  });
+
+  it("shows asset membership for an allowlisted result without calling it blocked", async () => {
+    await submit("mail.congty.vn", source(vi.fn().mockResolvedValue({
+      ...found,
+      input: "mail.congty.vn",
+      ioc: { type: "domain", value: "mail.congty.vn", display: "mail[.]congty[.]vn" },
+      found: false,
+      allowlisted: true,
+      score: { value: 0, level: "low", reason: "IOC nằm trong allowlist." },
+      sources: [],
+      related: { techniques: [], malware: [], actors: [] },
+      enrichment: {},
+      assetMatch: { matched: true, assets: ["congty.vn"] },
+      tlp: "TLP:CLEAR",
+    })));
+    expect(await screen.findByText("Thuộc tài sản của bạn")).toBeInTheDocument();
+    expect(screen.getByText("Hạ tầng hợp pháp (allowlist)")).toBeInTheDocument();
+    expect(screen.queryByText(/đã chặn/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps asset membership visible for not-found results", async () => {
+    await submit("https://unknown.congty.vn/path", source(vi.fn().mockResolvedValue({
+      state: "not-found",
+      assetMatch: { matched: true, assets: ["congty.vn"] },
+    })));
+    expect(await screen.findByText("Thuộc tài sản của bạn")).toBeInTheDocument();
+    expect(screen.getByText("Chưa tìm thấy dữ liệu đe dọa")).toBeInTheDocument();
+    expect(screen.getByText("congty.vn")).toBeInTheDocument();
+  });
+
   it.each([
     ["not-found", "Chưa có nguồn nào báo IOC này"],
     ["invalid", "Không phải IOC hợp lệ"],

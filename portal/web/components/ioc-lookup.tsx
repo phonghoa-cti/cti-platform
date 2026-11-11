@@ -27,6 +27,7 @@ function ResultView({ result, messages, onCopy }: {
         <span className={result.found ? "ioc-lookup__badge ioc-lookup__badge--found" : "ioc-lookup__badge"}>{result.found ? messages.found : messages.notFound}</span>
         {result.allowlisted && <span className="ioc-lookup__badge ioc-lookup__badge--allowlist">{messages.allowlisted}</span>}
       </div>
+      {result.assetMatch?.matched && <AssetMatchView assets={result.assetMatch.assets} messages={messages} />}
       {result.score && (
         <section className={`ioc-lookup__score ioc-lookup__score--${result.score.level}`} aria-label={messages.score}>
           <strong>{result.score.value} / 100</strong>
@@ -39,6 +40,15 @@ function ResultView({ result, messages, onCopy }: {
         <section><h2>{messages.related}</h2>{related.length ? <ul>{related.map((item) => <li key={item}>{item}</li>)}</ul> : <p>{messages.noRelated}</p>}</section>
         <section><h2>{messages.enrichment}</h2>{enrichment.length ? <ul>{enrichment.map((item) => <li key={item}>{item}</li>)}</ul> : <p>{messages.noEnrichment}</p>}</section>
       </div>
+    </section>
+  );
+}
+
+function AssetMatchView({ assets, messages }: { assets: string[]; messages: typeof vi.w02 }) {
+  return (
+    <section className="ioc-lookup__asset" aria-label={messages.assetMatch}>
+      <div><strong>{messages.assetMatch}</strong><span>{messages.assetCaution}</span></div>
+      <ul>{assets.map((asset) => <li key={asset}><code>{asset}</code></li>)}</ul>
     </section>
   );
 }
@@ -132,6 +142,12 @@ export function IocLookup({
         {copyState === "error" && <p role="alert">{messages.copyError}</p>}
       </div>
       {stateMessage && <section className="ioc-lookup__state" role="alert"><h2>{stateMessage.title}</h2><p>{stateBody}</p></section>}
+      {response?.state === "not-found" && response.assetMatch?.matched && (
+        <div className="ioc-lookup__not-found-asset">
+          <h2>{messages.noThreatData}</h2>
+          <AssetMatchView assets={response.assetMatch.assets} messages={messages} />
+        </div>
+      )}
       {response?.state === "result" && (
         <div ref={(node) => { resultRef.current = node?.querySelector("section") ?? null; }}>
           <ResultView

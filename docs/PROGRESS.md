@@ -112,6 +112,12 @@ Cập nhật lần cuối: 11/11/2026
   LocalRun chỉ inject AssetStore trong scenario W04, dùng cùng SQLite cho CRUD/audit và W02 lookup. Ma trận HTTP
   loopback kiểm quyền, Origin/body/version, domain/subdomain/CIDR/URL-path, xóa cập nhật snapshot và một chuỗi
   refresh 503→200 không replay mutation; UI/browser, Cloudflare/JWKS/HTTPS thật, lab/production chưa được kiểm.
+- W04 frontend tài sản mẫu: `/tai-san/mau` quản lý tên miền/dải IP tổng hợp qua provider thay được, có form
+  thêm/sửa/xóa, expected version, xác nhận xóa, trạng thái tải/rỗng/invalid/401/403/503/409/kết quả mutation chưa
+  rõ, chống gửi lặp và response cũ. Adapter `/api/assets` cùng origin giữ strict schema/body/timeout và không tự
+  thêm danh tính hay retry mutation. Parser/view W02 giữ `asset_match` cho found/allowlisted/not_found bằng bốn
+  fixture candidate đã đối chiếu SHA-256. Đây là component/schema cục bộ; route API thật, gateway, database,
+  browser, Cloudflare/JWKS/HTTPS, lab, OpenCTI và production chưa được kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

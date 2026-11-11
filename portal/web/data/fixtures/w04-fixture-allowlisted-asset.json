@@ -1,0 +1,20 @@
+{
+  "ioc": {
+    "type": "domain",
+    "value": "mail.congty.vn",
+    "display": "mail[.]congty[.]vn"
+  },
+  "state": "allowlisted",
+  "found": false,
+  "allowlisted": true,
+  "score": {
+    "value": 0,
+    "level": "low",
+    "reason": "IOC nằm trong allowlist (hạ tầng hợp pháp) nên điểm = 0.",
+    "parts": null
+  },
+  "sources": [],
+  "related": {"techniques": [], "malware": [], "actors": []},
+  "asset_match": {"matched": true, "assets": ["congty.vn"]},
+  "tlp": "TLP:CLEAR"
+}

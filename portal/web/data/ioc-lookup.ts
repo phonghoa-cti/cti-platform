@@ -19,6 +19,7 @@ export type LookupResult = {
 
 export type LookupResponse = LookupResult | {
   state: "not-found" | "invalid" | "private-ip" | "unavailable" | "forbidden" | "authentication-required";
+  assetMatch?: { matched: boolean; assets: string[] };
 };
 
 export interface LookupDataSource {

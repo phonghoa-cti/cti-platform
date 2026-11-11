@@ -92,6 +92,11 @@ function stringList(value: unknown): string[] {
   return value.map((item) => text(item, 1, 128));
 }
 
+function assetList(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > 100) throw new InvalidLookupResponse();
+  return value.map((item) => text(item, 1, 253));
+}
+
 function utcTimestamp(value: unknown): string {
   const timestamp = text(value, 1, 128);
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/.exec(timestamp);
@@ -178,7 +183,7 @@ function parseRelated(value: unknown): IocLookupHttpResponse["related"] {
 function parseAssetMatch(value: unknown): IocLookupHttpResponse["asset_match"] {
   const raw = object(value);
   exact(raw, ["matched", "assets"]);
-  const assets = stringList(raw.assets);
+  const assets = assetList(raw.assets);
   const matched = boolean(raw.matched);
   if (matched !== (assets.length > 0)) throw new InvalidLookupResponse();
   return { matched, assets };
@@ -209,10 +214,10 @@ export function parseIocLookupResponse(value: unknown): IocLookupHttpResponse {
   } else if (result.state === "allowlisted") {
     if (result.found || !result.allowlisted || !result.score || result.score.value !== 0
       || result.score.level !== "low" || result.score.parts !== null || result.sources.length !== 0
-      || !isEmptyRelated(result.related) || result.asset_match.matched || result.asset_match.assets.length !== 0
+      || !isEmptyRelated(result.related)
       || result.tlp !== "TLP:CLEAR") throw new InvalidLookupResponse();
   } else if (result.found || result.allowlisted || result.score !== null || result.sources.length !== 0
-    || !isEmptyRelated(result.related) || result.asset_match.matched || result.asset_match.assets.length !== 0
+    || !isEmptyRelated(result.related)
     || result.tlp !== null) throw new InvalidLookupResponse();
 
   return result;
@@ -288,7 +293,7 @@ function mapHttpError(status: number, code: string): LookupResponse {
 }
 
 function mapSuccess(value: IocLookupHttpResponse, input: string): LookupResponse {
-  if (value.state === "not_found") return { state: "not-found" };
+  if (value.state === "not_found") return { state: "not-found", assetMatch: value.asset_match };
   return {
     state: "result",
     input,

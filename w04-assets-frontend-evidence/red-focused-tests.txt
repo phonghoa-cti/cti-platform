@@ -1,0 +1,702 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web
+
+ ❯ tests/assets-http.test.ts (0 test)
+ ❯ tests/assets-app.test.tsx (0 test)
+ ❯ tests/ioc-lookup-http.test.ts (59 tests | 2 failed) 51ms
+   ❯ strict W02 HTTP response parser (33)
+     × accepts the three hash-checked W04 backend fixtures without dropping asset metadata 9ms
+   ❯ W02 same-origin HTTP data source (26)
+     × preserves asset_match when mapping allowlisted, not_found, and found states 9ms
+ ❯ tests/ioc-lookup.test.tsx (36 tests | 2 failed) 7707ms
+   ❯ IOC lookup interaction (29)
+     × shows asset membership for a found result without calling it safe 1094ms
+     × keeps asset membership visible for not-found results 1056ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/assets-app.test.tsx [ tests/assets-app.test.tsx ]
+Error: Failed to resolve import "@/data/assets" from "tests/assets-app.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/tests/assets-app.test.tsx:5:69
+  3  |  import { describe, expect, it, vi } from "vitest";
+  4  |  import { AssetsApp } from "@/components/assets-app";
+  5  |  import { AssetDataError } from "@/data/assets";
+     |                                  ^
+  6  |  var _jsxFileName = "C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136...
+  7  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+ ❯ TransformPluginContext._formatLog ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:8861:39
+ ❯ TransformPluginContext.error ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:8858:14
+ ❯ resolveId ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:26533:18
+ ❯ ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:26632:23
+ ❯ TransformPluginContext.transform ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:26605:4
+ ❯ EnvironmentPluginContainer.transform ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:8632:14
+ ❯ loadAndTransform ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:20108:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/assets-http.test.ts [ tests/assets-http.test.ts ]
+Error: Failed to resolve import "@/data/assets-http" from "tests/assets-http.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/tests/assets-http.test.ts:7:7
+  1  |  import { afterEach, describe, expect, it, vi } from "vitest";
+  2  |  import { AssetDataError, createAssetsHttpDataSource, parseAssetItem, parseAssetList } from "@/data/assets-http";
+     |                                                                                              ^
+  3  |  const domain = {
+  4  |  	id: 1,
+ ❯ TransformPluginContext._formatLog ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:8861:39
+ ❯ TransformPluginContext.error ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:8858:14
+ ❯ resolveId ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:26533:18
+ ❯ ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:26632:23
+ ❯ TransformPluginContext.transform ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:26605:4
+ ❯ EnvironmentPluginContainer.transform ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:8632:14
+ ❯ loadAndTransform ../../../cti-w02-lookup-http/portal/web/node_modules/vite/dist/node/chunks/node.js:20108:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/ioc-lookup-http.test.ts > strict W02 HTTP response parser > accepts the three hash-checked W04 backend fixtures without dropping asset metadata
+{
+  stack: 'Error: \n' +
+    '    at parseIocLookupResponse (C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/data/ioc-lookup-http.ts:213:44)\n' +
+    '    at C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/tests/ioc-lookup-http.test.ts:100:12\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w02-lookup-http/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w02-lookup-http/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w02-lookup-http/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n' +
+    '    at new Promise (<anonymous>)\n' +
+    '    at runWithCancel (file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w02-lookup-http/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w02-lookup-http/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20\n' +
+    '    at new Promise (<anonymous>)\n' +
+    '    at runWithTimeout (file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w02-lookup-http/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3276:10)',
+  constructor: 'Function<InvalidLookupResponse>',
+  name: 'Error',
+  message: '',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'parseIocLookupResponse',
+      file: 'C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/data/ioc-lookup-http.ts',
+      line: 213,
+      column: 44
+    },
+    {
+      method: '',
+      file: 'C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/tests/ioc-lookup-http.test.ts',
+      line: 100,
+      column: 12
+    }
+  ]
+}
+ ❯ parseIocLookupResponse data/ioc-lookup-http.ts:213:44
+    211|       || result.score.level !== "low" || result.score.parts !== null |…
+    212|       || !isEmptyRelated(result.related) || result.asset_match.matched…
+    213|       || result.tlp !== "TLP:CLEAR") throw new InvalidLookupResponse();
+       |                                            ^
+    214|   } else if (result.found || result.allowlisted || result.score !== nu…
+    215|     || !isEmptyRelated(result.related) || result.asset_match.matched |…
+ ❯ tests/ioc-lookup-http.test.ts:100:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/ioc-lookup-http.test.ts > W02 same-origin HTTP data source > preserves asset_match when mapping allowlisted, not_found, and found states
+AssertionError: expected { state: 'unavailable' } to match object { assetMatch: { matched: true, …(1) } }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "assetMatch": {
+-     "assets": [
+-       "congty.vn",
+-     ],
+-     "matched": true,
+-   },
++   "state": "unavailable",
+  }
+
+ ❯ tests/ioc-lookup-http.test.ts:170:22
+    168|       const source = createIocHttpDataSource({ fetcher: vi.fn().mockRe…
+    169|       const result = await source.lookup(fixture.ioc.value);
+    170|       expect(result).toMatchObject({ assetMatch: { matched: true, asse…
+       |                      ^
+    171|     }
+    172|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/ioc-lookup.test.tsx > IOC lookup interaction > shows asset membership for a found result without calling it safe
+TestingLibraryElementError: Unable to find an element with the text: Thuộc tài sản của bạn. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      class="ioc-lookup"
+    >
+      <header
+        class="ioc-lookup__topbar"
+      >
+        <div>
+          <h1>
+            Tra cứu một IOC
+          </h1>
+          <p>
+            Kiểm tra thông tin đã biết, nguồn và lý do đánh giá cho một giá trị mỗi lần.
+          </p>
+        </div>
+        <div
+          aria-label="Ngôn ngữ giao diện"
+          class="ioc-lookup__locale"
+        >
+          <button
+            aria-pressed="true"
+            type="button"
+          >
+            Tiếng Việt
+          </button>
+          <button
+            aria-pressed="false"
+            type="button"
+          >
+            English
+          </button>
+        </div>
+      </header>
+      <p
+        class="ioc-lookup__sample-label"
+      >
+        Dữ liệu tổng hợp · Không gọi mạng · Không phải kết quả vận hành
+      </p>
+      <form
+        class="ioc-lookup__form"
+      >
+        <label
+          for="ioc-lookup-value"
+        >
+          IOC cần tra cứu
+        </label>
+        <div
+          class="ioc-lookup__form-row"
+        >
+          <input
+            autocomplete="off"
+            id="ioc-lookup-value"
+            placeholder="IP, tên miền, URL, hash hoặc email"
+            value="hxxp://Evil[.]COM/a"
+          />
+          <button
+            class="ioc-lookup__primary"
+            type="submit"
+          >
+            Tra cứu
+          </button>
+        </div>
+        <p>
+          Có thể dán dạng defang, ví dụ hxxp://evil[.]com/a.
+        </p>
+      </form>
+      <div
+        aria-live="polite"
+        class="ioc-lookup__live"
+      />
+      <div>
+        <section
+          aria-label="Kết quả tra cứu"
+          class="ioc-lookup__result"
+          tabindex="-1"
+        >
+          <header
+            class="ioc-lookup__result-header"
+          >
+            <div>
+              <code
+                class="ioc-lookup__display"
+              >
+                hxxp://evil[.]com/a
+              </code>
+              <p
+                class="ioc-lookup__meta"
+              >
+                URL
+                 ·
+                TLP:GREEN
+              </p>
+            </div>
+            <button
+              class="ioc-lookup__secondary"
+              type="button"
+            >
+              Sao chép giá trị gốc
+            </button>
+          </header>
+          <div
+            class="ioc-lookup__badges"
+          >
+            <span
+              class="ioc-lookup__badge ioc-lookup__badge--found"
+            >
+              Đã có nguồn báo
+            </span>
+          </div>
+          <section
+            aria-label="Điểm đánh giá"
+            class="ioc-lookup__score ioc-lookup__score--high"
+          >
+            <strong>
+              78
+               / 100
+            </strong>
+            <span>
+              Cao
+            </span>
+            <p>
+              Nguồn tổng hợp xác nhận IOC trong fixture.
+            </p>
+          </section>
+          <div
+            class="ioc-lookup__columns"
+          >
+            <section>
+              <h2>
+                Nguồn đã báo
+              </h2>
+              <ul>
+                <li>
+                  <span>
+                    Nguồn CTI tổng hợp
+                  </span>
+                  <time
+                    datetime="2026-10-20T08:00:00+07:00"
+                  >
+                    2026-10-20T08:00:00+07:00
+                  </time>
+                </li>
+              </ul>
+            </section>
+            <section>
+              <h2>
+                Liên quan
+              </h2>
+              <ul>
+                <li>
+                  T1566.001
+                </li>
+                <li>
+                  Họ mã độc mẫu
+                </li>
+              </ul>
+            </section>
+            <section>
+              <h2>
+                Làm giàu
+              </h2>
+              <ul>
+                <li>
+                  NL
+                </li>
+                <li>
+                  AS64500
+                </li>
+                <li>
+                  12/90
+                </li>
+              </ul>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      class="ioc-lookup"
+    >
+      <header
+        class="ioc-lookup__topbar"
+      >
+        <div>
+          <h1>
+            Tra cứu một IOC
+          </h1>
+          <p>
+            Kiểm tra thông tin đã biết, nguồn và lý do đánh giá cho một giá trị mỗi lần.
+          </p>
+        </div>
+        <div
+          aria-label="Ngôn ngữ giao diện"
+          class="ioc-lookup__locale"
+        >
+          <button
+            aria-pressed="true"
+            type="button"
+          >
+            Tiếng Việt
+          </button>
+          <button
+            aria-pressed="false"
+            type="button"
+          >
+            English
+          </button>
+        </div>
+      </header>
+      <p
+        class="ioc-lookup__sample-label"
+      >
+        Dữ liệu tổng hợp · Không gọi mạng · Không phải kết quả vận hành
+      </p>
+      <form
+        class="ioc-lookup__form"
+      >
+        <label
+          for="ioc-lookup-value"
+        >
+          IOC cần tra cứu
+        </label>
+        <div
+          class="ioc-lookup__form-row"
+        >
+          <input
+            autocomplete="off"
+            id="ioc-lookup-value"
+            placeholder="IP, tên miền, URL, hash hoặc email"
+            value="hxxp://Evil[.]COM/a"
+          />
+          <button
+            class="ioc-lookup__primary"
+            type="submit"
+          >
+            Tra cứu
+          </button>
+        </div>
+        <p>
+          Có thể dán dạng defang, ví dụ hxxp://evil[.]com/a.
+        </p>
+      </form>
+      <div
+        aria-live="polite"
+        class="ioc-lookup__live"
+      />
+      <div>
+        <section
+          aria-label="Kết quả tra cứu"
+          class="ioc-lookup__result"
+          tabindex="-1"
+        >
+          <header
+            class="ioc-lookup__result-header"
+          >
+            <div>
+              <code
+                class="ioc-lookup__display"
+              >
+                hxxp://evil[.]com/a
+              </code>
+              <p
+                class="ioc-lookup__meta"
+              >
+                URL
+                 ·
+                TLP:GREEN
+              </p>
+            </div>
+            <button
+              class="ioc-lookup__secondary"
+              type="button"
+            >
+              Sao chép giá trị gốc
+            </button>
+          </header>
+          <div
+            class="ioc-lookup__badges"
+          >
+            <span
+              class="ioc-lookup__badge ioc-lookup__badge--found"
+            >
+              Đã có nguồn báo
+            </span>
+          </div>
+          <section
+            aria-label="Điểm đánh giá"
+            class="ioc-lookup__score ioc-lookup__score--high"
+          >
+            <strong>
+              78
+               / 100
+            </strong>
+            <span>
+              Cao
+            </span>
+            <p>
+              Nguồn tổng hợp xác nhận IOC trong fixture.
+            </p>
+          </section>
+          <div
+            class="ioc-lookup__columns"
+          >
+            <section>
+              <h2>
+                Nguồn đã báo
+              </h2>
+              <ul>
+                <li>
+                  <span>
+                    Nguồn CTI tổng hợp
+                  </span>
+                  <time
+                    datetime="2026-10-20T08:00:00+07:00"
+                  >
+                    2026-10-20T08:00:00+07:00
+                  </time>
+                </li>
+              </ul>
+            </section>
+            <section>
+              <h2>
+                Liên quan
+              </h2>
+              <ul>
+                <li>
+                  T1566.001
+                </li>
+                <li>
+                  Họ mã độc mẫu
+                </li>
+              </ul>
+            </section>
+            <section>
+              <h2>
+                Làm giàu
+              </h2>
+              <ul>
+                <li>
+                  NL
+                </li>
+                <li>
+                  AS64500
+                </li>
+                <li>
+                  12/90
+                </li>
+              </ul>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+ ❯ waitForWrapper ../../../cti-w02-lookup-http/portal/web/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../../cti-w02-lookup-http/portal/web/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/ioc-lookup.test.tsx:94:25
+     92|       assetMatch: { matched: true, assets: ["congty.vn"] },
+     93|     })));
+     94|     expect(await screen.findByText("Thuộc tài sản của bạn")).toBeInThe…
+       |                         ^
+     95|     expect(screen.getByText("congty.vn")).toBeInTheDocument();
+     96|     expect(screen.queryByText(/an toàn/i)).not.toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/ioc-lookup.test.tsx > IOC lookup interaction > keeps asset membership visible for not-found results
+TestingLibraryElementError: Unable to find an element with the text: Thuộc tài sản của bạn. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      class="ioc-lookup"
+    >
+      <header
+        class="ioc-lookup__topbar"
+      >
+        <div>
+          <h1>
+            Tra cứu một IOC
+          </h1>
+          <p>
+            Kiểm tra thông tin đã biết, nguồn và lý do đánh giá cho một giá trị mỗi lần.
+          </p>
+        </div>
+        <div
+          aria-label="Ngôn ngữ giao diện"
+          class="ioc-lookup__locale"
+        >
+          <button
+            aria-pressed="true"
+            type="button"
+          >
+            Tiếng Việt
+          </button>
+          <button
+            aria-pressed="false"
+            type="button"
+          >
+            English
+          </button>
+        </div>
+      </header>
+      <p
+        class="ioc-lookup__sample-label"
+      >
+        Dữ liệu tổng hợp · Không gọi mạng · Không phải kết quả vận hành
+      </p>
+      <form
+        class="ioc-lookup__form"
+      >
+        <label
+          for="ioc-lookup-value"
+        >
+          IOC cần tra cứu
+        </label>
+        <div
+          class="ioc-lookup__form-row"
+        >
+          <input
+            autocomplete="off"
+            id="ioc-lookup-value"
+            placeholder="IP, tên miền, URL, hash hoặc email"
+            value="https://unknown.congty.vn/path"
+          />
+          <button
+            class="ioc-lookup__primary"
+            type="submit"
+          >
+            Tra cứu
+          </button>
+        </div>
+        <p>
+          Có thể dán dạng defang, ví dụ hxxp://evil[.]com/a.
+        </p>
+      </form>
+      <div
+        aria-live="polite"
+        class="ioc-lookup__live"
+      />
+      <section
+        class="ioc-lookup__state"
+        role="alert"
+      >
+        <h2>
+          Chưa có nguồn nào báo IOC này
+        </h2>
+        <p>
+          Không tìm thấy không có nghĩa là an toàn. Fixture không tự chấm điểm hoặc suy diễn.
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      class="ioc-lookup"
+    >
+      <header
+        class="ioc-lookup__topbar"
+      >
+        <div>
+          <h1>
+            Tra cứu một IOC
+          </h1>
+          <p>
+            Kiểm tra thông tin đã biết, nguồn và lý do đánh giá cho một giá trị mỗi lần.
+          </p>
+        </div>
+        <div
+          aria-label="Ngôn ngữ giao diện"
+          class="ioc-lookup__locale"
+        >
+          <button
+            aria-pressed="true"
+            type="button"
+          >
+            Tiếng Việt
+          </button>
+          <button
+            aria-pressed="false"
+            type="button"
+          >
+            English
+          </button>
+        </div>
+      </header>
+      <p
+        class="ioc-lookup__sample-label"
+      >
+        Dữ liệu tổng hợp · Không gọi mạng · Không phải kết quả vận hành
+      </p>
+      <form
+        class="ioc-lookup__form"
+      >
+        <label
+          for="ioc-lookup-value"
+        >
+          IOC cần tra cứu
+        </label>
+        <div
+          class="ioc-lookup__form-row"
+        >
+          <input
+            autocomplete="off"
+            id="ioc-lookup-value"
+            placeholder="IP, tên miền, URL, hash hoặc email"
+            value="https://unknown.congty.vn/path"
+          />
+          <button
+            class="ioc-lookup__primary"
+            type="submit"
+          >
+            Tra cứu
+          </button>
+        </div>
+        <p>
+          Có thể dán dạng defang, ví dụ hxxp://evil[.]com/a.
+        </p>
+      </form>
+      <div
+        aria-live="polite"
+        class="ioc-lookup__live"
+      />
+      <section
+        class="ioc-lookup__state"
+        role="alert"
+      >
+        <h2>
+          Chưa có nguồn nào báo IOC này
+        </h2>
+        <p>
+          Không tìm thấy không có nghĩa là an toàn. Fixture không tự chấm điểm hoặc suy diễn.
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+ ❯ waitForWrapper ../../../cti-w02-lookup-http/portal/web/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../../../cti-w02-lookup-http/portal/web/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/ioc-lookup.test.tsx:104:25
+    102|       assetMatch: { matched: true, assets: ["congty.vn"] },
+    103|     })));
+    104|     expect(await screen.findByText("Thuộc tài sản của bạn")).toBeInThe…
+       |                         ^
+    105|     expect(screen.getByText("Chưa tìm thấy dữ liệu đe dọa")).toBeInThe…
+    106|     expect(screen.getByText("congty.vn")).toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  4 failed (4)
+      Tests  4 failed | 91 passed (95)
+   Start at  21:25:55
+   Duration  11.94s (environment 42%, tests 35%, setup 18%, transform 3%, import 2%)
+
+EXIT_CODE=1

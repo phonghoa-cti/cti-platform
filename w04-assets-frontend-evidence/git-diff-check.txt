@@ -1,0 +1,11 @@
+warning: in the working copy of 'docs/PROGRESS.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/app/globals.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/components/ioc-lookup.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/data/ioc-lookup-http.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/data/ioc-lookup.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/messages/en.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/messages/vi.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/tests/ioc-lookup-http.test.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/tests/ioc-lookup.test.tsx', LF will be replaced by CRLF the next time Git touches it
+EXIT_CODE=0

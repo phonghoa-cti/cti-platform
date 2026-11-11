@@ -1,0 +1,43 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web
+
+ ❯ tests/assets-http.test.ts (24 tests | 2 failed) 10038ms
+   ❯ W04 same-origin assets adapter (15)
+     × keeps the timeout over body reading and cancels a stalled reader 5004ms
+     × cancels a response body once it exceeds 1 MiB 5012ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > keeps the timeout over body reading and cancels a stalled reader
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/assets-http.test.ts:172:3
+    170|   });
+    171|
+    172|   it("keeps the timeout over body reading and cancels a stalled reader…
+       |   ^
+    173|     vi.useFakeTimers();
+    174|     const cancel = vi.fn();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > cancels a response body once it exceeds 1 MiB
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/assets-http.test.ts:190:3
+    188|   });
+    189|
+    190|   it("cancels a response body once it exceeds 1 MiB", async () => {
+       |   ^
+    191|     const cancel = vi.fn();
+    192|     const stream = new ReadableStream<Uint8Array>({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 22 passed (24)
+   Start at  21:36:10
+   Duration  11.54s (tests 88%, environment 9%, setup 2%)
+
+EXIT_CODE=1

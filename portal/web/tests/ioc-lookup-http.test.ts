@@ -3,6 +3,10 @@ import {
   createIocHttpDataSource,
   parseIocLookupResponse,
 } from "@/data/ioc-lookup-http";
+import allowlistedAssetFixture from "@/data/fixtures/w04-fixture-allowlisted-asset.json";
+import notFoundAssetFixture from "@/data/fixtures/w04-fixture-not-found-url-asset.json";
+import foundAssetFixture from "@/data/fixtures/w04-fixture-found-url-asset.json";
+import assetsUnavailableFixture from "@/data/fixtures/w04-fixture-error-assets-unavailable.json";
 
 const foundFixture = {
   ioc: { type: "domain", value: "evil.example", display: "evil[.]example" },
@@ -92,6 +96,18 @@ afterEach(() => {
 });
 
 describe("strict W02 HTTP response parser", () => {
+  it("accepts the three hash-checked W04 backend fixtures without dropping asset metadata", () => {
+    expect(parseIocLookupResponse(copy(allowlistedAssetFixture)).asset_match).toEqual({ matched: true, assets: ["congty.vn"] });
+    expect(parseIocLookupResponse(copy(notFoundAssetFixture)).asset_match).toEqual({ matched: true, assets: ["congty.vn"] });
+    expect(parseIocLookupResponse(copy(foundAssetFixture)).asset_match).toEqual({ matched: true, assets: ["congty.vn"] });
+  });
+
+  it("keeps strict malformed-payload rejection for asset names", () => {
+    const fixture = copy(foundAssetFixture) as typeof foundAssetFixture & { asset_match: { matched: boolean; assets: string[] } };
+    fixture.asset_match.assets = ["x".repeat(254)];
+    expect(() => parseIocLookupResponse(fixture)).toThrow();
+    expect(() => parseIocLookupResponse({ ...foundAssetFixture, extra: true })).toThrow();
+  });
   it("parses the three shared literal fixtures without dropping transport fields", () => {
     expect(parseIocLookupResponse(copy(foundFixture))).toEqual(foundFixture);
     expect(parseIocLookupResponse(copy(allowlistedFixture))).toEqual(allowlistedFixture);
@@ -146,6 +162,21 @@ describe("strict W02 HTTP response parser", () => {
 });
 
 describe("W02 same-origin HTTP data source", () => {
+  it("preserves asset_match when mapping allowlisted, not_found, and found states", async () => {
+    const fixtures = [allowlistedAssetFixture, notFoundAssetFixture, foundAssetFixture];
+    for (const fixture of fixtures) {
+      const source = createIocHttpDataSource({ fetcher: vi.fn().mockResolvedValue(jsonResponse(fixture)) });
+      const result = await source.lookup(fixture.ioc.value);
+      expect(result).toMatchObject({ assetMatch: { matched: true, assets: ["congty.vn"] } });
+    }
+  });
+
+  it("maps the hash-checked assets unavailable error without exposing its message", async () => {
+    const source = createIocHttpDataSource({
+      fetcher: vi.fn().mockResolvedValue(jsonResponse(assetsUnavailableFixture, 503)),
+    });
+    await expect(source.lookup("mail.congty.vn")).resolves.toEqual({ state: "unavailable" });
+  });
   it.each([
     ["caller found", foundFixture, "result"],
     ["caller allowlist", allowlistedFixture, "result"],
