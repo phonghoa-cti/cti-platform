@@ -238,6 +238,48 @@ def test_c4_preflights_all_documents_before_first_generate(
     assert provider_loads == 0
 
 
+def test_c4_preflight_rejects_empty_last_report_before_loading_providers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset, responses = tmp_path / "dataset", tmp_path / "responses"
+    for document_id, text in (("a-good", "Phishing uses evil.example."), ("z-empty", "")):
+        _write_document(dataset, document_id, text)
+        _write_response(responses, document_id, [_completed()])
+    manifest = eval_run.load_c4_query_manifest(
+        _write_manifest(tmp_path, {key: "phishing technique" for key in ("a-good", "z-empty")})
+    )
+    provider_loads = 0
+
+    def unexpected_provider(_path: Path):
+        nonlocal provider_loads
+        provider_loads += 1
+        raise AssertionError("provider must not load during failed preflight")
+
+    monkeypatch.setattr(eval_run, "load_scripted_provider", unexpected_provider)
+
+    with pytest.raises(eval_run.DatasetError, match="báo cáo không hợp lệ"):
+        eval_run.evaluate_c4_dataset(
+            dataset,
+            responses,
+            tlp="TLP:CLEAR",
+            attack_catalog=_catalog(tmp_path),
+            query_manifest=manifest,
+        )
+    assert provider_loads == 0
+
+
+@pytest.mark.parametrize("relative_path", ("raw/doc.meta.json", "labels/doc.json"))
+def test_json_input_with_excessive_integer_is_a_safe_dataset_error(
+    tmp_path: Path, relative_path: str
+) -> None:
+    path = tmp_path / relative_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("9" * 5000, encoding="utf-8")
+
+    with pytest.raises(eval_run.DatasetError, match=f"Không đọc được {path.name}"):
+        eval_run._load_json(path, safe_parse_errors=True)
+
+
 def test_c4_requires_nonempty_bounded_dataset(tmp_path: Path) -> None:
     dataset, responses = tmp_path / "dataset", tmp_path / "responses"
     dataset.mkdir()

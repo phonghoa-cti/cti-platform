@@ -316,6 +316,49 @@ def test_rejects_ttp_count_projection_and_markdown_grammar_breaks(tmp_path: Path
     assert not output.exists()
 
 
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("source_sha256", "e" * 64),
+        ("snapshot_sha256", "e" * 64),
+        ("snapshot_version", "synthetic-other"),
+        ("pin_kind", "official"),
+    ],
+)
+def test_c4_rejects_audit_items_not_bound_to_source_and_catalog(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    artifact = c4_artifact()
+    artifact["documents"][0]["ttp_audit"][0][field] = value
+
+    result, output, _ = run_report(tmp_path, [artifact])
+
+    assert (result.returncode, result.stdout, result.stderr) == (
+        2,
+        "",
+        "Lỗi: eval_report_invalid_input\n",
+    )
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("error_code", ("provider_refusal", "provider_incomplete", "unknown_error"))
+def test_c4_fallback_rejects_error_codes_outside_adapter_contract(tmp_path: Path, error_code: str) -> None:
+    artifact = c4_artifact(fallback=True)
+    document = artifact["documents"][0]
+    document.update(attempts=2, error_codes=[error_code, error_code], ttp_audit=[])
+    artifact["ttp_audit"]["counts"] = {
+        "technique_items": 0,
+        "quote_status": {"matched": 0, "missing": 0, "not_found": 0, "ambiguous": 0},
+        "catalog_status": {"active": 0, "inactive": 0, "unknown": 0, "not_checked": 0},
+    }
+
+    result, output, _ = run_report(tmp_path, [artifact])
+
+    assert result.returncode == 2
+    assert result.stderr == "Lỗi: eval_report_invalid_input\n"
+    assert not output.exists()
+
+
 @pytest.mark.parametrize("count_path", TTP_COUNT_PATHS, ids=lambda path: ".".join(path))
 @pytest.mark.parametrize("wrong_type", (bool, float), ids=("bool", "float"))
 def test_rejects_equivalent_noninteger_ttp_counts_before_any_publish(

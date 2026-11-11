@@ -25,6 +25,7 @@ MAX_INT = 9_223_372_036_854_775_807
 CONFIG_ORDER = {"C1": 0, "C2": 1, "C3": 2, "C4": 3}
 IOC_TYPES = frozenset(("ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256"))
 MODES = ("model_completed", "regex_fallback")
+C4_RETRYABLE_ERROR_CODES = frozenset(("provider_error", "invalid_response"))
 QUOTE_STATUSES = ("matched", "missing", "not_found", "ambiguous")
 CATALOG_STATUSES = ("active", "inactive", "unknown", "not_checked")
 HASH_RE = re.compile(r"[0-9a-f]{64}", re.ASCII)
@@ -576,7 +577,10 @@ def _validate_c4_document(
         raise InvalidInput
     completed = mode == "model_completed"
     if (completed and (attempts not in (1, 2) or errors)) or (
-        not completed and (attempts != 2 or len(errors) != 2)
+        not completed
+        and (
+            attempts != 2 or len(errors) != 2 or any(code not in C4_RETRYABLE_ERROR_CODES for code in errors)
+        )
     ):
         raise InvalidInput
     if _boolean(item["model_items_used"]) is not completed:
@@ -593,6 +597,15 @@ def _validate_c4_document(
     if not completed and item["ttp_audit"]:
         raise InvalidInput
     _validate_c4_context(item["attack_context"], mode, catalog)
+    for audit in item["ttp_audit"]:
+        audit_item = _exact_keys(audit, AUDIT_ITEM_KEYS)
+        if (
+            audit_item["source_sha256"] != item["source"]["sha256"]
+            or audit_item["snapshot_sha256"] != catalog["sha256"]
+            or audit_item["snapshot_version"] != catalog["version"]
+            or audit_item["pin_kind"] != catalog["kind"]
+        ):
+            raise InvalidInput
     return mode, [_validate_audit_item(audit, "C4") for audit in item["ttp_audit"]]
 
 

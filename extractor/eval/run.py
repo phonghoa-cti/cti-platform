@@ -165,12 +165,16 @@ def _load_snapshot_pin(path: Path) -> SnapshotPin:
     return SnapshotPin(**value)
 
 
-def _load_json(path: Path) -> Any:
+def _load_json(path: Path, *, safe_parse_errors: bool = False) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
         raise DatasetError(f"Thiếu file {path.name}") from exc
     except (OSError, json.JSONDecodeError) as exc:
+        raise DatasetError(f"Không đọc được {path.name}: {exc}") from exc
+    except (ValueError, RecursionError) as exc:
+        if not safe_parse_errors:
+            raise
         raise DatasetError(f"Không đọc được {path.name}: {exc}") from exc
 
 
@@ -332,13 +336,17 @@ def _discover_text_paths(dataset: Path) -> list[Path]:
 
 
 def _read_document_inputs(
-    dataset: Path, text_path: Path
+    dataset: Path, text_path: Path, *, safe_json_errors: bool = False
 ) -> tuple[str, dict[str, Any], list[dict], list[Path]]:
     document_id = text_path.stem
     metadata_path = text_path.with_suffix(".meta.json")
     label_path = dataset / "labels" / f"{document_id}.json"
-    metadata = _validate_metadata(_load_json(metadata_path), metadata_path, document_id)
-    gold = _validate_labels(_load_json(label_path), label_path, document_id)
+    metadata = _validate_metadata(
+        _load_json(metadata_path, safe_parse_errors=safe_json_errors), metadata_path, document_id
+    )
+    gold = _validate_labels(
+        _load_json(label_path, safe_parse_errors=safe_json_errors), label_path, document_id
+    )
     try:
         text = text_path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
@@ -600,12 +608,12 @@ def _preflight_c4_documents(
         raise DatasetError("fixture IDs không khớp dataset")
     inputs = []
     for text_path in text_paths:
-        text, metadata, gold, input_paths = _read_document_inputs(dataset, text_path)
+        text, metadata, gold, input_paths = _read_document_inputs(dataset, text_path, safe_json_errors=True)
         try:
             text_bytes = text.encode("utf-8", errors="strict")
         except UnicodeError as exc:
             raise DatasetError("báo cáo không hợp lệ") from exc
-        if len(text) > REPORT_MAX_BYTES or len(text_bytes) > REPORT_MAX_BYTES:
+        if not text or len(text) > REPORT_MAX_BYTES or len(text_bytes) > REPORT_MAX_BYTES:
             raise DatasetError("báo cáo không hợp lệ")
         inputs.append((text_path, text, metadata, gold, input_paths))
     providers = {path.stem: load_scripted_provider(path) for path in fixture_paths}
