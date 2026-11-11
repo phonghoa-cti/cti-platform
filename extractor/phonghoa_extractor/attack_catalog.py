@@ -119,6 +119,28 @@ _EXPECTED_PROVENANCE = {
     "release_tag": None,
     "commit": None,
 }
+_PIN_FIELDS = {
+    "kind",
+    "version",
+    "sha256",
+    "source_url",
+    "release_tag",
+    "commit",
+    "provenance",
+}
+_OFFICIAL_PIN = {
+    "kind": "official",
+    "version": "20.1",
+    "sha256": "539a843a7b53ed9749740b2123dddae3726b1a4831841c32aca740b011b910b5",
+    "source_url": (
+        "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/"
+        "f59b03ecf828579d5f9e93683ce25b7e2e5fd9d7/"
+        "enterprise-attack/enterprise-attack-20.1.json"
+    ),
+    "release_tag": "v20.1",
+    "commit": "f59b03ecf828579d5f9e93683ce25b7e2e5fd9d7",
+    "provenance": "mitre-attack-stix-data",
+}
 _MAX_BYTES = 64 * 1024 * 1024
 
 
@@ -133,6 +155,15 @@ def _fail(code: str) -> None:
 def _validate_pin(pin: SnapshotPin, max_bytes: int) -> None:
     if type(pin) is not SnapshotPin:
         _fail("invalid_pin")
+    if set(vars(pin)) != _PIN_FIELDS:
+        _fail("invalid_pin")
+    if type(max_bytes) is not int or not 1 <= max_bytes <= _MAX_BYTES:
+        _fail("invalid_pin")
+    if pin.kind == "official":
+        values = vars(pin)
+        if any(type(value) is not str for value in values.values()) or values != _OFFICIAL_PIN:
+            _fail("invalid_pin")
+        return
     if type(pin.kind) is not str or pin.kind != "synthetic":
         _fail("invalid_pin")
     if (
@@ -147,8 +178,6 @@ def _validate_pin(pin: SnapshotPin, max_bytes: int) -> None:
     if pin.provenance != "hand-authored-test-fixture":
         _fail("invalid_pin")
     if any(value is not None for value in (pin.source_url, pin.release_tag, pin.commit)):
-        _fail("invalid_pin")
-    if type(max_bytes) is not int or not 1 <= max_bytes <= _MAX_BYTES:
         _fail("invalid_pin")
 
 
@@ -391,10 +420,10 @@ def _select_version(versions):
     return ordered[-1]
 
 
-def _validate_bundle(value: object) -> list[dict[str, object]]:
+def _validate_bundle(value: object, pin_kind: Literal["synthetic", "official"]) -> list[dict[str, object]]:
     if type(value) is not dict or value.get("type") != "bundle":
         _fail("invalid_bundle")
-    if value.get("x_phonghoa_provenance") != _EXPECTED_PROVENANCE:
+    if pin_kind == "synthetic" and value.get("x_phonghoa_provenance") != _EXPECTED_PROVENANCE:
         _fail("invalid_bundle")
     objects = value.get("objects")
     if type(objects) is not list:
@@ -478,7 +507,7 @@ def load_catalog(
     payload = _read_snapshot(snapshot, max_bytes)
     if hashlib.sha256(payload).hexdigest() != pin.sha256:
         _fail("snapshot_hash_mismatch")
-    members = _validate_bundle(_parse_json(payload))
+    members = _validate_bundle(_parse_json(payload), pin.kind)
     patterns: list[_PatternVersion] = []
     relationships: list[_RelationshipVersion] = []
     for member in members:

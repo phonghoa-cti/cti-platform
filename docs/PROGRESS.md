@@ -52,7 +52,11 @@ Cập nhật lần cuối: 11/11/2026
 - X01 restricted ATT&CK catalog ngoại tuyến: loader stdlib đọc fixture STIX tổng hợp đã ghim hash, kiểm
   version/lifecycle/parent graph và tra active/inactive/unknown/invalid bằng kết quả bất biến. Semantic luôn
   `unverified`; rework R1/R2 đã phân biệt boolean với number trong exact JSON duplicate và chuyển đường dẫn
-  NUL thành lỗi I/O an toàn. Chưa dùng snapshot MITRE thật, chưa nối adapter/C4/RAG hoặc ghi draft.
+  NUL thành lỗi I/O an toàn.
+- X01 ATT&CK official v20.1 ngoại tuyến: public `load_catalog` nhận đúng một bộ pin đã review và đọc nguyên
+  snapshot local 55.277.605 byte thành 867 record (706 active, 161 inactive; 497 sub-technique), không cần
+  provenance Phong Hỏa trong root MITRE. Synthetic giữ nguyên; asset không nằm trong repo và lookup vẫn
+  `unverified`/không đủ điều kiện ghi draft. Đây là compatibility loader, không phải xác minh ngữ nghĩa TTP.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -62,3 +66,5 @@ Cập nhật lần cuối: 11/11/2026
   hợp không chứng minh chất lượng extractor hoặc model
 - Adapter mới chỉ chứng minh hợp đồng C2/C3 bằng response giả lập; chưa chọn provider/model, chưa có run model
   thật, token/chi phí/độ trễ, corpus hai người gán nhãn hoặc đánh giá TTP/C4
+- ATT&CK official mới chỉ kiểm đúng Enterprise v20.1 local; release khác, chữ ký tag/commit, NOTICE riêng,
+  C4/RAG, semantics TTP, OpenCTI/lab/production vẫn chưa xác minh
