@@ -118,6 +118,12 @@ def browser_case_plan(input_kind: str, case: str) -> BrowserCasePlan:
         ("txt", "decision-refresh-503"): BrowserCasePlan(
             "ingest-browser-decision-refresh-503", (0, 1), (1,), ((1,),), "approved"
         ),
+        ("txt", "save-refresh-recovery"): BrowserCasePlan(
+            "ingest-browser-save-refresh-recovery", (0, 1), (1,), ((1,),), "approved"
+        ),
+        ("txt", "decision-refresh-recovery"): BrowserCasePlan(
+            "ingest-browser-decision-refresh-recovery", (0, 1), (1,), ((1,),), "approved"
+        ),
     }
     try:
         return plans[(input_kind, case)]
@@ -217,6 +223,78 @@ def _expected_selection_rows(
             )
         )
     return rows
+
+
+def verify_recovery_request_trace(
+    run: Any,
+    *,
+    faulting_path: str,
+    expected_selection_posts: int,
+    expected_decision_posts: int,
+) -> dict[str, Any]:
+    """Chứng minh retry chỉ GET và một GET 200 xảy ra sau GET 503."""
+
+    draft_path = faulting_path.rsplit("/", 1)[0]
+    selection_path = f"{draft_path}/selection"
+    decision_path = f"{draft_path}/decision"
+    try:
+        trace_lines = run.request_trace_path.read_text(encoding="utf-8").splitlines()
+        events = [json.loads(line) for line in trace_lines]
+    except (AttributeError, OSError, UnicodeError, json.JSONDecodeError):
+        raise RuntimeError("request trace phục hồi không hợp lệ") from None
+    if (
+        not events
+        or faulting_path not in {selection_path, decision_path}
+        or any(
+            type(event) is not dict
+            or set(event) != {"method", "path", "status"}
+            or event["method"] not in {"GET", "POST"}
+            or type(event["path"]) is not str
+            or type(event["status"]) is not int
+            for event in events
+        )
+    ):
+        raise RuntimeError("request trace phục hồi không hợp lệ")
+    selection_posts = sum(event["method"] == "POST" and event["path"] == selection_path for event in events)
+    decision_posts = sum(event["method"] == "POST" and event["path"] == decision_path for event in events)
+    total_posts = sum(event["method"] == "POST" for event in events)
+    if (
+        selection_posts != expected_selection_posts
+        or decision_posts != expected_decision_posts
+        or total_posts != expected_selection_posts + expected_decision_posts
+    ):
+        raise RuntimeError("request trace phục hồi không hợp lệ")
+    try:
+        mutation_index = next(
+            index
+            for index, event in enumerate(events)
+            if event == {"method": "POST", "path": faulting_path, "status": 200}
+        )
+        failed_index = next(
+            index
+            for index, event in enumerate(events[mutation_index + 1 :], mutation_index + 1)
+            if event["method"] == "GET" and event["status"] == 503
+        )
+        failed_path = events[failed_index]["path"]
+        recovered_index = next(
+            index
+            for index, event in enumerate(events[failed_index + 1 :], failed_index + 1)
+            if event == {"method": "GET", "path": failed_path, "status": 200}
+        )
+    except StopIteration:
+        raise RuntimeError("request trace phục hồi không hợp lệ") from None
+    if any(event["method"] == "POST" for event in events[mutation_index + 1 : recovered_index + 1]):
+        raise RuntimeError("request trace phục hồi không hợp lệ")
+    return {
+        "request_counts": {
+            "GET": sum(event["method"] == "GET" for event in events),
+            "POST": total_posts,
+        },
+        "selection_post_count": selection_posts,
+        "decision_post_count": decision_posts,
+        "recovery_get": {"path": failed_path, "statuses": [503, 200]},
+        "request_trace": events,
+    }
 
 
 def verify_nonterminal_browser_outcome(run: Any, plan: BrowserCasePlan) -> dict[str, Any]:
@@ -536,6 +614,8 @@ def _browser_session(
         ("txt", "self-approve"): "giữ lựa chọn, duyệt và quan sát 403",
         ("txt", "save-refresh-503"): "bỏ IOC 0, lưu, bấm Thử lại một lần",
         ("txt", "decision-refresh-503"): "duyệt lựa chọn đã lưu, bấm Thử lại một lần",
+        ("txt", "save-refresh-recovery"): "bỏ IOC 0, lưu, quan sát 503, bấm Thử lại, duyệt",
+        ("txt", "decision-refresh-recovery"): "duyệt lựa chọn đã lưu, quan sát 503, bấm Thử lại",
     }
     with tempfile.TemporaryDirectory(prefix="x01-ingest-browser-input-") as temp:
         source = _stage_input(Path(temp), input_kind, producer_root)
@@ -574,12 +654,31 @@ def _browser_session(
             run.private_markers = _privacy_markers(input_kind, run.source_path, run.actor_subject)
             if plan.outcome in {"denied", "pending"}:
                 return verify_nonterminal_browser_outcome(run, plan)
-            return verify_browser_outcome(
+            summary = verify_browser_outcome(
                 run,
                 expected_selected_indices=plan.expected_selected_indices,
                 expected_actor_subject=run.actor_subject,
                 expected_selection_events=plan.expected_selection_events,
             )
+            if case == "save-refresh-recovery":
+                summary.update(
+                    verify_recovery_request_trace(
+                        run,
+                        faulting_path=f"/api/v1/drafts/{seed.draft_id}/selection",
+                        expected_selection_posts=1,
+                        expected_decision_posts=1,
+                    )
+                )
+            elif case == "decision-refresh-recovery":
+                summary.update(
+                    verify_recovery_request_trace(
+                        run,
+                        faulting_path=f"/api/v1/drafts/{seed.draft_id}/decision",
+                        expected_selection_posts=0,
+                        expected_decision_posts=1,
+                    )
+                )
+            return summary
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -593,7 +692,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         if name == "browser-session":
             command.add_argument(
                 "--case",
-                choices=("happy", "self-approve", "save-refresh-503", "decision-refresh-503"),
+                choices=(
+                    "happy",
+                    "self-approve",
+                    "save-refresh-503",
+                    "decision-refresh-503",
+                    "save-refresh-recovery",
+                    "decision-refresh-recovery",
+                ),
                 default="happy",
             )
             command.add_argument("--duration-seconds", type=int, default=300)

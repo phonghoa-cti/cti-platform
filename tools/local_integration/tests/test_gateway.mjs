@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import { startGateway } from "../gateway.mjs";
@@ -125,6 +128,74 @@ test("gateway proxies only the four v1 draft routes and preserves query strings"
       "/api/v1/drafts/1/selection",
       "/api/v1/drafts/1/decision",
     ]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
+test("bounded refresh failure returns two 503 responses then forwards GET without replaying POST", async () => {
+  const upstreamRequests = [];
+  const api = await listen((req, res) => {
+    upstreamRequests.push(`${req.method} ${req.url}`);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end("{}");
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const traceDir = fs.mkdtempSync(path.join(os.tmpdir(), "gateway-trace-"));
+  const tracePath = path.join(traceDir, "requests.jsonl");
+  const gateway = await startGateway({
+    apiPort: api.address().port,
+    uiPort: ui.address().port,
+    port: 0,
+    jwt: null,
+    failRefreshAfterPostCount: 2,
+    requestTracePath: tracePath,
+  });
+  try {
+    const gatewayPort = gateway.address().port;
+    assert.equal((await request(gatewayPort, "/api/v1/drafts/1/selection?secret=query-value", {
+      method: "POST",
+      headers: { Authorization: "Bearer header-secret", "Content-Type": "application/json" },
+      body: '{"secret":"body-value"}',
+    })).status, 200);
+    assert.equal((await request(gatewayPort, "/api/v1/drafts/1")).status, 503);
+    assert.equal((await request(gatewayPort, "/api/v1/drafts?limit=20")).status, 503);
+    assert.equal((await request(gatewayPort, "/api/v1/drafts/1")).status, 200);
+
+    assert.deepEqual(upstreamRequests, [
+      "POST /api/v1/drafts/1/selection?secret=query-value",
+      "GET /api/v1/drafts/1",
+    ]);
+    const traceText = fs.readFileSync(tracePath, "utf8");
+    assert.deepEqual(traceText.trim().split("\n").map(JSON.parse), [
+      { method: "POST", path: "/api/v1/drafts/1/selection", status: 200 },
+      { method: "GET", path: "/api/v1/drafts/1", status: 503 },
+      { method: "GET", path: "/api/v1/drafts", status: 503 },
+      { method: "GET", path: "/api/v1/drafts/1", status: 200 },
+    ]);
+    assert.doesNotMatch(traceText, /query-value|header-secret|body-value|authorization/i);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+    fs.rmSync(traceDir, { recursive: true, force: true });
+  }
+});
+
+test("persistent refresh failure mode still returns 503 after repeated GETs", async () => {
+  const api = await listen((_req, res) => res.end("{}"));
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({
+    apiPort: api.address().port,
+    uiPort: ui.address().port,
+    port: 0,
+    jwt: null,
+    failRefreshAfterPost: true,
+  });
+  try {
+    const gatewayPort = gateway.address().port;
+    assert.equal((await request(gatewayPort, "/api/v1/drafts/1/decision", { method: "POST", body: "{}" })).status, 200);
+    assert.equal((await request(gatewayPort, "/api/v1/drafts/1")).status, 503);
+    assert.equal((await request(gatewayPort, "/api/v1/drafts/1")).status, 503);
+    assert.equal((await request(gatewayPort, "/api/v1/drafts/1")).status, 503);
   } finally {
     await close(gateway); await close(api); await close(ui);
   }

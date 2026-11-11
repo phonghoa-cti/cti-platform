@@ -56,6 +56,8 @@ INGEST_BROWSER_SCENARIOS = frozenset(
         "ingest-browser-self-approve",
         "ingest-browser-save-refresh-503",
         "ingest-browser-decision-refresh-503",
+        "ingest-browser-save-refresh-recovery",
+        "ingest-browser-decision-refresh-recovery",
     }
 )
 SCENARIOS = (
@@ -332,6 +334,7 @@ class LocalRun:
         self.draft_json_path = self.temp_root / "stix-e2e-draft.json"
         self.exporter_config_path = self.temp_root / "exporter-config.json"
         self.bundle_path = self.temp_root / "approved-bundle.json"
+        self.request_trace_path = self.temp_root / "request-trace.jsonl"
         self.producer_root = producer_root
         self.producer_python = producer_python
         self.ingest_input = ingest_input
@@ -442,7 +445,10 @@ class LocalRun:
         )
         self.selection_draft_id = self.ingest_seed.draft_id
         self.draft_ids = (self.ingest_seed.draft_id,)
-        if self.scenario == "ingest-browser-decision-refresh-503":
+        if self.scenario in {
+            "ingest-browser-decision-refresh-503",
+            "ingest-browser-decision-refresh-recovery",
+        }:
             store.save_selection(
                 self.db_path,
                 self.ingest_seed.draft_id,
@@ -538,6 +544,7 @@ class LocalRun:
             self.draft_json_path = self.temp_root / "stix-e2e-draft.json"
             self.exporter_config_path = self.temp_root / "exporter-config.json"
             self.bundle_path = self.temp_root / "approved-bundle.json"
+            self.request_trace_path = self.temp_root / "request-trace.jsonl"
             roles = {
                 "admin-sub": frozenset({"admin"}),
                 "analyst-sub": frozenset({"analyst"}),
@@ -595,6 +602,12 @@ class LocalRun:
                 "ingest-browser-decision-refresh-503",
             }:
                 env["W05_FAIL_REFRESH"] = "1"
+            if self.scenario in {
+                "ingest-browser-save-refresh-recovery",
+                "ingest-browser-decision-refresh-recovery",
+            }:
+                env["W05_FAIL_REFRESH_COUNT"] = "2"
+                env["W05_REQUEST_TRACE_PATH"] = str(self.request_trace_path)
             self._gateway_process = subprocess.Popen(
                 ["node", str(gateway)],
                 cwd=gateway.parent,

@@ -23,6 +23,7 @@ from tools.local_integration.runner import LocalRun, seed_ingest_fixture
 from tools.local_integration.tests import run_ingest_browser_stix as harness_module
 from tools.local_integration.tests.run_ingest_browser_stix import (
     verify_browser_outcome,
+    verify_recovery_request_trace,
     wait_for_browser_signal,
 )
 
@@ -46,6 +47,24 @@ E2E_SOURCE_SHA256 = "e73038e5d68d0aee0757bf72cd8a404b3f55a94ef9d6c519f5e0c3fb129
             ((1,),),
             "approved",
         ),
+        (
+            "txt",
+            "save-refresh-recovery",
+            "ingest-browser-save-refresh-recovery",
+            (0, 1),
+            (1,),
+            ((1,),),
+            "approved",
+        ),
+        (
+            "txt",
+            "decision-refresh-recovery",
+            "ingest-browser-decision-refresh-recovery",
+            (0, 1),
+            (1,),
+            ((1,),),
+            "approved",
+        ),
     ],
 )
 def test_browser_case_plan_uses_literal_fixture_contract(
@@ -64,6 +83,73 @@ def test_browser_case_plan_uses_literal_fixture_contract(
     assert plan.expected_selected_indices == selected
     assert plan.expected_selection_events == events
     assert plan.outcome == outcome
+
+
+@pytest.mark.parametrize(
+    ("mutation_path", "selection_posts", "decision_posts"),
+    [
+        ("/api/v1/drafts/1/selection", 1, 1),
+        ("/api/v1/drafts/1/decision", 0, 1),
+    ],
+)
+def test_recovery_trace_requires_one_post_then_503_and_later_200(
+    tmp_path: Path, mutation_path: str, selection_posts: int, decision_posts: int
+) -> None:
+    trace_path = tmp_path / "request-trace.jsonl"
+    events = [
+        {"method": "GET", "path": "/api/v1/drafts/1", "status": 200},
+        {"method": "POST", "path": mutation_path, "status": 200},
+        {"method": "GET", "path": "/api/v1/drafts/1", "status": 503},
+        {"method": "GET", "path": "/api/v1/drafts", "status": 503},
+        {"method": "GET", "path": "/api/v1/drafts/1", "status": 200},
+        {"method": "GET", "path": "/api/v1/drafts", "status": 200},
+    ]
+    if selection_posts == 1 and mutation_path.endswith("/selection"):
+        events.append({"method": "POST", "path": "/api/v1/drafts/1/decision", "status": 200})
+    trace_path.write_text("".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
+
+    summary = verify_recovery_request_trace(
+        SimpleNamespace(request_trace_path=trace_path),
+        faulting_path=mutation_path,
+        expected_selection_posts=selection_posts,
+        expected_decision_posts=decision_posts,
+    )
+
+    assert summary == {
+        "request_counts": {"GET": 5, "POST": selection_posts + decision_posts},
+        "selection_post_count": selection_posts,
+        "decision_post_count": decision_posts,
+        "recovery_get": {"path": "/api/v1/drafts/1", "statuses": [503, 200]},
+        "request_trace": events,
+    }
+
+
+@pytest.mark.parametrize(
+    "events",
+    [
+        [
+            {"method": "POST", "path": "/api/v1/drafts/1/selection", "status": 200},
+            {"method": "GET", "path": "/api/v1/drafts/1", "status": 503},
+            {"method": "POST", "path": "/api/v1/drafts/1/selection", "status": 200},
+            {"method": "GET", "path": "/api/v1/drafts/1", "status": 200},
+        ],
+        [
+            {"method": "POST", "path": "/api/v1/drafts/1/selection", "status": 200},
+            {"method": "GET", "path": "/api/v1/drafts/1", "status": 503},
+        ],
+    ],
+)
+def test_recovery_trace_rejects_post_replay_or_missing_get_200(tmp_path: Path, events: list[dict]) -> None:
+    trace_path = tmp_path / "request-trace.jsonl"
+    trace_path.write_text("".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="request trace phục hồi không hợp lệ"):
+        verify_recovery_request_trace(
+            SimpleNamespace(request_trace_path=trace_path),
+            faulting_path="/api/v1/drafts/1/selection",
+            expected_selection_posts=1,
+            expected_decision_posts=0,
+        )
 
 
 def test_ingest_browser_special_scenarios_assign_only_the_intended_actor() -> None:

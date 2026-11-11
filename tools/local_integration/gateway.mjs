@@ -1,4 +1,5 @@
 import http from "node:http";
+import { appendFileSync } from "node:fs";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
@@ -66,13 +67,21 @@ function readBody(request, limit) {
   });
 }
 
-export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false }) {
+export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false, failRefreshAfterPostCount = 0, requestTracePath = null }) {
   for (const value of [apiPort, uiPort]) {
     if (!Number.isInteger(value) || value < 1 || value > 65535) throw new TypeError("upstream port không hợp lệ");
   }
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new TypeError("gateway port không hợp lệ");
   if (jwt !== null && typeof jwt !== "string") throw new TypeError("jwt phải là string hoặc null");
+  if (!Number.isInteger(failRefreshAfterPostCount) || failRefreshAfterPostCount < 0) throw new TypeError("số refresh lỗi không hợp lệ");
+  if (requestTracePath !== null && (typeof requestTracePath !== "string" || !requestTracePath)) throw new TypeError("request trace path không hợp lệ");
   let postRecorded = false;
+  let remainingRefreshFailures = 0;
+  let boundedFailureArmed = false;
+  const trace = (method, pathname, status) => {
+    if (requestTracePath === null) return;
+    appendFileSync(requestTracePath, `${JSON.stringify({ method, path: pathname, status })}\n`, "utf8");
+  };
   const server = http.createServer(async (request, response) => {
     const ownPort = server.address()?.port;
     if (request.headers.host !== `127.0.0.1:${ownPort}`) return safeError(response, 400, "invalid_host");
@@ -85,7 +94,11 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     const isApi = url.pathname.startsWith("/api/");
     const isV1 = V1_API_PATH.test(url.pathname);
     if (isApi && !isV1 && !LEGACY_API_PATH.test(url.pathname)) return safeError(response, 404, "not_found");
-    if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") return safeError(response, 503, "synthetic_refresh_failure");
+    if (isApi && postRecorded && request.method === "GET" && (failRefreshAfterPost || remainingRefreshFailures > 0)) {
+      if (!failRefreshAfterPost) remainingRefreshFailures -= 1;
+      trace(request.method, url.pathname, 503);
+      return safeError(response, 503, "synthetic_refresh_failure");
+    }
     let body;
     try {
       body = await readBody(request, isV1 ? maxV1BodyBytes : maxBodyBytes);
@@ -100,17 +113,26 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     const failUpstream = () => {
       if (responseComplete || failureHandled) return;
       failureHandled = true;
+      if (isApi) trace(request.method, url.pathname, 503);
       safeError(response, 503, "upstream_unavailable");
     };
     const upstream = http.request({ host: "127.0.0.1", port: targetPort, method: request.method, path: `${url.pathname}${url.search}`, headers, timeout: requestTimeoutMs }, (upstreamResponse) => {
-      if (isApi && failRefreshAfterPost && request.method === "POST" && (upstreamResponse.statusCode ?? 500) < 300) postRecorded = true;
+      const status = upstreamResponse.statusCode ?? 502;
+      if (isApi) trace(request.method, url.pathname, status);
+      if (isApi && request.method === "POST" && status < 300) {
+        postRecorded = true;
+        if (!boundedFailureArmed && failRefreshAfterPostCount > 0) {
+          boundedFailureArmed = true;
+          remainingRefreshFailures = failRefreshAfterPostCount;
+        }
+      }
       upstreamResponse.once("end", () => { responseComplete = true; });
       upstreamResponse.once("aborted", failUpstream);
       upstreamResponse.once("error", failUpstream);
       upstreamResponse.once("close", () => {
         if (!upstreamResponse.complete) failUpstream();
       });
-      response.writeHead(upstreamResponse.statusCode ?? 502, cleanResponseHeaders(upstreamResponse));
+      response.writeHead(status, cleanResponseHeaders(upstreamResponse));
       upstreamResponse.pipe(response);
     });
     upstream.on("timeout", () => upstream.destroy(new Error("timeout")));
@@ -136,6 +158,8 @@ async function main() {
     port: Number(process.env.W05_GATEWAY_PORT), jwt: process.env.W05_GATEWAY_JWT ?? null,
     requestTimeoutMs: Number(process.env.W05_REQUEST_TIMEOUT_MS ?? "1000"),
     failRefreshAfterPost: process.env.W05_FAIL_REFRESH === "1",
+    failRefreshAfterPostCount: Number(process.env.W05_FAIL_REFRESH_COUNT ?? "0"),
+    requestTracePath: process.env.W05_REQUEST_TRACE_PATH ?? null,
   });
   const stop = () => server.close(() => process.exit(0));
   process.on("SIGINT", stop); process.on("SIGTERM", stop);
