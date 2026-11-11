@@ -96,6 +96,9 @@ Cập nhật lần cuối: 11/11/2026
   analyst, multi-role, hidden-data invariant, found/allowlist/unknown, 401/403/422/503, no-store/Vary và chống
   header JWT giả; browser tích hợp kiểm found/allowlist/unknown, VI/EN, 401 và 503. Đây vẫn chưa phải
   Cloudflare/JWKS/HTTPS thật, OpenCTI, lab hoặc production.
+- W02 rework tài liệu tái chạy: README dùng module command từ đúng cwd với Python integration có `uvicorn`;
+  report tách log HTTP Leader khỏi artifact browser cũ và giữ clipboard UNVERIFIED. Không chạy lại matrix,
+  test/build hay browser trong rework này; mức bằng chứng tích hợp cục bộ không đổi.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

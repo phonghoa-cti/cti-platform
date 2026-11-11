@@ -24,8 +24,15 @@ caller gửi bằng JWT tổng hợp của run và không đưa JWT vào UI, URL
 Chạy ma trận HTTP cùng stack UI/gateway/API:
 
 ```powershell
-.\.venv\Scripts\python.exe -X utf8 -B tools\local_integration\tests\run_w02_matrix.py
+Set-Location C:\Users\ABC\.openmausbot\task-workspaces\0c356bb4-b9e0-4899-a6f5-232bc89b4048\7f8ce74d-7efd-4136-940a-c5fab132c149\cti-w02-local-integration
+..\cti-x01-ingest-browser-prep\.venv\Scripts\python.exe -X utf8 -B -m tools.local_integration.tests.run_w02_matrix
 ```
+
+Lệnh phải chạy từ root của target để Python resolve package `tools`. Target này không có
+`.venv`; executable ở trên là môi trường tích hợp có sẵn đã được dùng cho lần tái chạy và
+có các dependency của harness, gồm `uvicorn`. Không thay bằng môi trường API chỉ vì nó có
+Python: môi trường đó đã được kiểm và thiếu `uvicorn`. Hướng dẫn này không yêu cầu cài hay
+sửa môi trường dùng chung.
 
 PASS ở đây chỉ chứng minh loopback cục bộ với JWT/nguồn tổng hợp. Nó không chứng minh
 Cloudflare/JWKS, OpenCTI, HTTPS, lab hoặc production.
