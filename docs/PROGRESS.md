@@ -2,6 +2,12 @@
 
 Cập nhật lần cuối: 11/11/2026
 
+## 12/11/2026 — W03-S1 Frontend trạng thái theo quan hệ
+
+- Đã thêm provider/parser HTTP riêng và panel trạng thái/note/history trong chi tiết một CVE/công nghệ; trang tóm tắt không gọi status API, trang mẫu chỉ lưu trong memory.
+- Đã khóa double-submit, stale callback, 409 re-entry, phân trang history và pending/unknown recovery bằng GET-only; không tự replay PUT.
+- Giới hạn: mới kiểm thử component/provider cục bộ; chưa kiểm browser với Backend thật, gateway, lab hoặc production.
+
 ## Mốc
 | Mốc | Hạn | Trạng thái |
 |---|---|---|
