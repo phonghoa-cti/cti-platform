@@ -290,7 +290,7 @@ export function createCvesHttpProvider({ fetcher = globalThis.fetch.bind(globalT
   return {
     async list(query) {
       const parameters = new URLSearchParams();
-      parameters.set("kev", String(query.kev));
+      if (query.kev) parameters.set("kev", "true");
       if (query.technologyId !== null) parameters.set("asset_id", String(query.technologyId));
       if (query.q) parameters.set("q", query.q);
       parameters.set("limit", String(query.limit));
