@@ -44,6 +44,7 @@ from portal_api.cves_status import (
     StatusSnapshotChanged,
     StatusUnavailable,
     StatusVersionConflict,
+    validate_status_request_body,
 )
 from portal_api.ioc_lookup import (
     InvalidIoc,
@@ -515,21 +516,28 @@ def create_app(
                 "expected_dataset_id",
             }:
                 raise InvalidStatusRequest("invalid body keys")
+            (
+                requested_status,
+                requested_note,
+                expected_status_version,
+                expected_technology_version,
+                expected_dataset_id,
+            ) = validate_status_request_body(body)
             if cve_status_service is None:
                 raise StatusUnavailable("status not configured")
             context = cve_status_service.context(cve_id, parsed_id)
             if (
-                body["expected_technology_record_version"] != context["technology_record_version"]
-                or body["expected_dataset_id"] != context["dataset_id"]
+                expected_technology_version != context["technology_record_version"]
+                or expected_dataset_id != context["dataset_id"]
             ):
                 raise StatusContextChanged("expected context changed")
             result, _audit_id = cve_status_store.put(
                 cve_id,
                 parsed_id,
                 context,
-                body["status"],
-                body["note"],
-                body["expected_status_version"],
+                requested_status,
+                requested_note,
+                expected_status_version,
                 principal.subject,
             )
             return result

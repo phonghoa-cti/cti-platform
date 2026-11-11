@@ -190,7 +190,7 @@ class CveStatusStore:
             self._validate_context_relation(technology, context, missing_is_conflict=False)
             context = _context_from_technology(technology, cve_id, str(context["dataset_id"]))
             row = self._status_row(connection, context)
-            record = None if row is None else _record_from_row(row)
+            record = None if row is None else _record_from_row(row, _keys(context))
             result = {
                 "context": context,
                 "record": record,
@@ -234,7 +234,8 @@ class CveStatusStore:
             self._validate_context_relation(technology, context, missing_is_conflict=True)
             context = _context_from_technology(technology, cve_id, str(context["dataset_id"]))
             existing_row = self._status_row(connection, context)
-            before = None if existing_row is None else _record_from_row(existing_row)
+            before = None if existing_row is None else _record_from_row(existing_row, _keys(context))
+            self._validate_audit_chain(connection, _keys(context), before)
             actual_version = 0 if before is None else before["status_version"]
             if actual_version != expected_status_version:
                 raise StatusVersionConflict("stale status version")
@@ -307,6 +308,9 @@ class CveStatusStore:
             self._validate_context_relation(technology, context, missing_is_conflict=False)
             context = _context_from_technology(technology, cve_id, str(context["dataset_id"]))
             keys = _keys(context)
+            current = self._status_row(connection, context)
+            if current is not None:
+                _record_from_row(current, keys)
             snapshot = self._history_snapshot(connection, keys, context, role_key, limit)
             after_id = None
             if decoded is not None:
@@ -333,7 +337,7 @@ class CveStatusStore:
                 sql += " AND id<?"
                 params += (after_id,)
             rows = connection.execute(sql + " ORDER BY id DESC LIMIT ?", (*params, limit + 1)).fetchall()
-            items = [_audit_item(row) for row in rows[:limit]]
+            items = [_audit_item(row, keys) for row in rows[:limit]]
             next_cursor = None
             if len(rows) > limit:
                 next_cursor = _encode_cursor(snapshot, _binding(keys, role_key, limit), items[-1]["audit_id"])
@@ -410,6 +414,24 @@ class CveStatusStore:
             ),
         )
         return _version(cursor.lastrowid)
+
+    @staticmethod
+    def _validate_audit_chain(connection, keys, current) -> None:
+        rows = connection.execute(
+            "SELECT id,event,before_json,after_json FROM cve_status_audit "
+            "WHERE technology_id=? AND cve_id=? AND vendor_key=? AND product_key=? ORDER BY id",
+            keys,
+        )
+        previous = None
+        count = 0
+        for row in rows:
+            item = _audit_item(row, keys)
+            if item["before"] != previous:
+                raise StatusUnavailable("broken audit chain")
+            previous = item["after"]
+            count += 1
+        if (current is None and count != 0) or (current is not None and previous != current):
+            raise StatusUnavailable("audit does not match status")
 
     @staticmethod
     def _history_snapshot(connection, keys, context, role_key, limit) -> str:
@@ -549,19 +571,20 @@ def _context_from_technology(technology: Technology, cve_id: str, dataset_id: st
     )
 
 
-def _record_from_row(row: tuple[object, ...]) -> dict[str, object]:
+def _record_from_row(row: tuple[object, ...], expected_keys: tuple[object, ...]) -> dict[str, object]:
     status, version, note, updated_at, updated_by, context_raw = row
-    status = _status(status)
-    version = _version(version)
-    note = _note(note)
-    updated_by = _actor(updated_by)
-    if not isinstance(updated_at, str) or not WIRE_TIMESTAMP.fullmatch(updated_at):
-        raise StatusUnavailable("invalid status timestamp")
     try:
+        status = _status(status)
+        version = _version(version)
+        note = _note(note)
+        updated_by = _actor(updated_by)
+        updated_at = _stored_timestamp(updated_at)
         context = json.loads(context_raw)
-    except (json.JSONDecodeError, TypeError) as exc:
+        _validate_context(context)
+    except (InvalidStatusRequest, json.JSONDecodeError, TypeError) as exc:
         raise StatusUnavailable("invalid status context") from exc
-    _validate_context(context)
+    if _keys(context) != expected_keys:
+        raise StatusUnavailable("status context relation mismatch")
     return {
         "status": status,
         "status_version": version,
@@ -572,9 +595,12 @@ def _record_from_row(row: tuple[object, ...]) -> dict[str, object]:
     }
 
 
-def _audit_item(row):
+def _audit_item(row, expected_keys: tuple[object, ...]):
     audit_id, event, before_raw, after_raw = row
-    audit_id = _version(audit_id)
+    try:
+        audit_id = _version(audit_id)
+    except InvalidStatusRequest as exc:
+        raise StatusUnavailable("invalid audit id") from exc
     if event not in {"created", "changed"}:
         raise StatusUnavailable("invalid audit event")
     try:
@@ -582,15 +608,19 @@ def _audit_item(row):
         after = json.loads(after_raw)
     except (json.JSONDecodeError, TypeError) as exc:
         raise StatusUnavailable("invalid audit json") from exc
-    _validate_record(after)
+    _validate_record(after, expected_keys)
     if before is not None:
-        _validate_record(before)
+        _validate_record(before, expected_keys)
     if (event == "created") != (before is None):
         raise StatusUnavailable("invalid audit transition")
+    if event == "created" and after["status_version"] != 1:
+        raise StatusUnavailable("invalid created audit version")
+    if event == "changed" and after["status_version"] != before["status_version"] + 1:
+        raise StatusUnavailable("invalid changed audit version")
     return {"audit_id": audit_id, "event": event, "before": before, "after": after}
 
 
-def _validate_record(value: object) -> None:
+def _validate_record(value: object, expected_keys: tuple[object, ...]) -> None:
     if not isinstance(value, dict) or set(value) != {
         "status",
         "status_version",
@@ -606,10 +636,36 @@ def _validate_record(value: object) -> None:
         _note(value["note"])
         _actor(value["updated_by"])
         _validate_context(value["context"])
+        _stored_timestamp(value["updated_at"])
     except InvalidStatusRequest as exc:
         raise StatusUnavailable("invalid audit record") from exc
-    if not isinstance(value["updated_at"], str) or not WIRE_TIMESTAMP.fullmatch(value["updated_at"]):
-        raise StatusUnavailable("invalid audit timestamp")
+    if _keys(value["context"]) != expected_keys:
+        raise StatusUnavailable("audit context relation mismatch")
+
+
+def validate_status_request_body(body: dict[str, object]) -> tuple[str, str, int, int, str]:
+    """Validate toàn bộ body trước khi gọi dataset/store."""
+
+    status = _status(body["status"])
+    note = _note(body["note"])
+    expected_status_version = _version(body["expected_status_version"], allow_zero=True)
+    expected_technology_version = _version(body["expected_technology_record_version"])
+    dataset_id = body["expected_dataset_id"]
+    if not isinstance(dataset_id, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", dataset_id):
+        raise InvalidStatusRequest("invalid expected dataset")
+    return status, note, expected_status_version, expected_technology_version, dataset_id
+
+
+def _stored_timestamp(value: object) -> str:
+    if not isinstance(value, str) or not WIRE_TIMESTAMP.fullmatch(value):
+        raise InvalidStatusRequest("invalid stored timestamp")
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as exc:
+        raise InvalidStatusRequest("invalid stored timestamp") from exc
+    if parsed.utcoffset() != UTC.utcoffset(parsed):
+        raise InvalidStatusRequest("invalid stored timestamp")
+    return value
 
 
 def _status(value: object) -> str:

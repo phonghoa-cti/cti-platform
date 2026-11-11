@@ -361,3 +361,144 @@ def test_checked_in_status_wire_fixtures_come_from_real_api(tmp_path, rsa_keys, 
     for name, response in actual.items():
         expected = json.loads((fixture_dir / f"w03-status-{name}.json").read_text(encoding="utf-8"))
         assert response == expected
+
+
+@pytest.mark.parametrize(
+    ("field", "bad"),
+    [
+        ("expected_status_version", True),
+        ("expected_status_version", 1.0),
+        ("expected_status_version", "0"),
+        ("expected_status_version", None),
+        ("expected_technology_record_version", True),
+        ("expected_technology_record_version", 1.0),
+        ("expected_technology_record_version", "1"),
+        ("expected_technology_record_version", None),
+        ("expected_dataset_id", "sha256:" + "A" * 64),
+        ("expected_dataset_id", None),
+        ("status", 1),
+        ("status", "bogus"),
+        ("note", "bad\x00note"),
+        ("note", "x" * 1001),
+    ],
+)
+def test_entire_put_body_is_strict_before_dataset_dependency(tmp_path, rsa_keys, field, bad):
+    client, key, _tech, store, port, _technology = _setup(tmp_path, rsa_keys)
+    context = client.get(_path(), headers=_auth(key)).json()["context"]
+    body = _body(context)
+    body[field] = bad
+    port.dataset["candidates"] = "unavailable"
+    calls = port.calls
+    before = _snapshot(store.path)
+
+    response = client.put(_path(), headers=_headers(key), json=body)
+
+    assert (response.status_code, response.json()["error"]["code"]) == (422, "invalid_status_request")
+    assert port.calls == calls
+    assert _snapshot(store.path) == before
+
+
+@pytest.mark.parametrize(
+    ("column", "bad"),
+    [
+        ("status", "bogus"),
+        ("note", "bad\x00note"),
+        ("updated_at", "2026-02-30T00:00:00Z"),
+        ("updated_at", "2026-01-01T00:00:00.0000000Z"),
+    ],
+)
+@pytest.mark.parametrize("operation", ["get", "put", "history"])
+def test_invalid_persisted_status_fields_are_503_and_non_mutating(tmp_path, rsa_keys, column, bad, operation):
+    client, key, _tech, store, _port, _technology = _setup(tmp_path, rsa_keys)
+    context = client.get(_path(), headers=_auth(key)).json()["context"]
+    assert client.put(_path(), headers=_headers(key), json=_body(context)).status_code == 200
+    with sqlite3.connect(store.path) as connection:
+        connection.execute(f"UPDATE cve_status_records SET {column}=?", (bad,))
+    before = _snapshot(store.path)
+
+    if operation == "put":
+        response = client.put(_path(), headers=_headers(key), json=_body(context, version=1))
+    else:
+        suffix = "-history" if operation == "history" else ""
+        response = client.get(_path() + suffix, headers=_auth(key))
+
+    assert (response.status_code, response.json()["error"]["code"]) == (503, "status_unavailable")
+    assert _snapshot(store.path) == before
+
+
+@pytest.mark.parametrize("operation", ["get", "put", "history"])
+def test_persisted_context_must_bind_selected_relation(tmp_path, rsa_keys, operation):
+    client, key, _tech, store, _port, _technology = _setup(tmp_path, rsa_keys)
+    context = client.get(_path(), headers=_auth(key)).json()["context"]
+    assert client.put(_path(), headers=_headers(key), json=_body(context)).status_code == 200
+    with sqlite3.connect(store.path) as connection:
+        saved = json.loads(connection.execute("SELECT context_json FROM cve_status_records").fetchone()[0])
+        saved["technology_id"] = 999
+        saved["cve_id"] = "CVE-2026-9999"
+        connection.execute("UPDATE cve_status_records SET context_json=?", (json.dumps(saved),))
+    before = _snapshot(store.path)
+
+    if operation == "put":
+        response = client.put(_path(), headers=_headers(key), json=_body(context, version=1))
+    else:
+        suffix = "-history" if operation == "history" else ""
+        response = client.get(_path() + suffix, headers=_auth(key))
+
+    assert (response.status_code, response.json()["error"]["code"]) == (503, "status_unavailable")
+    assert _snapshot(store.path) == before
+
+
+@pytest.mark.parametrize(
+    "stamp",
+    ["2024-02-29T23:59:59Z", "2024-02-29T23:59:59.1Z", "2024-02-29T23:59:59.123456Z"],
+)
+def test_valid_utc_leap_day_and_fraction_controls_remain_readable(tmp_path, rsa_keys, stamp):
+    client, key, _tech, store, _port, _technology = _setup(tmp_path, rsa_keys)
+    context = client.get(_path(), headers=_auth(key)).json()["context"]
+    assert client.put(_path(), headers=_headers(key), json=_body(context)).status_code == 200
+    with sqlite3.connect(store.path) as connection:
+        connection.execute("UPDATE cve_status_records SET updated_at=?", (stamp,))
+        after = json.loads(connection.execute("SELECT after_json FROM cve_status_audit").fetchone()[0])
+        after["updated_at"] = stamp
+        connection.execute("UPDATE cve_status_audit SET after_json=?", (json.dumps(after),))
+
+    status_response = client.get(_path(), headers=_auth(key))
+    history_response = client.get(_path() + "-history", headers=_auth(key))
+
+    assert status_response.status_code == history_response.status_code == 200
+    assert status_response.json()["record"]["updated_at"] == stamp
+    assert history_response.json()["items"][0]["after"]["updated_at"] == stamp
+
+
+@pytest.mark.parametrize("damage", ["relation", "event", "version"])
+def test_history_rejects_inconsistent_persisted_audit_without_mutation(tmp_path, rsa_keys, damage):
+    client, key, _tech, store, _port, _technology = _setup(tmp_path, rsa_keys)
+    context = client.get(_path(), headers=_auth(key)).json()["context"]
+    assert client.put(_path(), headers=_headers(key), json=_body(context)).status_code == 200
+    with sqlite3.connect(store.path) as connection:
+        row = connection.execute("SELECT event,after_json FROM cve_status_audit").fetchone()
+        event, after = row[0], json.loads(row[1])
+        if damage == "relation":
+            after["context"]["cve_id"] = "CVE-2026-9999"
+        elif damage == "event":
+            event = "changed"
+        else:
+            after["status_version"] = 2
+        connection.execute(
+            "UPDATE cve_status_audit SET event=?,after_json=?",
+            (event, json.dumps(after)),
+        )
+    before = _snapshot(store.path)
+
+    history_response = client.get(_path() + "-history", headers=_auth(key))
+    put_response = client.put(_path(), headers=_headers(key), json=_body(context, version=1))
+
+    assert (history_response.status_code, history_response.json()["error"]["code"]) == (
+        503,
+        "status_unavailable",
+    )
+    assert (put_response.status_code, put_response.json()["error"]["code"]) == (
+        503,
+        "status_unavailable",
+    )
+    assert _snapshot(store.path) == before
