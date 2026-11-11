@@ -85,6 +85,11 @@ Cập nhật lần cuối: 11/11/2026
   giữ nguyên. Tên nguồn chặn toàn bộ ký tự điều khiển Unicode `Cc` ở library/CLI trước khi mở database, nhưng vẫn
   nhận tên tiếng Việt, khoảng trắng và emoji. Đây chỉ là importer/core synthetic; chưa kiểm browser, identity HTTP
   thật, OpenCTI, lab hoặc production.
+- X01 ingest → browser → STIX cục bộ: TXT hai IOC và PDF một IOC synthetic đi qua producer/importer, W05 UI
+  same-origin và exporter trên cùng SQLite; retry importer không nhân bản, tự duyệt bị 403, hai lỗi GET refresh
+  sau save/approve không ghi lặp. Verifier đối chiếu source/envelope/provenance, actor, selection/final audit,
+  hash bundle, export read-only và cleanup owned resource. Đây chưa kiểm Cloudflare/JWKS/HTTPS thật, OpenCTI,
+  dữ liệu báo cáo thật, lab hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
