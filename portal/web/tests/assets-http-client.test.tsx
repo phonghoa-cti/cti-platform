@@ -15,6 +15,7 @@ test("route client uses the same-origin assets API in local-api mode", async () 
   render(<AssetsHttpClient />);
 
   expect(screen.getByText(/Bản thử kết nối API/)).toBeInTheDocument();
+  expect(screen.queryByRole("tab", { name: "Công nghệ" })).not.toBeInTheDocument();
   await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
   expect(fetcher).toHaveBeenCalledWith("/api/assets?type=domain", expect.objectContaining({ method: "GET" }));
 });
