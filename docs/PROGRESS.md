@@ -133,6 +133,11 @@ Cập nhật lần cuối: 11/11/2026
   `version` số bản ghi, parser strict/code-point/UTC, mutation bất định không retry và chỉ GET đối soát; callback
   cũ bị vô hiệu khi đổi tab/provider hoặc unmount. Bằng chứng chỉ dùng fixture/fetch giả cục bộ; API/gateway thật,
   browser, Cloudflare/JWKS/HTTPS, lab, OpenCTI và production chưa được kiểm.
+- W04 frontend công nghệ rework F1–F3: cap GET list được tính hữu hạn cho 1.000 DTO tối đa kể cả JSON Unicode
+  escape/UTF-8, trong khi mutation/error giữ cap 1 MiB; notice committed sống qua mọi GET retry lỗi và chỉ clear
+  khi GET thành công; trạng thái mutation pending/unknown thuộc provider và sống qua đổi tab, không mở khóa bởi
+  GET sớm. Probe Leader 4/4, regression focused 120/120, typecheck, lint và build đều đạt ở evidence bàn giao
+  rework; API/gateway/browser/lab/production vẫn chưa được kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

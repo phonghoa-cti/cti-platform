@@ -3,6 +3,7 @@ import {
   createTechnologiesHttpProvider,
   parseTechnologyItem,
   parseTechnologyList,
+  TECHNOLOGY_LIST_MAX_BODY_BYTES,
 } from "@/data/technologies-http";
 
 const wire = {
@@ -73,6 +74,65 @@ describe("W04 technology HTTP parser", () => {
 });
 
 describe("W04 technology HTTP provider", () => {
+  it.each([false, true])("accepts 1000 maximum-code-point DTOs with Content-Length=%s", async (declared) => {
+    const item = {
+      ...wire,
+      vendor: "😀".repeat(128),
+      product: "𐀀".repeat(256),
+      software_version: "😀".repeat(128),
+      note: "😀".repeat(500),
+      created_by: "😀".repeat(512),
+    };
+    const body = JSON.stringify({ items: Array.from({ length: 1000 }, (_, index) => ({ ...item, id: index + 1 })) });
+    const byteLength = new TextEncoder().encode(body).byteLength;
+    expect(byteLength).toBeGreaterThan(1024 * 1024);
+    expect(byteLength).toBeLessThanOrEqual(TECHNOLOGY_LIST_MAX_BODY_BYTES);
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (declared) (headers as Record<string, string>)["Content-Length"] = String(byteLength);
+    const fetcher = vi.fn().mockResolvedValue(new Response(body, { status: 200, headers }));
+    await expect(createTechnologiesHttpProvider({ fetcher }).list()).resolves.toHaveLength(1000);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts 1000 maximum-code-point DTOs when every UTF-16 unit is JSON escaped", async () => {
+    const item = {
+      ...wire,
+      vendor: "😀".repeat(128),
+      product: "😀".repeat(256),
+      software_version: "😀".repeat(128),
+      note: "😀".repeat(500),
+      created_by: "😀".repeat(512),
+    };
+    const compact = JSON.stringify({ items: Array.from({ length: 1000 }, (_, index) => ({ ...item, id: index + 1 })) });
+    const escaped = compact.replace(/[\u007f-\uffff]/g, (unit) => `\\u${unit.charCodeAt(0).toString(16).padStart(4, "0")}`);
+    const byteLength = new TextEncoder().encode(escaped).byteLength;
+    expect(byteLength).toBeGreaterThan(17 * 1024 * 1024);
+    expect(byteLength).toBeLessThanOrEqual(TECHNOLOGY_LIST_MAX_BODY_BYTES);
+    const fetcher = vi.fn().mockResolvedValue(new Response(escaped, {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Content-Length": String(byteLength) },
+    }));
+    await expect(createTechnologiesHttpProvider({ fetcher }).list()).resolves.toHaveLength(1000);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts Content-Length at the list cap and rejects one byte over", async () => {
+    expect(TECHNOLOGY_LIST_MAX_BODY_BYTES).toBe(18_700_011);
+    const accepted = createTechnologiesHttpProvider({
+      fetcher: vi.fn().mockResolvedValue(json({ items: [] }, 200, {
+        "Content-Length": String(TECHNOLOGY_LIST_MAX_BODY_BYTES),
+      })),
+    });
+    await expect(accepted.list()).resolves.toEqual([]);
+
+    const rejected = createTechnologiesHttpProvider({
+      fetcher: vi.fn().mockResolvedValue(json({ items: [] }, 200, {
+        "Content-Length": String(TECHNOLOGY_LIST_MAX_BODY_BYTES + 1),
+      })),
+    });
+    await expect(rejected.list()).rejects.toMatchObject({ kind: "unavailable" });
+  });
+
   it("sends exact request bodies and never retries mutations", async () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(json(wire, 201))
@@ -124,7 +184,7 @@ describe("W04 technology HTTP provider", () => {
   it.each([
     [new Response("{", { status: 200, headers: { "Content-Type": "application/json" } }), "unavailable"],
     [new Response("{}", { status: 200, headers: { "Content-Type": "text/plain" } }), "unavailable"],
-    [json({ items: [wire] }, 200, { "Content-Length": String(1024 * 1024 + 1) }), "unavailable"],
+    [json({ items: [wire] }, 200, { "Content-Length": String(TECHNOLOGY_LIST_MAX_BODY_BYTES + 1) }), "unavailable"],
     [error(502, "gateway_error"), "unavailable"],
   ] as const)("maps malformed, wrong content type, oversized, and unknown GET responses to unavailable", async (response, kind) => {
     const provider = createTechnologiesHttpProvider({ fetcher: vi.fn().mockResolvedValue(response) });
@@ -132,12 +192,29 @@ describe("W04 technology HTTP provider", () => {
   });
 
   it("rejects a streamed body that exceeds the byte cap without Content-Length", async () => {
-    const response = new Response("x".repeat(1024 * 1024 + 1), {
+    const response = new Response("x".repeat(TECHNOLOGY_LIST_MAX_BODY_BYTES + 1), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
     const provider = createTechnologiesHttpProvider({ fetcher: vi.fn().mockResolvedValue(response) });
     await expect(provider.list()).rejects.toMatchObject({ kind: "unavailable" });
+  });
+
+  it("keeps the smaller one-item cap for mutation success and error responses", async () => {
+    const oversized = { "Content-Type": "application/json", "Content-Length": String(1024 * 1024 + 1) };
+    const success = createTechnologiesHttpProvider({
+      fetcher: vi.fn().mockResolvedValue(new Response(JSON.stringify(wire), { status: 201, headers: oversized })),
+    });
+    await expect(success.create({ vendor: "a", product: "b", softwareVersion: "c", note: "" }))
+      .rejects.toMatchObject({ kind: "unknown-mutation" });
+
+    const failure = createTechnologiesHttpProvider({
+      fetcher: vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: "forbidden", message: "x" } }), {
+        status: 403,
+        headers: oversized,
+      })),
+    });
+    await expect(failure.remove(1, 1)).rejects.toMatchObject({ kind: "unknown-mutation" });
   });
 
   it.each([

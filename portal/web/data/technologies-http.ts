@@ -20,8 +20,16 @@ type WireTechnology = {
   version: number;
 };
 
-const MAX_BODY_BYTES = 1024 * 1024;
+const MAX_SINGLE_RESPONSE_BODY_BYTES = 1024 * 1024;
 const TIMEOUT_MS = 10_000;
+
+// A JSON serializer may represent one Unicode code point as two UTF-16
+// `\uXXXX` escapes: 12 ASCII bytes. The compact TechnologyView structure is
+// 123 bytes without values; two safe integers need at most 16 digits each.
+// One maximal item is therefore:
+// 123 + 32 + 12*(128+256+128+500+512) + 2*128 = 18,699 bytes.
+// `{"items":[]}` is 12 bytes and 1,000 items need 999 commas.
+export const TECHNOLOGY_LIST_MAX_BODY_BYTES = 12 + 999 + 1000 * 18_699;
 
 class InvalidTechnologyResponse extends Error {}
 
@@ -118,14 +126,14 @@ async function readChunk(reader: ReadableStreamDefaultReader<Uint8Array>, signal
   });
 }
 
-async function readJson(response: Response, signal: AbortSignal): Promise<unknown> {
+async function readJson(response: Response, signal: AbortSignal, maxBodyBytes: number): Promise<unknown> {
   const contentType = response.headers.get("Content-Type")?.toLowerCase() ?? "";
   if (!/^application\/json(?:\s*;|$)/.test(contentType)) {
     await response.body?.cancel().catch(() => undefined);
     throw new InvalidTechnologyResponse();
   }
   const declared = response.headers.get("Content-Length");
-  if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > MAX_BODY_BYTES)) {
+  if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > maxBodyBytes)) {
     await response.body?.cancel().catch(() => undefined);
     throw new InvalidTechnologyResponse();
   }
@@ -144,7 +152,7 @@ async function readJson(response: Response, signal: AbortSignal): Promise<unknow
         break;
       }
       bytes += chunk.value.byteLength;
-      if (bytes > MAX_BODY_BYTES) throw new InvalidTechnologyResponse();
+      if (bytes > maxBodyBytes) throw new InvalidTechnologyResponse();
       body += decoder.decode(chunk.value, { stream: true });
     }
   } finally {
@@ -193,7 +201,7 @@ export function createTechnologiesHttpProvider({
   fetcher = globalThis.fetch.bind(globalThis),
 }: { fetcher?: Fetcher } = {}): TechnologyProvider {
   async function request<T>({
-    url, method, input, successStatus, parse, mutation,
+    url, method, input, successStatus, parse, mutation, successBodyBytes,
   }: {
     url: string;
     method: "GET" | "POST" | "PUT" | "DELETE";
@@ -201,6 +209,7 @@ export function createTechnologiesHttpProvider({
     successStatus: number;
     parse?: (value: unknown) => T;
     mutation: boolean;
+    successBodyBytes?: number;
   }): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -216,9 +225,9 @@ export function createTechnologiesHttpProvider({
       });
       if (response.status === successStatus) {
         if (!parse) return undefined as T;
-        return parse(await readJson(response, controller.signal));
+        return parse(await readJson(response, controller.signal, successBodyBytes ?? MAX_SINGLE_RESPONSE_BODY_BYTES));
       }
-      const parsed = parseError(await readJson(response, controller.signal));
+      const parsed = parseError(await readJson(response, controller.signal, MAX_SINGLE_RESPONSE_BODY_BYTES));
       throw new AssetDataError(knownError(response.status, parsed.code) ?? (mutation ? "unknown-mutation" : "unavailable"));
     } catch (error) {
       if (error instanceof AssetDataError) throw error;
@@ -231,7 +240,12 @@ export function createTechnologiesHttpProvider({
   return {
     async list() {
       const values = await request({
-        url: "/api/assets/technologies", method: "GET", successStatus: 200, parse: parseTechnologyList, mutation: false,
+        url: "/api/assets/technologies",
+        method: "GET",
+        successStatus: 200,
+        parse: parseTechnologyList,
+        mutation: false,
+        successBodyBytes: TECHNOLOGY_LIST_MAX_BODY_BYTES,
       });
       return values.map(toTechnology);
     },
