@@ -16,7 +16,14 @@ from pathlib import Path
 from typing import Protocol
 from urllib.parse import quote, urlsplit
 
-from portal_api.technologies import JSON_SAFE_INTEGER, Technology, TechnologyStore
+from portal_api.technologies import (
+    JSON_SAFE_INTEGER,
+    MAX_TECHNOLOGIES,
+    TechnologiesUnavailable,
+    Technology,
+    TechnologyStore,
+    _technology_from_row,
+)
 
 MAX_CANDIDATES = 1000
 MAX_PRODUCTS = 20
@@ -117,6 +124,31 @@ class ReadOnlyTechnologyStore(TechnologyStore):
         connection = sqlite3.connect(uri, uri=True, timeout=self.timeout, isolation_level=None)
         connection.execute("PRAGMA foreign_keys=ON")
         return connection
+
+    def list(self) -> tuple[Technology, ...]:
+        connection: sqlite3.Connection | None = None
+        try:
+            connection = self._connect()
+            connection.execute("BEGIN")
+            self._validate_schema(connection)
+            rows = connection.execute(
+                "SELECT id,vendor,vendor_key,product,product_key,software_version,note,"
+                "created_by,created_at,updated_at,record_version "
+                "FROM technology_assets WHERE deleted_at IS NULL ORDER BY id LIMIT ?",
+                (MAX_TECHNOLOGIES + 1,),
+            ).fetchall()
+            if len(rows) > MAX_TECHNOLOGIES:
+                raise TechnologiesUnavailable("too many active technologies")
+            return tuple(_technology_from_row(row) for row in rows)
+        except TechnologiesUnavailable:
+            raise
+        except sqlite3.Error as exc:
+            raise TechnologiesUnavailable("technology read failure") from exc
+        finally:
+            if connection is not None:
+                if connection.in_transaction:
+                    connection.rollback()
+                connection.close()
 
 
 def parse_cve_query(request, view: str) -> CveQuery:
@@ -541,14 +573,27 @@ def _url(value: object) -> str | None:
         return None
     if not isinstance(value, str) or len(value) > 2048 or _has_control(value):
         raise CvesUnavailable("invalid url")
-    parsed = urlsplit(value)
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+        port = parsed.port
+        username = parsed.username
+        password = parsed.password
+    except ValueError as exc:
+        raise CvesUnavailable("invalid url") from exc
+    authority = parsed.netloc
     if (
         parsed.scheme != "https"
-        or not parsed.netloc
-        or parsed.username is not None
-        or parsed.password is not None
+        or not authority
+        or not hostname
+        or username is not None
+        or password is not None
+        or any(character.isspace() for character in authority)
+        or "\\" in authority
+        or "%" in authority
     ):
         raise CvesUnavailable("invalid url")
+    del port  # Access above validates numeric syntax and the 0..65535 range.
     return value
 
 

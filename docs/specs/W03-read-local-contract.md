@@ -7,8 +7,9 @@ Lát cắt này thêm đúng một endpoint `GET /api/cves`. Nguồn CVE là fix
 `casefold`, không kết luận phiên bản bị ảnh hưởng và không lưu trạng thái xử lý.
 
 Snapshot công nghệ dùng `TechnologyStore` hiện có nhưng adapter W03 mở SQLite bằng URI `mode=ro`. Request
-không gọi `initialize`, không migrate/seed và không tạo database khi path thiếu. Một request đọc đúng một
-dataset và một lần `SELECT ... fetchall()` toàn bộ technology active đã được validation W04.
+không gọi `initialize`, không migrate/seed và không tạo database khi path thiếu. Adapter mở một transaction đọc
+hoãn (`BEGIN`, không `BEGIN IMMEDIATE`) trên đúng một connection: kiểm schema/index/marker W04 trước, rồi chạy
+một `SELECT ... LIMIT 1001` và validation đầy đủ technology active trên cùng snapshot; kết thúc bằng rollback.
 
 ## Quyền, query và lỗi
 
@@ -25,7 +26,9 @@ Mã lỗi ổn định: 401 `authentication_required`, 403 `forbidden`, 404 `tec
 
 Fixture tối đa 4 MiB, 0..1.000 candidate, mỗi candidate 1..20 product. Adapter tính `dataset_id` là
 `sha256:<64 hex>` từ chính bytes fixture. Service kiểm exact key/type, CVE ID uppercase, ngày/timestamp UTC,
-HTTPS URL, bool không nhận số, số hữu hạn, quan hệ null và duplicate trước khi trả bất kỳ kết quả nào. KEV
+HTTPS URL (authority phải parse được, có hostname, port hợp lệ, không credential/whitespace/backslash/escape),
+bool không nhận số, số hữu hạn, quan hệ null và duplicate trước khi trả bất kỳ kết quả nào. Không có DNS/live
+request khi kiểm URL. KEV
 overlay phải đánh dấu đầy đủ; affected vendor/product đều 1..128 code point và nguồn KEV fixture phải đúng nhãn
 `CISA KEV synthetic sample`. `false` chỉ có nghĩa không nằm trong snapshot mẫu.
 

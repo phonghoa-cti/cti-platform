@@ -137,6 +137,26 @@ def _sql_snapshot(store):
         }
 
 
+def _partial_sql_snapshot(store):
+    with sqlite3.connect(store.path) as connection:
+        schema = connection.execute("SELECT type,name,sql FROM sqlite_master ORDER BY type,name").fetchall()
+        tables = {row[1] for row in schema if row[0] == "table"}
+        rows = {
+            table: connection.execute(f"SELECT * FROM {table}").fetchall()
+            for table in (
+                "technology_assets",
+                "technology_asset_audit",
+                "w04_technology_migrations",
+            )
+            if table in tables
+        }
+        return {
+            "schema": schema,
+            "rows": rows,
+            "version": connection.execute("PRAGMA user_version").fetchone(),
+        }
+
+
 def _wire(response):
     return {
         "status": response.status_code,
@@ -527,6 +547,146 @@ def test_dependency_failures_do_not_modify_sql_state(tmp_path, rsa_keys):
     assert (missing.status_code, missing.json()["error"]["code"]) == (404, "technology_not_found")
     assert (changed.status_code, changed.json()["error"]["code"]) == (409, "cve_snapshot_changed")
     assert _sql_snapshot(store) == before_409
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "missing_audit",
+        "missing_marker",
+        "missing_index",
+        "wrong_marker_version",
+        "wrong_marker_schema",
+    ],
+)
+def test_read_only_snapshot_rejects_each_schema_defect_without_mutation(
+    tmp_path,
+    rsa_keys,
+    defect,
+):
+    store = _fixed_store(tmp_path, ("Fortinet", "FortiOS", "7.2"))
+    with sqlite3.connect(store.path) as connection:
+        if defect == "missing_audit":
+            connection.execute("DROP TABLE technology_asset_audit")
+        elif defect == "missing_marker":
+            connection.execute("DROP TABLE w04_technology_migrations")
+        elif defect == "missing_index":
+            connection.execute("DROP INDEX technology_assets_active_identity")
+        elif defect == "wrong_marker_version":
+            connection.execute("UPDATE w04_technology_migrations SET version=2")
+        else:
+            connection.execute("DROP TABLE w04_technology_migrations")
+            connection.execute("CREATE TABLE w04_technology_migrations(version TEXT NOT NULL UNIQUE)")
+            connection.execute("INSERT INTO w04_technology_migrations(version) VALUES('1')")
+    before = _partial_sql_snapshot(store)
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        port=StaticPort(_dataset()),
+        store=store,
+    )
+
+    response = _get(client, private_key)
+
+    assert (response.status_code, response.json().get("error", {}).get("code")) == (
+        503,
+        "cves_unavailable",
+    )
+    assert _partial_sql_snapshot(store) == before
+
+
+def test_schema_validation_and_bounded_rows_share_one_read_transaction(tmp_path):
+    store = _fixed_store(tmp_path, ("Fortinet", "FortiOS", "7.2"))
+
+    class TrackingReadOnlyStore(cves.ReadOnlyTechnologyStore):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.connect_count = 0
+            self.statements = []
+
+        def _connect(self):
+            connection = super()._connect()
+            self.connect_count += 1
+            connection.set_trace_callback(self.statements.append)
+            return connection
+
+    reader = TrackingReadOnlyStore.from_store(store)
+
+    items = reader.list()
+
+    normalized = [" ".join(statement.upper().split()) for statement in reader.statements]
+    schema_position = next(index for index, sql in enumerate(normalized) if "PRAGMA TABLE_INFO" in sql)
+    data_position = next(
+        index for index, sql in enumerate(normalized) if sql.startswith("SELECT ID,VENDOR,VENDOR_KEY")
+    )
+    assert [item.id for item in items] == [1]
+    assert reader.connect_count == 1
+    assert normalized[0] == "BEGIN"
+    assert schema_position < data_position
+    assert normalized[-1] == "ROLLBACK"
+
+
+@pytest.mark.parametrize(
+    "invalid_url",
+    [
+        "https://:443/advisory",
+        "https:// example.invalid/advisory",
+        "https://example.invalid:not-a-port/advisory",
+        "https://example.invalid:70000/advisory",
+        "https://[2001:db8::1/advisory",
+        "https://example.invalid\\@evil.invalid/advisory",
+        "https://%20example.invalid/advisory",
+        "https://example.invalid /advisory",
+        "https://example.invalid%5c@evil.invalid/advisory",
+    ],
+)
+def test_advisory_url_rejects_malformed_or_ambiguous_authority(
+    tmp_path,
+    rsa_keys,
+    invalid_url,
+):
+    candidate = _candidate()
+    candidate["advisory_url"] = invalid_url
+    store = _fixed_store(tmp_path, ("Fortinet", "FortiOS", "7.2"))
+    before = _sql_snapshot(store)
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        port=StaticPort(_dataset([candidate])),
+        store=store,
+    )
+
+    response = _get(client, private_key)
+
+    assert (response.status_code, response.json().get("error", {}).get("code")) == (
+        503,
+        "cves_unavailable",
+    )
+    assert _sql_snapshot(store) == before
+
+
+@pytest.mark.parametrize(
+    "valid_url",
+    [
+        "https://example.invalid/advisory",
+        "https://example.invalid:8443/advisory",
+        "https://[2001:db8::1]:8443/advisory",
+    ],
+)
+def test_advisory_url_keeps_valid_https_authorities(tmp_path, rsa_keys, valid_url):
+    candidate = _candidate()
+    candidate["advisory_url"] = valid_url
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        port=StaticPort(_dataset([candidate])),
+        store=_fixed_store(tmp_path, ("Fortinet", "FortiOS", "7.2")),
+    )
+
+    response = _get(client, private_key)
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["advisory_url"] == valid_url
 
 
 def test_fixture_port_hashes_exact_bytes_and_rejects_more_than_four_mib(tmp_path):
