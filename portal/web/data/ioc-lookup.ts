@@ -1,21 +1,24 @@
 export type LookupLevel = "low" | "medium" | "high";
 export type LookupTlp = "TLP:CLEAR" | "TLP:GREEN" | "TLP:AMBER" | "TLP:AMBER+STRICT" | "TLP:RED";
+export type LookupIocType = "ipv4" | "ipv6" | "domain" | "url" | "email" | "md5" | "sha1" | "sha256" | "hash";
+export type LookupScoreParts = { reliability: number; confirmation: number; freshness: number; asset: number };
 
 export type LookupResult = {
   state: "result";
   input: string;
-  ioc: { type: "ipv4" | "domain" | "url" | "hash" | "email"; value: string; display: string };
+  ioc: { type: LookupIocType; value: string; display: string };
   found: boolean;
   allowlisted: boolean;
-  score: { value: number; level: LookupLevel; reason: string } | null;
-  sources: { name: string; firstSeen: string }[];
+  score: { value: number; level: LookupLevel; reason: string; parts?: LookupScoreParts | null } | null;
+  sources: { name: string; firstSeen: string; lastSeen?: string; tlp?: LookupTlp }[];
   related: { techniques: string[]; malware: string[]; actors: string[] };
   enrichment: { country?: string; asn?: string; detections?: string };
+  assetMatch?: { matched: boolean; assets: string[] };
   tlp: LookupTlp;
 };
 
 export type LookupResponse = LookupResult | {
-  state: "not-found" | "invalid" | "private-ip" | "unavailable" | "forbidden";
+  state: "not-found" | "invalid" | "private-ip" | "unavailable" | "forbidden" | "authentication-required";
 };
 
 export interface LookupDataSource {

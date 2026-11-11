@@ -86,6 +86,11 @@ Cập nhật lần cuối: 11/11/2026
   mới, unmount hoặc lượt copy mới hơn. Regression deterministic cho năm key kế thừa và race resolve/reject đã đạt.
   Dữ liệu tổng hợp không gọi mạng; desktop loopback `/tra-cuu/mau` đã được kiểm ở lượt bàn giao trước, không chạy
   lại browser cho rework này; mobile viewport thật và API/auth/OpenCTI/enrichment/lab/production chưa kiểm.
+- W02 HTTP adapter frontend: parser strict giữ đủ score parts, source timestamp/TLP và asset match; nguồn dữ liệu
+  HTTP gửi một GET cùng origin, giới hạn body UTF-8 1 MiB, timeout 10 giây cho fetch + body và map lỗi W02 sang
+  trạng thái UI không lộ message server. Đã kiểm bằng Response giả, gồm ba fixture hợp đồng, 8 loại IOC, 5 TLP,
+  lỗi schema/body/timeout và regression race/clipboard; chưa gắn route, nối backend/JWT, chạy browser, OpenCTI,
+  lab hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

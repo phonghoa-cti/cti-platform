@@ -117,13 +117,14 @@
     "enrichment": "Làm giàu",
     "noEnrichment": "Không có dữ liệu làm giàu trong fixture này.",
     "levels": { "high": "Cao", "medium": "Trung bình", "low": "Thấp" },
-    "types": { "url": "URL", "domain": "Tên miền", "ipv4": "IPv4", "email": "Email", "hash": "Hash" },
+    "types": { "url": "URL", "domain": "Tên miền", "ipv4": "IPv4", "ipv6": "IPv6", "email": "Email", "md5": "MD5", "sha1": "SHA-1", "sha256": "SHA-256", "hash": "Hash" },
     "states": {
       "not-found": { "title": "Chưa có nguồn nào báo IOC này", "body": "Không tìm thấy không có nghĩa là an toàn. Fixture không tự chấm điểm hoặc suy diễn." },
       "invalid": { "title": "Không phải IOC hợp lệ", "body": "Nhập một IP, tên miền, URL, hash hoặc email hợp lệ." },
       "private-ip": { "title": "Đây là IP nội bộ", "body": "IP nội bộ không được tra cứu trên Internet." },
       "unavailable": { "title": "Tạm thời không thể tra cứu", "body": "Nguồn dữ liệu không khả dụng. Hãy thử lại sau." },
-      "forbidden": { "title": "Bạn không có quyền xem kết quả này", "body": "Quyền và TLP phải được kiểm tra ở dịch vụ dữ liệu." }
+      "forbidden": { "title": "Bạn không có quyền xem kết quả này", "body": "Quyền và TLP phải được kiểm tra ở dịch vụ dữ liệu." },
+      "authentication-required": { "title": "Cần đăng nhập để tra cứu", "body": "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Hãy đăng nhập lại." }
     }
   }
 }

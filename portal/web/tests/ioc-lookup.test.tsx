@@ -76,12 +76,37 @@ describe("IOC lookup interaction", () => {
     ["private-ip", "Đây là IP nội bộ"],
     ["unavailable", "Tạm thời không thể tra cứu"],
     ["forbidden", "Bạn không có quyền xem kết quả này"],
+    ["authentication-required", "Cần đăng nhập để tra cứu"],
   ] as const)("renders the %s state without presenting it as safe", async (state, message) => {
     await submit("unknown.example", source(vi.fn().mockResolvedValue({ state })));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
     expect(screen.queryByText("Thấp")).not.toBeInTheDocument();
     expect(screen.queryByText(/0 \/ 100/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["ipv4", "IPv4"], ["ipv6", "IPv6"], ["domain", "Tên miền"], ["url", "URL"],
+    ["email", "Email"], ["md5", "MD5"], ["sha1", "SHA-1"], ["sha256", "SHA-256"],
+  ] as const)("renders the exact %s type label", async (type, label) => {
+    await submit(type, source(vi.fn().mockResolvedValue({
+      ...found,
+      input: type,
+      ioc: { ...found.ioc, type, value: type, display: type },
+    })));
+    expect(await screen.findByText(new RegExp(`${label}.*TLP:GREEN`))).toBeInTheDocument();
+  });
+
+  it("renders server strings as text rather than markup", async () => {
+    await submit("evil.example", source(vi.fn().mockResolvedValue({
+      ...found,
+      ioc: { ...found.ioc, display: "<img src=x onerror=alert(1)>" },
+      score: { ...found.score!, reason: "<script>alert('x')</script>" },
+    })));
+    expect(await screen.findByText("<img src=x onerror=alert(1)>")).toBeInTheDocument();
+    expect(screen.getByText("<script>alert('x')</script>")).toBeInTheDocument();
+    expect(document.querySelector("img")).toBeNull();
+    expect(document.querySelector("script")).toBeNull();
   });
 
   it("ignores an older response that resolves after a newer lookup", async () => {
