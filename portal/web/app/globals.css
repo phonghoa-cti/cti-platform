@@ -109,6 +109,8 @@ button:focus-visible, input:focus-visible, [tabindex="-1"]:focus-visible {
   background: var(--layer-02);
   font-weight: 600;
 }
+.nav-link { display: flex; min-height: 40px; align-items: center; padding: 0 16px; color: var(--text-secondary); text-decoration: none; }
+.nav-link:hover { background: var(--layer-01); color: var(--focus); }
 
 .count-badge, .tag {
   display: inline-flex;
@@ -491,4 +493,94 @@ button:focus-visible, input:focus-visible, [tabindex="-1"]:focus-visible {
   .assets-app__form-actions { padding-top: 0; }
   .assets-app__form-actions button { flex: 1; }
   .assets-app__notice { align-items: stretch; flex-direction: column; }
+}
+
+/* W03 read-only CVE surface: inherits the established SOC console. */
+.cve-app { width: min(1440px, 100%); min-height: 100vh; margin: 0 auto; padding: 24px; }
+.cve-app__heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 16px; }
+.cve-app__heading h1 { margin: 0 0 4px; font-size: 28px; line-height: 36px; font-weight: 400; letter-spacing: -.02em; }
+.cve-app__heading p { max-width: 70ch; margin: 0; color: var(--text-secondary); line-height: 20px; }
+.cve-app__mode { flex: 0 0 auto; padding: 6px 10px; border-radius: 12px; background: var(--neutral-bg); color: var(--neutral-text); font-size: 12px; }
+.cve-app__mode--sample { background: var(--warning-bg); color: var(--warning-text); }
+.cve-app__filters { display: grid; grid-template-columns: auto minmax(220px, .7fr) minmax(280px, 1fr) auto; align-items: end; gap: 12px; padding: 16px; border: 1px solid var(--border-subtle); background: var(--layer-01); }
+.cve-app__filters label { display: flex; min-width: 0; flex-direction: column; gap: 6px; color: var(--text-secondary); font-size: 12px; }
+.cve-app__filters .cve-app__check { min-height: 40px; flex-direction: row; align-items: center; gap: 8px; padding-right: 12px; color: var(--text-primary); font-size: 14px; }
+.cve-app__check input { width: 16px; height: 16px; accent-color: var(--interactive); }
+.cve-app__filters select, .cve-app__filters input[type="search"] { min-width: 0; min-height: 40px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--border-strong); background: var(--layer-02); color: var(--text-primary); }
+.cve-app__filters input[type="search"] { font-family: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace; }
+.cve-app__filters input::placeholder { color: var(--text-helper); opacity: 1; }
+.cve-app__filters button, .cve-app__state button, .cve-app__paging button, .cve-app__detail button { min-height: 40px; padding: 0 16px; border: 1px solid var(--border-strong); background: var(--layer-02); color: var(--text-primary); cursor: pointer; }
+.cve-app__filters button { border-color: var(--interactive); background: var(--interactive); color: #fff; font-weight: 600; }
+.cve-app__filters button:hover { background: #0353e9; }
+.cve-app__filters button:disabled, .cve-app__paging button:disabled { cursor: wait; opacity: .55; }
+.cve-app__technology-warning { margin: 0; padding: 10px 16px; border: 1px solid var(--warning-text); background: var(--warning-bg); color: var(--warning-text); }
+.cve-app__provenance { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); margin-top: 16px; border: 1px solid var(--border-subtle); background: var(--layer-01); }
+.cve-app__provenance > div { padding: 12px 16px; border-right: 1px solid var(--border-subtle); }
+.cve-app__provenance strong, .cve-app__provenance span, .cve-app__provenance time { display: block; }
+.cve-app__provenance strong { margin-bottom: 4px; color: var(--text-helper); font-size: 12px; }
+.cve-app__provenance time { font-family: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+.cve-app__provenance p { grid-column: 1 / -1; margin: 0; padding: 10px 16px; border-top: 1px solid var(--border-subtle); color: var(--warning-text); line-height: 20px; }
+.cve-app__state { display: flex; align-items: center; gap: 12px; min-height: 112px; margin-top: 16px; padding: 24px; border: 1px solid var(--border-subtle); background: var(--layer-01); color: var(--text-secondary); }
+.cve-app__state--error { justify-content: space-between; border-color: var(--danger-border); }
+.cve-app__state--error strong { color: var(--danger-text); }
+.cve-app__state--error p { max-width: 70ch; margin: 6px 0 0; line-height: 20px; }
+.cve-app__summary { display: grid; grid-template-columns: 180px 180px minmax(0, 1fr); margin-top: 16px; border: 1px solid var(--border-subtle); background: var(--layer-01); }
+.cve-app__summary > div { padding: 12px 16px; border-right: 1px solid var(--border-subtle); }
+.cve-app__summary strong, .cve-app__summary span { display: block; }
+.cve-app__summary strong { font: 300 24px/30px "IBM Plex Mono", "Cascadia Mono", Consolas, monospace; }
+.cve-app__summary span { color: var(--text-helper); font-size: 12px; }
+.cve-app__summary p { align-self: center; margin: 0; padding: 12px 16px; color: var(--text-secondary); line-height: 20px; }
+.cve-app__empty { display: flex; flex-direction: column; gap: 6px; min-height: 128px; margin-top: 16px; padding: 32px 16px; border: 1px solid var(--border-subtle); background: var(--layer-01); }
+.cve-app__empty span { color: var(--text-secondary); }
+.cve-app__workspace { display: grid; grid-template-columns: minmax(680px, 1fr) minmax(320px, 420px); gap: 16px; align-items: start; margin-top: 16px; }
+.cve-app__table-wrap { min-width: 0; overflow-x: auto; border: 1px solid var(--border-subtle); background: var(--layer-01); }
+.cve-app__table { width: 100%; min-width: 940px; border-collapse: collapse; }
+.cve-app__table th, .cve-app__table td { height: 48px; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: middle; }
+.cve-app__table th { height: 40px; background: var(--layer-02); color: var(--text-secondary); font-size: 12px; font-weight: 600; }
+.cve-app__table th:nth-child(2) { min-width: 280px; }
+.cve-app__table td:nth-child(4), .cve-app__table td:nth-child(5), .cve-app__table td:nth-child(6) { white-space: nowrap; }
+.cve-app__table td > button { display: flex; width: 100%; flex-direction: column; gap: 3px; padding: 0; border: 0; background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; }
+.cve-app__table td > button:hover code, .cve-app__table td > button[aria-pressed="true"] code { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.cve-app__table code { color: var(--focus); }
+.cve-app__table td > button span, .cve-app__table td:nth-child(2) > span { color: var(--text-secondary); font-size: 12px; line-height: 16px; }
+.cve-app__tooltip { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
+.cve-app__tag { display: inline-flex; min-height: 24px; align-items: center; padding: 2px 8px; border-radius: 12px; background: var(--neutral-bg); color: var(--neutral-text); font-size: 12px; }
+.cve-app__tag--kev { background: var(--danger-bg); color: var(--danger-text); }
+.cve-app__paging { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--sidebar); color: var(--text-helper); font-size: 12px; }
+.cve-app__paging button { min-height: 32px; padding: 0 12px; }
+.cve-app__detail { position: sticky; top: 16px; border: 1px solid var(--border-subtle); background: var(--layer-01); }
+.cve-app__detail > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-subtle); background: var(--layer-02); }
+.cve-app__detail h2, .cve-app__detail h3, .cve-app__detail p { margin: 0; }
+.cve-app__detail h2 { font: 600 16px/22px "IBM Plex Mono", "Cascadia Mono", Consolas, monospace; color: var(--focus); }
+.cve-app__detail header p { margin-top: 6px; color: var(--text-secondary); line-height: 20px; overflow-wrap: anywhere; }
+.cve-app__detail header button { min-height: 32px; padding: 0 10px; white-space: nowrap; }
+.cve-app__detail-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.cve-app__detail-metrics div { min-width: 0; padding: 10px 12px; border-right: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); }
+.cve-app__detail-metrics dt { color: var(--text-helper); font-size: 12px; }
+.cve-app__detail-metrics dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.cve-app__matches { padding: 16px; }
+.cve-app__matches h3 { font-size: 14px; }
+.cve-app__caution { margin-top: 6px !important; color: var(--warning-text); font-size: 12px; line-height: 18px; }
+.cve-app__matches ul { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.cve-app__matches li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--layer-02); }
+.cve-app__matches code { color: var(--focus); }
+.cve-app__detail > footer { padding: 12px 16px; border-top: 1px solid var(--border-subtle); }
+.cve-app__detail a { color: var(--focus); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+@media (max-width: 1100px) {
+  .cve-app__workspace { grid-template-columns: 1fr; }
+  .cve-app__detail { position: static; }
+}
+
+@media (max-width: 720px) {
+  .cve-app { padding: 20px 12px 32px; }
+  .cve-app__heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .cve-app__heading h1 { font-size: 24px; line-height: 32px; }
+  .cve-app__filters { grid-template-columns: 1fr; }
+  .cve-app__filters .cve-app__check { padding: 0; }
+  .cve-app__provenance, .cve-app__summary { grid-template-columns: 1fr; }
+  .cve-app__provenance > div, .cve-app__summary > div { border-right: 0; border-bottom: 1px solid var(--border-subtle); }
+  .cve-app__state--error { align-items: stretch; flex-direction: column; }
+  .cve-app__paging { align-items: stretch; flex-direction: column; text-align: center; }
+  .cve-app__matches li { flex-direction: column; }
 }

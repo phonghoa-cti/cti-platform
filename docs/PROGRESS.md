@@ -156,6 +156,12 @@ Cập nhật lần cuối: 11/11/2026
   với API thật. B1/B2 khóa schema/index/marker và bounded SELECT trong cùng transaction đọc `mode=ro`, đồng thời
   từ chối authority advisory mơ hồ/sai port mà không DNS; SQL snapshot trước/sau chứng minh success/failure không
   đổi schema/row/audit/user_version. Chưa nối frontend/gateway/browser, feed/OpenCTI, lab/production.
+- W03 frontend đọc lỗ hổng: `/lo-hong` dùng provider HTTP GET-only và `/lo-hong/mau` dùng 12 CVE tổng hợp có
+  nhãn mẫu; parser phân biệt strict detail/summary, giữ null khác điểm 0, giới hạn response 1 MiB và map lỗi
+  401/403/404/422/409/503 an toàn. Giao diện lọc KEV/công nghệ/từ khóa, phân trang, detail từ dòng hiện tại,
+  nguồn/as-of/notice, tooltip Việt và bỏ chuỗi trang khi snapshot đổi; leader summary không gọi API tài sản.
+  Ownership token chặn callback cũ khi đổi filter/provider/route/unmount. Đây là frontend/test cục bộ; chưa nối
+  API/gateway thật, chưa chạy browser, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
