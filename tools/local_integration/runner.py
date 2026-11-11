@@ -196,16 +196,22 @@ class LocalRun:
         start_ui: bool = True,
         gateway_port: int | None = None,
         trace_path: Path | None = None,
+        subject_override: str | None = None,
     ):
         if scenario not in SCENARIOS:
             raise ValueError("scenario không được phép")
         if isinstance(duration_seconds, bool) or not 1 <= duration_seconds <= 300:
             raise ValueError("duration phải từ 1 đến 300 giây")
+        if subject_override is not None and (
+            scenario != "w03-status-it" or not 1 <= len(subject_override) <= 512
+        ):
+            raise ValueError("subject override chỉ dành cho capture W03 status và tối đa 512 ký tự")
         self.scenario = scenario
         self.duration_seconds = duration_seconds
         self.start_ui = start_ui
         self.gateway_port = gateway_port or _free_port()
         self.trace_path = trace_path.resolve() if trace_path is not None else None
+        self.subject_override = subject_override
         self.api_port = _free_port()
         self.ui_port = _free_port()
         self.url = f"http://127.0.0.1:{self.gateway_port}"
@@ -287,6 +293,8 @@ class LocalRun:
             subject = "leader-sub"
         else:
             subject = "admin-sub"
+        if self.subject_override is not None:
+            subject = self.subject_override
         claims: dict[str, Any] = {
             "sub": subject,
             "iss": settings.access_issuer,
@@ -447,6 +455,8 @@ class LocalRun:
                 "viewer-sub": frozenset({"viewer"}),
                 "leader-sub": frozenset({"leader"}),
             }
+            if self.subject_override is not None:
+                roles[self.subject_override] = frozenset({"it"})
             settings = make_local_settings(self.db_path, self.temp_root, self.gateway_port, roles)
             self._save_fixtures()
             token, verifier = self._token_and_verifier(settings)

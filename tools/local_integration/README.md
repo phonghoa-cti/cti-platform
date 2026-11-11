@@ -159,3 +159,23 @@ nhưng trả PUT 503 rồi GET `503→200`. Trace chỉ ghi counter/method/path/
 khóa fault theo đúng pathname status vừa PUT; GET relation khác và status-history không nhận hoặc tiêu thụ fault.
 Ma trận chứng minh HTTP loopback cục bộ bằng JWT, SQLite và dữ liệu tổng hợp; chưa ghép UI, chưa chạy browser và không
 chứng minh Cloudflare/JWKS/HTTPS thật, feed/OpenCTI, lab hay production.
+
+Capture response status thật và kiểm bằng parser/provider production của UI:
+
+```powershell
+$Root = 'C:\Users\ABC\.openmausbot\task-workspaces\0c356bb4-b9e0-4899-a6f5-232bc89b4048\7f8ce74d-7efd-4136-940a-c5fab132c149\cti-w03-status-integration'
+$Python = 'C:\Users\ABC\.openmausbot\task-workspaces\0c356bb4-b9e0-4899-a6f5-232bc89b4048\7f8ce74d-7efd-4136-940a-c5fab132c149\cti-w03-read-backend\.venv\Scripts\python.exe'
+$Fixtures = Join-Path $Root 'w03-status-wire-fixtures'
+Set-Location $Root
+& $Python -m tools.local_integration.tests.capture_w03_status_wire --output $Fixtures
+$env:W03_STATUS_WIRE_REQUIRED = '1'
+$env:W03_STATUS_WIRE_FIXTURE_DIR = $Fixtures
+Set-Location (Join-Path $Root 'portal\web')
+npm test -- --run tests/cve-status-wire-capture.test.ts
+```
+
+Khi `W03_STATUS_WIRE_REQUIRED=1`, env thiếu, thư mục có thật nhưng thiếu fixture, hoặc JSON hỏng đều phải làm
+test thoát khác 0. Capture có response Unicode thật, note 1000, actor 512, vendor/version 128 và history
+`limit=100` với cursor. Product trong context mới chứng minh đến 128: loader dataset CVE giới hạn product 128,
+trong khi technology/context cho phép 256, nên product 256 hiện cho `status_unavailable`; đây là giới hạn bằng
+chứng, không được đổi contract để làm test xanh.

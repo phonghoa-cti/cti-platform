@@ -4,11 +4,64 @@ import json
 import sqlite3
 from pathlib import Path
 
+import pytest
+
+import tools.local_integration.w04_browser_helper as browser_helper
 from tools.local_integration.w04_browser_helper import (
     ALLOWED_SCENARIOS,
+    build_cleanup_state,
     request_stop,
     snapshot_assets_database,
 )
+
+
+def test_cleanup_state_preserves_owned_pid_port_and_temp_root(tmp_path: Path) -> None:
+    running = {
+        "gateway_port": 43210,
+        "pid": 1234,
+        "run_id": "owned-run",
+        "scenario": "w03-status-it",
+        "temp_root": str(tmp_path / "owned-temp"),
+    }
+
+    state = build_cleanup_state(
+        running,
+        gateway_port_closed=True,
+        temp_root_removed=True,
+    )
+
+    assert state["gateway_port"] == 43210
+    assert state["pid"] == 1234
+    assert state["temp_root"] == str(tmp_path / "owned-temp")
+    assert state["cleanup"] == {"gateway_port_closed": True, "temp_root_removed": True}
+
+
+def test_startup_failure_is_not_masked_by_cleanup_state(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    class FailingRun:
+        gateway_port = 43210
+        temp_root = tmp_path / "not-created"
+        url = "http://127.0.0.1:43210"
+
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> FailingRun:
+            raise RuntimeError("startup failed")
+
+        def __exit__(self, *args: object) -> None:
+            pass
+
+    monkeypatch.setattr(browser_helper, "LocalRun", FailingRun)
+    state_path = tmp_path / "session.json"
+
+    with pytest.raises(RuntimeError, match="startup failed"):
+        browser_helper.start_session("w03-status-it", 30, tmp_path / "evidence", state_path)
+
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert state["status"] == "stopped"
+    assert state["cleanup"] == {"gateway_port_closed": True, "temp_root_removed": True}
 
 
 def test_snapshot_assets_database_copies_db_and_writes_sanitized_counts(tmp_path: Path) -> None:

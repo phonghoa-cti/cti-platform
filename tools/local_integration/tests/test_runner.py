@@ -180,6 +180,28 @@ def test_w03_status_scenario_injects_status_store_on_shared_database() -> None:
         assert run.asset_store.path == run.technology_store.path == run.cve_status_store.path == run.db_path
 
 
+def test_w03_status_runner_can_capture_actor_at_validator_boundary() -> None:
+    actor = "a" * 512
+    with LocalRun("w03-status-it", duration_seconds=20, start_ui=False, subject_override=actor) as run:
+        status_url = f"{run.url}/api/cves/CVE-2026-2001/technologies/1/status"
+        context = httpx.get(status_url, timeout=2).json()["context"]
+        response = httpx.put(
+            status_url,
+            headers={"Origin": run.url},
+            json={
+                "status": "patching",
+                "note": "actor boundary",
+                "expected_status_version": 0,
+                "expected_technology_record_version": context["technology_record_version"],
+                "expected_dataset_id": context["dataset_id"],
+            },
+            timeout=2,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["record"]["updated_by"] == actor
+
+
 def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixtures() -> None:
     with LocalRun("selection-admin", duration_seconds=20, start_ui=False) as selection_run:
         response = httpx.get(

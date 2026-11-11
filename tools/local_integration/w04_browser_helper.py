@@ -118,6 +118,20 @@ def _port_open(port: int) -> bool:
         return False
 
 
+def build_cleanup_state(
+    running: dict[str, Any], *, gateway_port_closed: bool, temp_root_removed: bool
+) -> dict[str, Any]:
+    return {
+        **running,
+        "cleanup": {
+            "gateway_port_closed": gateway_port_closed,
+            "temp_root_removed": temp_root_removed,
+        },
+        "finished_at": datetime.now(UTC).isoformat(),
+        "status": "stopped",
+    }
+
+
 def start_session(scenario: str, duration: int, evidence_dir: Path, state_path: Path) -> dict[str, Any]:
     evidence_dir = evidence_dir.resolve()
     state_path = state_path.resolve()
@@ -132,21 +146,23 @@ def start_session(scenario: str, duration: int, evidence_dir: Path, state_path: 
     trace_path = evidence_dir / "gateway-trace.jsonl"
     run = LocalRun(scenario, duration_seconds=duration, start_ui=True, trace_path=trace_path)
     final: dict[str, Any]
+    running = {
+        "expires_at": (started + timedelta(seconds=duration)).isoformat(),
+        "gateway_port": run.gateway_port,
+        "pid": os.getpid(),
+        "run_id": run_id,
+        "scenario": scenario,
+        "started_at": started.isoformat(),
+        "status": "starting",
+        "temp_root": str(run.temp_root),
+        "url": run.url,
+    }
     try:
         with run:
-            snapshot_assets_database(run.db_path, evidence_dir, label="initial")
-            running = {
-                "expires_at": (started + timedelta(seconds=duration)).isoformat(),
-                "gateway_port": run.gateway_port,
-                "pid": os.getpid(),
-                "run_id": run_id,
-                "scenario": scenario,
-                "started_at": started.isoformat(),
-                "status": "running",
-                "url": run.url,
-            }
+            running.update(status="running", temp_root=str(run.temp_root))
             _write_json(state_path, running)
             print(json.dumps(running, ensure_ascii=False, sort_keys=True), flush=True)
+            snapshot_assets_database(run.db_path, evidence_dir, label="initial")
             deadline = time.monotonic() + duration
             while time.monotonic() < deadline and not _stop_requested(state_path, run_id):
                 time.sleep(0.2)
@@ -154,17 +170,11 @@ def start_session(scenario: str, duration: int, evidence_dir: Path, state_path: 
             final = {**running, "db_summary": summary, "status": "stopping"}
             _write_json(state_path, final)
     finally:
-        cleanup = {
-            "gateway_port_closed": not _port_open(run.gateway_port),
-            "temp_root_removed": not run.temp_root.exists(),
-        }
-        final = {
-            "cleanup": cleanup,
-            "finished_at": datetime.now(UTC).isoformat(),
-            "run_id": run_id,
-            "scenario": scenario,
-            "status": "stopped",
-        }
+        final = build_cleanup_state(
+            running,
+            gateway_port_closed=not _port_open(run.gateway_port),
+            temp_root_removed=not run.temp_root.exists(),
+        )
         _write_json(state_path, final)
         marker.unlink(missing_ok=True)
     return final

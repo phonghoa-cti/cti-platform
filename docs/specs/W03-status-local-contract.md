@@ -30,5 +30,9 @@ request. Gateway giữ JWT phía server, chặn route/method gần đúng và d�
 hữu hạn chỉ mô phỏng mất response sau commit và lỗi GET đối soát; mutation không được tự replay.
 
 Test Backend dùng JWT RSA, dataset và SQLite tổng hợp in-process. Ma trận tích hợp bổ sung socket gateway/API thật,
-SQL snapshot và trace đã lược. Chưa ghép UI, chưa chạy browser, và chưa chứng minh Cloudflare/JWKS/HTTPS thật,
-feed/OpenCTI, lab hay production.
+SQL snapshot và trace đã lược. Frontend đã ghép cục bộ; wire capture API thật được parser/provider production đọc
+với Unicode, note 1000, actor 512, vendor/version 128 và history 100+cursor. Product trong context mới chứng minh
+đến 128 vì loader dataset CVE giới hạn product 128 dù technology/context cho phép 256; product 256 hiện là giới hạn
+bằng chứng, không phải PASS. Browser desktop 1280×720 đã chứng minh known-commit lỗi tạm thời rồi phục hồi trong
+cùng trang với một PUT/audit; unknown-outcome reentry cùng trang còn PENDING. Chưa chứng minh mobile,
+Cloudflare/JWKS/HTTPS thật, feed/OpenCTI, lab hay production.

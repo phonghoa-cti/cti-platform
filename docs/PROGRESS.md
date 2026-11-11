@@ -205,6 +205,12 @@ Cập nhật lần cuối: 11/11/2026
 - W03-S1 prep rework R1: fault phục hồi được ràng buộc theo exact pathname status vừa PUT; GET relation khác và
   status-history không nhận hoặc tiêu thụ bộ đếm. Probe gateway và ma trận HTTP/SQLite có request xen kẽ chứng minh
   từng scenario vẫn chỉ một PUT, một status, một audit và phục hồi hữu hạn; phạm vi chưa ghép UI/browser không đổi.
+- W03-S1 tích hợp status chặng A: frontend đã ghép cục bộ và wire capture API thật được parser/provider production
+  đọc với Unicode, note 1000, actor 512, vendor/version 128, history 100+cursor; product context mới chứng minh 128,
+  còn 256 không biểu diễn được qua dataset CVE đang giới hạn 128 và được giữ là blocker thay vì sửa contract. Browser
+  desktop 1280×720 đã chứng minh known-commit PUT200, GET `503→503→200`, lỗi tạm thời vẫn giữ notice đã lưu và
+  đóng/mở chi tiết trong cùng trang phục hồi với đúng một status/audit. Unknown-outcome reentry cùng trang còn
+  PENDING; mobile, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab và production chưa kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
