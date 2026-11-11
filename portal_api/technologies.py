@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import unicodedata
 from contextlib import closing
@@ -12,6 +13,7 @@ from pathlib import Path
 
 JSON_SAFE_INTEGER = 2**53 - 1
 MAX_TECHNOLOGIES = 1000
+WIRE_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?Z\Z")
 
 
 class InvalidTechnology(ValueError):
@@ -506,14 +508,12 @@ def _validated_technology(technology: Technology) -> Technology:
 
 
 def _validate_timestamp(value: object) -> None:
-    if not isinstance(value, str) or not value or len(value) > 64:
+    if not isinstance(value, str) or len(value) > 64 or not WIRE_TIMESTAMP.fullmatch(value):
         raise InvalidTechnology("invalid timestamp")
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        datetime.fromisoformat(value[:-1])
     except ValueError as exc:
         raise InvalidTechnology("invalid timestamp") from exc
-    if parsed.utcoffset() != UTC.utcoffset(parsed):
-        raise InvalidTechnology("invalid timestamp")
 
 
 def _next_version(version: int) -> int:

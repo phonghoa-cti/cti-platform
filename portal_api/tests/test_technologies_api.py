@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from dataclasses import replace
 from pathlib import Path
 
@@ -286,3 +287,73 @@ def test_frontend_wire_fixture_matches_exact_response_models_and_error_contract(
         "technology_conflict",
         "assets_unavailable",
     ]
+
+
+@pytest.mark.parametrize(
+    "stamp",
+    [
+        "2026-11-11T16:00:00+00:00",
+        "2026-11-11 16:00:00Z",
+        "20261111T160000Z",
+    ],
+)
+@pytest.mark.parametrize("field", ["created_at", "updated_at"])
+@pytest.mark.parametrize("operation", ["list", "update", "delete"])
+def test_non_wire_stored_timestamp_fails_closed_before_mutation(
+    tmp_path,
+    rsa_keys,
+    stamp,
+    field,
+    operation,
+):
+    store = _store(tmp_path)
+    item = store.create("Vendor", "Product", "1", "", "it-sub")
+    with sqlite3.connect(store.path) as connection:
+        connection.execute(f"UPDATE technology_assets SET {field}=? WHERE id=?", (stamp, item.id))
+    client, private_key = _client(tmp_path, rsa_keys, technology_store=store)
+
+    if operation == "list":
+        response = client.get("/api/assets/technologies", headers=_headers(private_key))
+    elif operation == "update":
+        response = client.put(
+            f"/api/assets/technologies/{item.id}",
+            headers=_headers(private_key),
+            json={
+                "vendor": "Vendor",
+                "product": "Product",
+                "software_version": "1",
+                "note": "edited",
+                "expected_version": 1,
+            },
+        )
+    else:
+        response = client.delete(
+            f"/api/assets/technologies/{item.id}?expected_version=1",
+            headers=_headers(private_key),
+        )
+
+    with sqlite3.connect(store.path) as connection:
+        row = connection.execute(
+            "SELECT note,record_version,deleted_at FROM technology_assets WHERE id=?",
+            (item.id,),
+        ).fetchone()
+        audit_count = connection.execute("SELECT count(*) FROM technology_asset_audit").fetchone()[0]
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "assets_unavailable"
+    assert row == ("", 1, None)
+    assert audit_count == 1
+
+
+@pytest.mark.parametrize("stamp", ["2026-11-11T16:00:00Z", "2026-11-11T16:00:00.123456Z"])
+@pytest.mark.parametrize("field", ["created_at", "updated_at"])
+def test_valid_wire_stored_timestamp_remains_readable(tmp_path, rsa_keys, stamp, field):
+    store = _store(tmp_path)
+    item = store.create("Vendor", "Product", "1", "", "it-sub")
+    with sqlite3.connect(store.path) as connection:
+        connection.execute(f"UPDATE technology_assets SET {field}=? WHERE id=?", (stamp, item.id))
+    client, private_key = _client(tmp_path, rsa_keys, technology_store=store)
+
+    response = client.get("/api/assets/technologies", headers=_headers(private_key))
+
+    assert response.status_code == 200
+    assert response.json()["items"][0][field] == stamp
