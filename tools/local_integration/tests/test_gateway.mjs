@@ -130,6 +130,31 @@ test("gateway proxies only the four v1 draft routes and preserves query strings"
   }
 });
 
+test("gateway proxies only exact IOC route and replaces a caller-spoofed JWT", async () => {
+  const seen = [];
+  const api = await listen((req, res) => {
+    seen.push({ path: req.url, token: req.headers["cf-access-jwt-assertion"] });
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store", "Vary": "Cf-Access-Jwt-Assertion" });
+    res.end('{"state":"not_found"}');
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: "gateway-token" });
+  try {
+    const allowed = await request(gateway.address().port, "/api/ioc?value=evil.example", {
+      headers: { "Cf-Access-Jwt-Assertion": "caller-token" },
+    });
+    assert.equal(allowed.status, 200);
+    assert.equal(allowed.headers["cache-control"], "no-store");
+    assert.equal(allowed.headers.vary, "Cf-Access-Jwt-Assertion");
+    for (const path of ["/api/ioc/", "/api/iocs", "/api/ioc/extra", "/api/other"]) {
+      assert.equal((await request(gateway.address().port, path)).status, 404, path);
+    }
+    assert.deepEqual(seen, [{ path: "/api/ioc?value=evil.example", token: "gateway-token" }]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
 test("v1 accepts chunked bodies through 65536 bytes without raising the legacy cap", async () => {
   const sizes = [];
   const api = await listen((req, res) => {

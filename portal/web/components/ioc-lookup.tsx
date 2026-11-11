@@ -43,7 +43,13 @@ function ResultView({ result, messages, onCopy }: {
   );
 }
 
-export function IocLookup({ dataSource = sampleLookupSource }: { dataSource?: LookupDataSource }) {
+export function IocLookup({
+  dataSource = sampleLookupSource,
+  sourceMode = "sample",
+}: {
+  dataSource?: LookupDataSource;
+  sourceMode?: "sample" | "local-api";
+}) {
   const [locale, setLocale] = useState<Locale>("vi");
   const [value, setValue] = useState("");
   const [response, setResponse] = useState<LookupResponse | null>(null);
@@ -53,6 +59,10 @@ export function IocLookup({ dataSource = sampleLookupSource }: { dataSource?: Lo
   const copyRef = useRef(0);
   const resultRef = useRef<HTMLElement | null>(null);
   const messages = locale === "vi" ? vi.w02 : en.w02;
+  const sourceLabel = sourceMode === "local-api" ? messages.localApiLabel : messages.sampleLabel;
+  const noSources = sourceMode === "local-api" ? messages.localApiNoSources : messages.noSources;
+  const noRelated = sourceMode === "local-api" ? messages.localApiNoRelated : messages.noRelated;
+  const noEnrichment = sourceMode === "local-api" ? messages.localApiNoEnrichment : messages.noEnrichment;
 
   useEffect(() => {
     if (response?.state === "result") resultRef.current?.focus();
@@ -95,6 +105,9 @@ export function IocLookup({ dataSource = sampleLookupSource }: { dataSource?: Lo
   };
 
   const stateMessage = response && response.state !== "result" ? messages.states[response.state] : null;
+  const stateBody = response?.state === "not-found" && sourceMode === "local-api"
+    ? messages.localApiNotFoundBody
+    : stateMessage?.body;
   return (
     <main className="ioc-lookup">
       <header className="ioc-lookup__topbar">
@@ -104,7 +117,7 @@ export function IocLookup({ dataSource = sampleLookupSource }: { dataSource?: Lo
           <button type="button" aria-pressed={locale === "en"} onClick={() => setLocale("en")}>English</button>
         </div>
       </header>
-      <p className="ioc-lookup__sample-label">{messages.sampleLabel}</p>
+      <p className="ioc-lookup__sample-label">{sourceLabel}</p>
       <form className="ioc-lookup__form" onSubmit={submit}>
         <label htmlFor="ioc-lookup-value">{messages.inputLabel}</label>
         <div className="ioc-lookup__form-row">
@@ -118,10 +131,14 @@ export function IocLookup({ dataSource = sampleLookupSource }: { dataSource?: Lo
         {copyState === "success" && <p role="status">{messages.copySuccess}</p>}
         {copyState === "error" && <p role="alert">{messages.copyError}</p>}
       </div>
-      {stateMessage && <section className="ioc-lookup__state" role="alert"><h2>{stateMessage.title}</h2><p>{stateMessage.body}</p></section>}
+      {stateMessage && <section className="ioc-lookup__state" role="alert"><h2>{stateMessage.title}</h2><p>{stateBody}</p></section>}
       {response?.state === "result" && (
         <div ref={(node) => { resultRef.current = node?.querySelector("section") ?? null; }}>
-          <ResultView result={response} messages={messages} onCopy={copy} />
+          <ResultView
+            result={response}
+            messages={{ ...messages, noSources, noRelated, noEnrichment }}
+            onCopy={copy}
+          />
         </div>
       )}
     </main>

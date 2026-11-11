@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import type { ComponentType } from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { IocLookup } from "@/components/ioc-lookup";
@@ -46,6 +47,21 @@ async function submit(value: string, dataSource: LookupDataSource) {
 }
 
 describe("IOC lookup interaction", () => {
+  it("labels the local API source accurately in both locales without fixture claims", async () => {
+    const HttpLookup = IocLookup as unknown as ComponentType<Record<string, unknown>>;
+    const user = userEvent.setup();
+    render(<HttpLookup dataSource={source(vi.fn().mockResolvedValue({ state: "not-found" }))} sourceMode="local-api" />);
+
+    expect(screen.getByText("Bản thử kết nối API · Dữ liệu tổng hợp cục bộ · Chưa kết nối OpenCTI")).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "IOC cần tra cứu" }), "unknown.example");
+    await user.click(screen.getByRole("button", { name: "Tra cứu" }));
+    expect(await screen.findByRole("alert")).not.toHaveTextContent(/fixture/i);
+
+    await user.click(screen.getByRole("button", { name: "English" }));
+    expect(screen.getByText("API connection preview · Local synthetic data · Not connected to OpenCTI")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/fixture/i);
+  });
+
   it("starts idle, sends one exact value, and announces loading", async () => {
     const pending = deferred<LookupResponse>();
     const lookup = vi.fn().mockReturnValue(pending.promise);

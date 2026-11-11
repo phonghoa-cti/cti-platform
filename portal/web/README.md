@@ -9,10 +9,11 @@ chuẩn hóa. Fixture có sẵn: `hxxp://Evil[.]COM/a` và `allowlisted.example`
 
 View này chưa có API, xác thực, OpenCTI, enrichment thật, lịch sử, batch, đề xuất chặn hoặc dữ liệu vận hành.
 
-`data/ioc-lookup-http.ts` là adapter HTTP chưa được gắn vào route: gửi đúng một `GET /api/ioc?value=...`
+`/tra-cuu` gắn adapter HTTP qua client wrapper ổn định và gửi đúng một `GET /api/ioc?value=...`
 cùng origin, không tự thêm danh tính, giới hạn phản hồi 1 MiB và timeout 10 giây cho cả fetch lẫn đọc body.
 Parser chỉ nhận schema W02 exact; lỗi mạng, HTML, JSON sai hoặc contract không khớp đều thành trạng thái nguồn không
-khả dụng, không fallback sang fixture. Test dùng `Response` giả, nên chưa chứng minh backend, JWT hoặc trình duyệt thật.
+khả dụng, không fallback sang fixture. Nhãn route nói rõ dữ liệu tổng hợp cục bộ và chưa kết nối OpenCTI;
+`/tra-cuu/mau` vẫn giữ nguồn mẫu không gọi mạng.
 
 `/duyet` đọc hàng đợi API v1, cho analyst chỉnh tập IOC đủ điều kiện, bấm **Lưu lựa chọn**, rồi duyệt hoặc từ
 chối đúng snapshot đã lưu. `savedSelection` là tập server đã ghi; `editingSelection` là tập analyst đang sửa.

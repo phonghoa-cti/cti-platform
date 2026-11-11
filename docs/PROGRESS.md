@@ -91,6 +91,11 @@ Cập nhật lần cuối: 11/11/2026
   trạng thái UI không lộ message server. Đã kiểm bằng Response giả, gồm ba fixture hợp đồng, 8 loại IOC, 5 TLP,
   lỗi schema/body/timeout và regression race/clipboard; chưa gắn route, nối backend/JWT, chạy browser, OpenCTI,
   lab hoặc production.
+- W02 tích hợp cục bộ: `/tra-cuu` dùng adapter HTTP qua client wrapper, gateway chỉ mở `/api/ioc`, và LocalRun
+  inject JWT cùng lookup fixture tổng hợp deterministic theo scenario. Ma trận HTTP cùng UI/gateway/API kiểm IT,
+  analyst, multi-role, hidden-data invariant, found/allowlist/unknown, 401/403/422/503, no-store/Vary và chống
+  header JWT giả; browser tích hợp kiểm found/allowlist/unknown, VI/EN, 401 và 503. Đây vẫn chưa phải
+  Cloudflare/JWKS/HTTPS thật, OpenCTI, lab hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

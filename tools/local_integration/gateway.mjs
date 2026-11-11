@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 const HOP_BY_HOP = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade"]);
 const LEGACY_API_PATH = /^\/api\/drafts(?:\/[1-9][0-9]*(?:\/decision)?)?$/;
 const V1_API_PATH = /^\/api\/v1\/drafts(?:\/[1-9][0-9]*(?:\/(?:selection|decision))?)?$/;
+const IOC_API_PATH = "/api/ioc";
 
 function dynamicHopHeaders(headers) {
   const names = new Set(HOP_BY_HOP);
@@ -84,7 +85,9 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     }
     const isApi = url.pathname.startsWith("/api/");
     const isV1 = V1_API_PATH.test(url.pathname);
-    if (isApi && !isV1 && !LEGACY_API_PATH.test(url.pathname)) return safeError(response, 404, "not_found");
+    if (isApi && !isV1 && url.pathname !== IOC_API_PATH && !LEGACY_API_PATH.test(url.pathname)) {
+      return safeError(response, 404, "not_found");
+    }
     if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") return safeError(response, 503, "synthetic_refresh_failure");
     let body;
     try {

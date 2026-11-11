@@ -33,6 +33,7 @@ from phonghoa_extractor.drafts import build_regex_draft
 from portal_api.app import create_app
 from portal_api.auth import AccessJwtVerifier
 from tools.local_integration.local_settings import make_local_settings
+from tools.local_integration.w02_fixture import build_w02_fixture
 
 SELECTION_SCENARIOS = frozenset(
     {
@@ -44,6 +45,17 @@ SELECTION_SCENARIOS = frozenset(
     }
 )
 STIX_E2E_SCENARIOS = frozenset({"stix-e2e"})
+W02_SCENARIOS = frozenset(
+    {
+        "w02-it",
+        "w02-it-hidden-mutated",
+        "w02-analyst",
+        "w02-multi-role",
+        "w02-missing-token",
+        "w02-forbidden",
+        "w02-lookup-503",
+    }
+)
 SCENARIOS = (
     frozenset(
         {
@@ -58,6 +70,7 @@ SCENARIOS = (
     )
     | SELECTION_SCENARIOS
     | STIX_E2E_SCENARIOS
+    | W02_SCENARIOS
 )
 E2E_SOURCE_BYTES = "Cảnh báo thử nghiệm 😀 ghi nhận evil-one.example và evil-two.example.\n".encode()
 E2E_CREATOR_SUBJECT = "e2e-author-sub"
@@ -164,13 +177,16 @@ class LocalRun:
             "e": _b64uint(public.e),
         }
         now = datetime.now(UTC)
-        subject = (
-            "analyst-sub"
-            if self.scenario == "analyst-self"
-            else "it-sub"
-            if self.scenario == "insufficient-role"
-            else "admin-sub"
-        )
+        if self.scenario in {"analyst-self", "w02-analyst"}:
+            subject = "analyst-sub"
+        elif self.scenario in {"insufficient-role", "w02-it", "w02-it-hidden-mutated"}:
+            subject = "it-sub"
+        elif self.scenario == "w02-multi-role":
+            subject = "multi-sub"
+        elif self.scenario == "w02-forbidden":
+            subject = "viewer-sub"
+        else:
+            subject = "admin-sub"
         claims: dict[str, Any] = {
             "sub": subject,
             "iss": settings.access_issuer,
@@ -188,7 +204,7 @@ class LocalRun:
         )
         token = (
             None
-            if self.scenario == "missing-token"
+            if self.scenario in {"missing-token", "w02-missing-token"}
             else jwt.encode(claims, signing_key, algorithm="RS256", headers={"kid": "w05-local"})
         )
         return token, AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
@@ -318,11 +334,19 @@ class LocalRun:
                 "analyst-sub": frozenset({"analyst"}),
                 "it-sub": frozenset({"it"}),
                 "author-sub": frozenset({"analyst"}),
+                "multi-sub": frozenset({"it", "analyst"}),
+                "viewer-sub": frozenset({"viewer"}),
             }
             settings = make_local_settings(self.db_path, self.temp_root, self.gateway_port, roles)
             self._save_fixtures()
             token, verifier = self._token_and_verifier(settings)
-            app = create_app(settings, store, verifier=verifier)
+            lookup_port = None
+            if self.scenario in W02_SCENARIOS:
+                lookup_port = build_w02_fixture(
+                    fail=self.scenario == "w02-lookup-503",
+                    mutate_hidden=self.scenario == "w02-it-hidden-mutated",
+                )
+            app = create_app(settings, store, verifier=verifier, lookup_port=lookup_port)
             self._api_server = uvicorn.Server(
                 uvicorn.Config(app, host="127.0.0.1", port=self.api_port, log_level="warning", lifespan="off")
             )

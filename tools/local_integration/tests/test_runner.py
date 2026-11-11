@@ -41,6 +41,34 @@ def test_runner_rejects_unknown_scenario_before_creating_resources() -> None:
         LocalRun("caller-selected-admin")
 
 
+@pytest.mark.parametrize(
+    ("scenario", "status"),
+    [
+        ("w02-it", 200),
+        ("w02-analyst", 200),
+        ("w02-multi-role", 200),
+        ("w02-missing-token", 401),
+        ("w02-forbidden", 403),
+        ("w02-lookup-503", 503),
+    ],
+)
+def test_w02_scenarios_inject_deterministic_lookup_fixture(scenario: str, status: int) -> None:
+    with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/ioc", params={"value": "evil.example"}, timeout=2)
+        assert response.status_code == status
+        assert response.headers["cache-control"] == "no-store"
+        assert response.headers["vary"] == "Cf-Access-Jwt-Assertion"
+        if status == 200:
+            assert response.json()["state"] == "found"
+
+
+def test_non_w02_scenario_keeps_production_default_lookup_port_missing() -> None:
+    with LocalRun("admin-other", duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/ioc", params={"value": "evil.example"}, timeout=2)
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "lookup_unavailable"
+
+
 def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixtures() -> None:
     with LocalRun("selection-admin", duration_seconds=20, start_ui=False) as selection_run:
         response = httpx.get(
