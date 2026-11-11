@@ -28,6 +28,9 @@ ALLOWED_SCENARIOS = (
     "w03-leader",
     "w03-snapshot-change",
     "w03-refresh-503",
+    "w03-status-it",
+    "w03-status-known-commit",
+    "w03-status-unknown-outcome",
 )
 
 
@@ -59,6 +62,8 @@ def snapshot_assets_database(
         technology_rows = count("technology_assets")
         active_technologies = count("technology_assets", "WHERE deleted_at IS NULL")
         technology_audit_rows = count("technology_asset_audit")
+        cve_status_records = count("cve_status_records")
+        cve_status_audit = count("cve_status_audit")
         draft_rows = count("drafts")
         database_name = "assets-before-cleanup.sqlite" if label is None else f"assets-{label}.sqlite"
         destination = sqlite3.connect(evidence_dir / database_name)
@@ -71,6 +76,8 @@ def snapshot_assets_database(
         "active_technologies": active_technologies,
         "asset_rows": asset_rows,
         "audit_rows": audit_rows,
+        "cve_status_audit": cve_status_audit,
+        "cve_status_records": cve_status_records,
         "draft_rows": draft_rows,
         "technology_audit_rows": technology_audit_rows,
         "technology_rows": technology_rows,
