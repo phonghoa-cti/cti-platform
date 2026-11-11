@@ -292,6 +292,20 @@ def main() -> int:
                 "source_sha256": SOURCE_SHA256,
                 "bundle_sha256": bundle_sha256,
                 "object_count": object_count,
+                "pending_export_db_inventory": {
+                    "before": pending_db_before,
+                    "after": pending_db_after,
+                },
+                "approved_export_db_inventory": {
+                    "before": approved_db_before,
+                    "after": approved_db_after,
+                },
+                "cleanup": {
+                    "gateway_stopped": True,
+                    "api_thread_stopped": True,
+                    "gateway_port_released": True,
+                    "temp_removed": True,
+                },
             },
             separators=(",", ":"),
             sort_keys=True,
