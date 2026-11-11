@@ -82,7 +82,7 @@ def create_v1_database(db: Path) -> str:
     return payload
 
 
-def test_migrate_v1_to_v2_preserves_payload_and_is_idempotent(tmp_path: Path):
+def test_migrate_v1_to_v3_preserves_payload_and_is_idempotent(tmp_path: Path):
     db = tmp_path / "v1.sqlite"
     payload = create_v1_database(db)
 
@@ -91,12 +91,13 @@ def test_migrate_v1_to_v2_preserves_payload_and_is_idempotent(tmp_path: Path):
     store.migrate_store(db)
 
     with sqlite3.connect(db) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
         assert connection.execute("SELECT payload_json,selection_version FROM drafts").fetchone() == (
             payload,
             0,
         )
         assert connection.execute("SELECT * FROM draft_selection_audit").fetchall() == []
+        assert connection.execute("SELECT * FROM draft_ingest_provenance").fetchall() == []
     assert db.read_bytes() == first
 
 

@@ -38,7 +38,8 @@ FINDING_KEYS = {"paragraph", "rule", "excerpt"}
 SOURCE_KEYS = {"name", "sha256"}
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
 SQLITE_MAX_INTEGER = 2**63 - 1
-STORE_SCHEMA_VERSION = 2
+SELECTION_SCHEMA_VERSION = 2
+STORE_SCHEMA_VERSION = 3
 REVIEW_STATUSES = {"pending", "approved", "rejected"}
 ALLOWED_REVIEW_ROLES = {"analyst", "admin"}
 LEGACY_DRAFT_COLUMNS = {
@@ -84,6 +85,18 @@ SELECTION_AUDIT_COLUMNS = {
     "actor_subject",
     "selected_indices_json",
     "selected_sha256",
+}
+INGEST_PROVENANCE_COLUMNS = {
+    "draft_id",
+    "envelope_schema_version",
+    "envelope_sha256",
+    "input_format",
+    "display_name",
+    "raw_sha256",
+    "raw_bytes",
+    "canonical_text_sha256",
+    "page_count",
+    "page_text_ranges_json",
 }
 
 
@@ -363,6 +376,15 @@ def _has_selection_foreign_key(connection: sqlite3.Connection) -> bool:
     )
 
 
+def _has_provenance_foreign_key(connection: sqlite3.Connection) -> bool:
+    rows = list(connection.execute("PRAGMA foreign_key_list(draft_ingest_provenance)"))
+    return len(rows) == 1 and (rows[0][2], rows[0][3], rows[0][4]) == (
+        "drafts",
+        "draft_id",
+        "id",
+    )
+
+
 def _commit(connection: sqlite3.Connection) -> None:
     """Điểm commit nhỏ để test chứng minh rollback khi commit thất bại."""
 
@@ -440,6 +462,25 @@ def _create_selection_schema(connection: sqlite3.Connection) -> None:
     )
 
 
+def _create_provenance_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE draft_ingest_provenance (
+            draft_id INTEGER PRIMARY KEY REFERENCES drafts(id),
+            envelope_schema_version TEXT NOT NULL,
+            envelope_sha256 TEXT NOT NULL UNIQUE,
+            input_format TEXT NOT NULL CHECK (input_format IN ('text','pdf')),
+            display_name TEXT NOT NULL,
+            raw_sha256 TEXT NOT NULL,
+            raw_bytes INTEGER NOT NULL,
+            canonical_text_sha256 TEXT NOT NULL,
+            page_count INTEGER,
+            page_text_ranges_json TEXT
+        )
+        """
+    )
+
+
 def _validate_v1_schema(connection: sqlite3.Connection) -> None:
     drafts_info = _table_info(connection, "drafts")
     audit_info = _table_info(connection, "draft_audit")
@@ -476,7 +517,7 @@ def _validate_v1_schema(connection: sqlite3.Connection) -> None:
         raise DraftSQLiteError("Schema drafts thiếu index review queue")
 
 
-def _validate_current_schema(connection: sqlite3.Connection) -> None:
+def _validate_v2_schema(connection: sqlite3.Connection) -> None:
     drafts_info = _table_info(connection, "drafts")
     audit_info = _table_info(connection, "draft_audit")
     selection_info = _table_info(connection, "draft_selection_audit")
@@ -507,6 +548,51 @@ def _validate_current_schema(connection: sqlite3.Connection) -> None:
     if not _has_queue_index(connection):
         raise DraftSQLiteError("Schema drafts thiếu index review queue")
     _validate_v2_audit_rows(connection)
+
+
+def _validate_v3_schema(connection: sqlite3.Connection) -> None:
+    _validate_v2_schema(connection)
+    info = _table_info(connection, "draft_ingest_provenance")
+    if set(info) != INGEST_PROVENANCE_COLUMNS:
+        raise DraftSQLiteError("Schema provenance bị hỏng hoặc không được hỗ trợ")
+    required = INGEST_PROVENANCE_COLUMNS - {"draft_id", "page_count", "page_text_ranges_json"}
+    if any(info[column][3] != 1 for column in required) or info["draft_id"][5] != 1:
+        raise DraftSQLiteError("Schema provenance thiếu NOT NULL/PRIMARY KEY")
+    if not _has_unique_index(connection, "draft_ingest_provenance", ["envelope_sha256"]):
+        raise DraftSQLiteError("Schema provenance thiếu UNIQUE envelope_sha256")
+    if not _has_provenance_foreign_key(connection):
+        raise DraftSQLiteError("Schema provenance thiếu FK draft_id")
+    table_sql = _table_sql(connection, "draft_ingest_provenance")
+    if not _has_check(table_sql, r"input_format\s+in\s*\(\s*'text'\s*,\s*'pdf'\s*\)"):
+        raise DraftSQLiteError("Schema provenance thiếu CHECK input_format")
+    from phonghoa_extractor.ingest_queue import _decode_provenance
+
+    rows = connection.execute(
+        "SELECT p.draft_id,p.envelope_schema_version,p.envelope_sha256,p.input_format,"
+        "p.display_name,p.raw_sha256,p.raw_bytes,p.canonical_text_sha256,p.page_count,"
+        "p.page_text_ranges_json,d.payload_json FROM draft_ingest_provenance p "
+        "JOIN drafts d ON d.id=p.draft_id ORDER BY p.draft_id"
+    ).fetchall()
+    linked_count = connection.execute("SELECT COUNT(*) FROM draft_ingest_provenance").fetchone()[0]
+    if len(rows) != linked_count:
+        raise DraftSQLiteError("Provenance có draft_id mồ côi")
+    for row in rows:
+        try:
+            payload = json.loads(row[10])
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise DraftSQLiteError("Payload provenance không hợp lệ") from exc
+        _decode_provenance(row[:10], payload)
+
+
+def _validate_current_schema(connection: sqlite3.Connection) -> None:
+    version = connection.execute("PRAGMA user_version").fetchone()[0]
+    if version == SELECTION_SCHEMA_VERSION:
+        _validate_v2_schema(connection)
+        return
+    if version == STORE_SCHEMA_VERSION:
+        _validate_v3_schema(connection)
+        return
+    raise DraftSQLiteError("Schema database không hợp lệ; cần migrate rõ ràng")
 
 
 def _validate_canonical_indices(serialized: Any, digest: Any) -> tuple[int, ...]:
@@ -583,7 +669,7 @@ def _schema_mode(connection: sqlite3.Connection) -> Literal["legacy", "v1", "cur
     if user_version == 1:
         _validate_v1_schema(connection)
         return "v1"
-    if user_version == STORE_SCHEMA_VERSION:
+    if user_version in {SELECTION_SCHEMA_VERSION, STORE_SCHEMA_VERSION}:
         _validate_current_schema(connection)
         return "current"
     raise DraftSQLiteError("Schema database không hợp lệ; cần migrate rõ ràng")
@@ -591,50 +677,73 @@ def _schema_mode(connection: sqlite3.Connection) -> Literal["legacy", "v1", "cur
 
 def _migrate_connection(connection: sqlite3.Connection) -> None:
     user_version = connection.execute("PRAGMA user_version").fetchone()[0]
-    if user_version == STORE_SCHEMA_VERSION:
-        _validate_current_schema(connection)
-        return
-    if user_version not in {0, 1}:
+    if user_version > STORE_SCHEMA_VERSION or user_version not in {0, 1, 2, 3}:
         raise DraftSQLiteError(f"Phiên bản database {user_version} chưa được hỗ trợ")
-    draft_columns = _table_columns(connection, "drafts")
-    if user_version == 0 and draft_columns and draft_columns != LEGACY_DRAFT_COLUMNS:
-        raise DraftSQLiteError("Schema drafts legacy bị hỏng hoặc không được hỗ trợ")
-    if user_version == 1:
-        _validate_v1_schema(connection)
+    if user_version == STORE_SCHEMA_VERSION:
+        _validate_v3_schema(connection)
+        return
+
+    if user_version in {0, 1}:
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            user_version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if user_version in {0, 1}:
+                draft_columns = _table_columns(connection, "drafts")
+                if user_version == 0 and draft_columns and draft_columns != LEGACY_DRAFT_COLUMNS:
+                    raise DraftSQLiteError("Schema drafts legacy bị hỏng hoặc không được hỗ trợ")
+                if user_version == 1:
+                    _validate_v1_schema(connection)
+                if not draft_columns:
+                    _create_current_schema(connection)
+                    _create_audit_schema(connection)
+                    _create_selection_schema(connection)
+                elif user_version == 0:
+                    connection.execute("ALTER TABLE drafts ADD COLUMN created_by_subject TEXT")
+                    connection.execute(
+                        "ALTER TABLE drafts ADD COLUMN review_status TEXT NOT NULL DEFAULT 'pending' "
+                        "CHECK (review_status IN ('pending', 'approved', 'rejected'))"
+                    )
+                    connection.execute(
+                        "ALTER TABLE drafts ADD COLUMN review_version INTEGER NOT NULL DEFAULT 0 "
+                        "CHECK (review_version >= 0)"
+                    )
+                    connection.execute("ALTER TABLE drafts ADD COLUMN decided_by_subject TEXT")
+                    connection.execute("ALTER TABLE drafts ADD COLUMN decided_at TEXT")
+                    connection.execute("ALTER TABLE drafts ADD COLUMN decision_reason TEXT")
+                    _create_audit_schema(connection)
+                if draft_columns:
+                    connection.execute(
+                        "ALTER TABLE drafts ADD COLUMN selection_version INTEGER NOT NULL DEFAULT 0 "
+                        "CHECK (selection_version >= 0)"
+                    )
+                if user_version == 1:
+                    connection.execute("ALTER TABLE draft_audit ADD COLUMN selection_version INTEGER")
+                    connection.execute("ALTER TABLE draft_audit ADD COLUMN selected_indices_json TEXT")
+                    connection.execute("ALTER TABLE draft_audit ADD COLUMN selected_sha256 TEXT")
+                _create_selection_schema(connection)
+                _validate_v2_schema(connection)
+                connection.execute(f"PRAGMA user_version = {SELECTION_SCHEMA_VERSION}")
+                _commit(connection)
+            else:
+                connection.rollback()
+        except (sqlite3.Error, DraftStoreError):
+            connection.rollback()
+            raise
 
     connection.execute("BEGIN IMMEDIATE")
     try:
-        if not draft_columns:
-            _create_current_schema(connection)
-            _create_audit_schema(connection)
-            _create_selection_schema(connection)
-        elif user_version == 0:
-            connection.execute("ALTER TABLE drafts ADD COLUMN created_by_subject TEXT")
-            connection.execute(
-                "ALTER TABLE drafts ADD COLUMN review_status TEXT NOT NULL DEFAULT 'pending' "
-                "CHECK (review_status IN ('pending', 'approved', 'rejected'))"
-            )
-            connection.execute(
-                "ALTER TABLE drafts ADD COLUMN review_version INTEGER NOT NULL DEFAULT 0 "
-                "CHECK (review_version >= 0)"
-            )
-            connection.execute("ALTER TABLE drafts ADD COLUMN decided_by_subject TEXT")
-            connection.execute("ALTER TABLE drafts ADD COLUMN decided_at TEXT")
-            connection.execute("ALTER TABLE drafts ADD COLUMN decision_reason TEXT")
-            _create_audit_schema(connection)
-        if draft_columns:
-            connection.execute(
-                "ALTER TABLE drafts ADD COLUMN selection_version INTEGER NOT NULL DEFAULT 0 "
-                "CHECK (selection_version >= 0)"
-            )
-        if user_version == 1:
-            connection.execute("ALTER TABLE draft_audit ADD COLUMN selection_version INTEGER")
-            connection.execute("ALTER TABLE draft_audit ADD COLUMN selected_indices_json TEXT")
-            connection.execute("ALTER TABLE draft_audit ADD COLUMN selected_sha256 TEXT")
-        _create_selection_schema(connection)
-        _validate_current_schema(connection)
-        connection.execute(f"PRAGMA user_version = {STORE_SCHEMA_VERSION}")
-        _commit(connection)
+        user_version = connection.execute("PRAGMA user_version").fetchone()[0]
+        if user_version == SELECTION_SCHEMA_VERSION:
+            _validate_v2_schema(connection)
+            _create_provenance_schema(connection)
+            _validate_v3_schema(connection)
+            connection.execute(f"PRAGMA user_version = {STORE_SCHEMA_VERSION}")
+            _commit(connection)
+        elif user_version == STORE_SCHEMA_VERSION:
+            _validate_v3_schema(connection)
+            connection.rollback()
+        else:
+            raise DraftSQLiteError(f"Phiên bản database {user_version} chưa được hỗ trợ")
     except (sqlite3.Error, DraftStoreError):
         connection.rollback()
         raise
@@ -862,7 +971,7 @@ def get_draft(db_path: str | Path, draft_id: int, *, timeout: float = 5.0) -> di
         uri = f"{path.resolve().as_uri()}?mode=ro"
         connection = sqlite3.connect(uri, uri=True, timeout=timeout)
         mode = _schema_mode(connection)
-        is_v2 = connection.execute("PRAGMA user_version").fetchone()[0] == STORE_SCHEMA_VERSION
+        is_v2 = connection.execute("PRAGMA user_version").fetchone()[0] >= SELECTION_SCHEMA_VERSION
         review_columns = (
             ", created_by_subject, review_status, review_version, "
             "decided_by_subject, decided_at, decision_reason" + (", selection_version" if is_v2 else "")
@@ -911,7 +1020,7 @@ def list_drafts(
         uri = f"{path.resolve().as_uri()}?mode=ro"
         connection = sqlite3.connect(uri, uri=True, timeout=timeout)
         mode = _schema_mode(connection)
-        is_v2 = connection.execute("PRAGMA user_version").fetchone()[0] == STORE_SCHEMA_VERSION
+        is_v2 = connection.execute("PRAGMA user_version").fetchone()[0] >= SELECTION_SCHEMA_VERSION
         review_columns = (
             ", created_by_subject, review_status, review_version, "
             "decided_by_subject, decided_at, decision_reason" + (", selection_version" if is_v2 else "")
@@ -957,7 +1066,10 @@ def get_draft_with_selection(db_path: str | Path, draft_id: int, *, timeout: flo
     connection: sqlite3.Connection | None = None
     try:
         connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=timeout)
-        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+        if connection.execute("PRAGMA user_version").fetchone()[0] not in {
+            SELECTION_SCHEMA_VERSION,
+            STORE_SCHEMA_VERSION,
+        }:
             raise DraftSQLiteError("Chức năng selection yêu cầu migrate database lên v2")
         _validate_current_schema(connection)
         connection.execute("BEGIN")
@@ -1009,7 +1121,10 @@ def list_drafts_with_selection_version(
     connection: sqlite3.Connection | None = None
     try:
         connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=timeout)
-        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+        if connection.execute("PRAGMA user_version").fetchone()[0] not in {
+            SELECTION_SCHEMA_VERSION,
+            STORE_SCHEMA_VERSION,
+        }:
             raise DraftSQLiteError("Chức năng selection yêu cầu migrate database lên v2")
         _validate_current_schema(connection)
         query = (
@@ -1197,7 +1312,10 @@ def get_effective_selection(
     connection: sqlite3.Connection | None = None
     try:
         connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=timeout)
-        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+        if connection.execute("PRAGMA user_version").fetchone()[0] not in {
+            SELECTION_SCHEMA_VERSION,
+            STORE_SCHEMA_VERSION,
+        }:
             raise DraftSQLiteError("Chức năng selection yêu cầu migrate database lên v2")
         _validate_current_schema(connection)
         connection.execute("BEGIN")
@@ -1244,7 +1362,10 @@ def save_selection(
     try:
         connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=rw", uri=True, timeout=timeout)
         connection.execute("PRAGMA foreign_keys = ON")
-        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+        if connection.execute("PRAGMA user_version").fetchone()[0] not in {
+            SELECTION_SCHEMA_VERSION,
+            STORE_SCHEMA_VERSION,
+        }:
             raise DraftSQLiteError("Chức năng selection yêu cầu migrate database lên v2")
         _validate_current_schema(connection)
         connection.execute("BEGIN IMMEDIATE")
@@ -1336,7 +1457,10 @@ def get_approved_export_snapshot(
     try:
         connection = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True, timeout=timeout)
         connection.execute("BEGIN")
-        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+        if connection.execute("PRAGMA user_version").fetchone()[0] not in {
+            SELECTION_SCHEMA_VERSION,
+            STORE_SCHEMA_VERSION,
+        }:
             raise DraftSQLiteError("Export yêu cầu database schema v2")
         _validate_current_schema(connection)
         row = connection.execute(
@@ -1518,7 +1642,10 @@ def _decide_draft_with_selection(
         connection = sqlite3.connect(uri, uri=True, timeout=timeout)
         connection.execute("PRAGMA foreign_keys = ON")
         _schema_mode(connection)
-        if connection.execute("PRAGMA user_version").fetchone()[0] != STORE_SCHEMA_VERSION:
+        if connection.execute("PRAGMA user_version").fetchone()[0] not in {
+            SELECTION_SCHEMA_VERSION,
+            STORE_SCHEMA_VERSION,
+        }:
             raise DraftSQLiteError("Database cần migrate lên v2 trước khi quyết định")
         _validate_current_schema(connection)
         connection.execute("BEGIN IMMEDIATE")

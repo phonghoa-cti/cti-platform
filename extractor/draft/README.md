@@ -88,3 +88,18 @@ Hợp đồng dữ liệu đầy đủ để nối W05 nằm tại
 [`docs/specs/W05-draft-offline-contract.md`](../../docs/specs/W05-draft-offline-contract.md). Ba kết quả `get`
 SQLite bằng dữ liệu tổng hợp nằm trong [`examples/`](examples/README.md); đây là fixture UI/hợp đồng, không phải
 bằng chứng endpoint HTTP hay màn duyệt đã hoạt động.
+
+## Nhập envelope X01 đã có vào hàng chờ W05
+
+Tạo database bằng store CLI hiện hữu trước, rồi nhập một envelope local:
+
+```powershell
+.\.venv\Scripts\python.exe extractor\ingest_queue\run.py import `
+  --envelope .\synthetic-envelope.json `
+  --db .\drafts.sqlite `
+  --created-by-subject operator-subject
+```
+
+Lệnh chỉ in `{"draft_id":N,"result":"imported"}` hoặc `duplicate`; lỗi chỉ in mã đóng. Subject là định danh opaque
+do người vận hành cung cấp, không đọc từ envelope và không thay thế xác thực HTTP. Importer không mở lại PDF/TXT,
+không gọi model/mạng/OpenCTI và không tự duyệt draft.
