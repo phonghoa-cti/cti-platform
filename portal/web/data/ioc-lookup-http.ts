@@ -327,7 +327,7 @@ export function createIocHttpDataSource({
           signal: controller.signal,
         });
         const body = await readJson(response, controller.signal);
-        if (!response.ok) {
+        if (response.status !== 200) {
           const error = parseError(body);
           return mapHttpError(response.status, error.code);
         }

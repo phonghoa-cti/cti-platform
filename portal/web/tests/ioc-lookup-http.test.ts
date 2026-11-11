@@ -208,6 +208,14 @@ describe("W02 same-origin HTTP data source", () => {
     await expect(source.lookup("evil.example")).resolves.toEqual({ state: "unavailable" });
   });
 
+  it("rejects a valid found fixture returned with non-contract success status 201", async () => {
+    const source = createIocHttpDataSource({
+      fetcher: vi.fn().mockResolvedValue(jsonResponse(foundFixture, 201)),
+    });
+
+    await expect(source.lookup("evil.example")).resolves.toEqual({ state: "unavailable" });
+  });
+
   it.each([
     ["HTML success", new Response("<html>login</html>", { headers: { "Content-Type": "text/html" } })],
     ["invalid JSON", new Response("{", { headers: { "Content-Type": "application/json" } })],
