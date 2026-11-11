@@ -33,6 +33,14 @@ describe("strict W04 assets HTTP parser", () => {
     expect(parseAssetList({ items: [structuredClone(domain)] })).toEqual([domain]);
   });
 
+  it.each([253, 254, 512])("accepts created_by with %i characters", (length) => {
+    expect(parseAssetItem({ ...domain, created_by: "a".repeat(length) }).created_by).toHaveLength(length);
+  });
+
+  it("rejects created_by with 513 characters", () => {
+    expect(() => parseAssetItem({ ...domain, created_by: "a".repeat(513) })).toThrow();
+  });
+
   it.each([
     ["extra item field", { ...domain, canonical_value: domain.value }],
     ["unsafe integer id", { ...domain, id: Number.MAX_SAFE_INTEGER + 1 }],
@@ -52,6 +60,19 @@ describe("strict W04 assets HTTP parser", () => {
 });
 
 describe("W04 same-origin assets adapter", () => {
+  it.each(["list", "create"] as const)("accepts a 512-character created_by from %s", async (operation) => {
+    const response = { ...domain, created_by: "a".repeat(512) };
+    const fetcher = vi.fn().mockResolvedValue(json(operation === "list" ? { items: [response] } : response, operation === "list" ? 200 : 201));
+    const source = createAssetsHttpDataSource({ fetcher });
+
+    const result = operation === "list"
+      ? (await source.list("domain"))[0]
+      : await source.create({ type: "domain", value: "congty.vn", note: "" });
+
+    expect(result.createdBy).toHaveLength(512);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it("lists the selected type with one same-origin GET and no identity header", async () => {
     const fetcher = vi.fn().mockResolvedValue(json({ items: [domain] }));
     const result = await createAssetsHttpDataSource({ fetcher }).list("domain");
@@ -132,6 +153,39 @@ describe("W04 same-origin assets adapter", () => {
     const fetcher = vi.fn().mockResolvedValue(json({ error: { code, message: "Không hiển thị raw" } }, status));
     await expect(createAssetsHttpDataSource({ fetcher }).create({ type: "domain", value: "x.vn", note: "" }))
       .rejects.toMatchObject({ name: "AssetDataError", kind });
+  });
+
+  it.each(["create", "update", "remove"] as const)("classifies %s upstream_unavailable as unknown without replay", async (operation) => {
+    const fetcher = vi.fn().mockResolvedValue(json({ error: { code: "upstream_unavailable", message: "gateway" } }, 503));
+    const source = createAssetsHttpDataSource({ fetcher });
+    const pending = operation === "create"
+      ? source.create({ type: "domain", value: "x.vn", note: "" })
+      : operation === "update"
+        ? source.update(1, { type: "domain", value: "x.vn", note: "", expectedVersion: 1 })
+        : source.remove(1, 1);
+
+    await expect(pending).rejects.toEqual(new AssetDataError("unknown-mutation"));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["create", "update", "remove"] as const)("classifies an unknown %s error envelope as unknown without replay", async (operation) => {
+    const fetcher = vi.fn().mockResolvedValue(json({ error: { code: "unexpected_gateway_code", message: "gateway" } }, 502));
+    const source = createAssetsHttpDataSource({ fetcher });
+    const pending = operation === "create"
+      ? source.create({ type: "domain", value: "x.vn", note: "" })
+      : operation === "update"
+        ? source.update(1, { type: "domain", value: "x.vn", note: "", expectedVersion: 1 })
+        : source.remove(1, 1);
+
+    await expect(pending).rejects.toEqual(new AssetDataError("unknown-mutation"));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps upstream_unavailable GET as unavailable without retry", async () => {
+    const fetcher = vi.fn().mockResolvedValue(json({ error: { code: "upstream_unavailable", message: "gateway" } }, 503));
+    await expect(createAssetsHttpDataSource({ fetcher }).list("domain"))
+      .rejects.toEqual(new AssetDataError("unavailable"));
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("classifies a lost mutation response as unknown and never replays it", async () => {

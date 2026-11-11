@@ -88,14 +88,45 @@ ownership sẵn có vẫn bảo vệ response list đã bắt đầu trước đ
 
 Evidence R1 dùng tiền tố `w04-assets-frontend-evidence/rework-r1-`.
 
+## Rework F1–F3 — đồng bộ contract và ownership sau refresh
+
+Base rework: `be131133da7b63a3054da032ed1ab8a85af48bc6`. F1 đổi riêng bound `created_by` từ 253 lên
+512 code point; các bound value/note/asset name khác không đổi. Parser kiểm 253/254/512 hợp lệ, 513 bị từ chối;
+adapter GET list và POST create đều nhận response có actor dài 512.
+
+F2 chỉ coi đúng cặp status/code đã xác nhận là kết quả mutation đã biết. `upstream_unavailable`, envelope lạ hoặc
+cặp status/code lạ của POST/PUT/DELETE trở thành `unknown-mutation`, gọi đúng một lần và hướng người dùng GET đối
+soát; GET vẫn là `unavailable`. `503/assets_unavailable` và các lỗi auth/forbidden/conflict/not-found/invalid đã
+biết vẫn giữ mapping cũ.
+
+F3 kiểm lại context token ngay sau `await load(type, true)` và trước khi ghi notice cho create/update/delete.
+Refresh domain cũ reject sau khi tab IP đã tải xong không còn ghi thông báo “đã lưu nhưng chưa tải lại” vào context
+mới; recovery 503→200 trong chính context hiện tại vẫn đạt.
+
+| Kiểm F1–F3 | Exit | Kết quả |
+|---|---:|---|
+| F1 RED / GREEN `assets-http.test.ts` | 1 / 0 | 4 fail → 31/31 pass |
+| F2 RED / GREEN `assets-http.test.ts` | 1 / 0 | 6 fail → 38/38 pass |
+| F3 RED / GREEN `assets-app.test.tsx` | 1 / 0 | 3 fail → 15/15 pass |
+| focused assets HTTP + UI | 0 | 53/53 test, 2/2 file đạt; không chạy lại full 222 theo brief |
+| `npm run typecheck` / `npm run lint` / `npm run build` | 0 / 0 / 0 | PASS; 7 route tĩnh gồm `/tai-san/mau` |
+| `git diff --check` | 0 | PASS; chỉ cảnh báo LF/CRLF của Git |
+| probe Leader nguyên lệnh brief | 0 | 6/6 test đạt |
+
+Raw evidence mới: `w04-assets-frontend-evidence/rework-f{1,2,3}-{red,green}.txt`,
+`rework-focused-assets.txt`, `rework-{typecheck,lint,build,diff-check}.txt`, và
+`w04-assets-frontend-evidence/rework-leader/leader-probe-green.txt`.
+
 ## PASS / FAIL / UNVERIFIED
 
 - **PASS:** UI mẫu, provider/HTTP adapter, CRUD interaction, optimistic version, lỗi/quyền, mutation không replay,
-  stale request ownership, strict W02 asset fixtures, full Vitest/typecheck/lint/build/diff check.
+  stale request/context ownership trước và sau refresh, strict W02 asset fixtures, focused assets 53/53,
+  probe Leader 6/6, typecheck/lint/build/diff check.
 - **FAIL:** không còn failure sản phẩm trong phạm vi. Lỗi build junction ban đầu đã được xử lý bằng dependency copy
   cục bộ và giữ log; không sửa package/lock.
 - **UNVERIFIED:** browser thật/viewport 360 px/clipboard; API `/api/assets` thật, gateway, JWT/role, database và
-  toàn luồng W04 + W02 cùng một DB; Backend candidate chưa được Leader nghiệm thu; Cloudflare/JWKS/HTTPS, lab,
+  toàn luồng W04 + W02 cùng một DB; Backend đã được Leader nghiệm thu riêng nhưng chưa tích hợp runtime ở tree này;
+  Cloudflare/JWKS/HTTPS, lab,
   OpenCTI và production. Không có công cụ browser được mount cho worker nên không tự mở browser khác.
 
 ## Giải thích cho người mới

@@ -1,0 +1,10 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web
+
+
+ Test Files  2 passed (2)
+      Tests  53 passed (53)
+   Start at  22:15:55
+   Duration  6.55s (environment 45%, tests 38%, setup 12%, import 3%, transform 1%)
+
+EXIT_CODE=0

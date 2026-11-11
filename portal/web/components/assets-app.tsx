@@ -139,6 +139,7 @@ export function AssetsApp({
       setForm(null);
       setNotice({ kind: "success", message: messages.saved });
       const refreshed = await load(type, true);
+      if (context !== contextRef.current) return;
       if (!refreshed) setNotice({ kind: "committed-refresh", message: messages.committedRefresh });
     } catch (error) {
       if (context !== contextRef.current) return;
@@ -169,6 +170,7 @@ export function AssetsApp({
       setDeleteTarget(null);
       setNotice({ kind: "success", message: messages.deleted });
       const refreshed = await load(type, true);
+      if (context !== contextRef.current) return;
       if (!refreshed) setNotice({ kind: "committed-refresh", message: messages.committedRefresh });
     } catch (error) {
       if (context !== contextRef.current) return;

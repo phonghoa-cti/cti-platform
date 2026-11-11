@@ -194,4 +194,45 @@ describe("W04 assets management", () => {
     expect(screen.queryByText("congty.vn")).not.toBeInTheDocument();
     expect(screen.queryByText("Đã lưu tài sản.")).not.toBeInTheDocument();
   });
+
+  it.each(["create", "update", "delete"] as const)("does not let a stale %s refresh notice cross into a newer tab", async (operation) => {
+    const oldRefresh = deferred<AssetItem[]>();
+    const ip: AssetItem = { ...domain, id: 2, type: "ip_range", value: "203.0.113.0/24" };
+    const source = dataSource({
+      list: vi.fn()
+        .mockResolvedValueOnce(operation === "create" ? [] : [domain])
+        .mockReturnValueOnce(oldRefresh.promise)
+        .mockResolvedValueOnce([ip]),
+    });
+    const user = userEvent.setup();
+    render(<AssetsApp dataSource={source} />);
+
+    if (operation === "create") {
+      await screen.findByText(/Chưa có tên miền nào/);
+      await user.click(screen.getByRole("button", { name: "Thêm tên miền" }));
+      await user.type(screen.getByRole("textbox", { name: "Tên miền" }), "congty.vn");
+      await user.click(screen.getByRole("button", { name: "Lưu tài sản" }));
+    } else {
+      await screen.findByText("congty.vn");
+      if (operation === "update") {
+        await user.click(screen.getByRole("button", { name: "Sửa congty.vn" }));
+        await user.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+      } else {
+        await user.click(screen.getByRole("button", { name: "Xóa congty.vn" }));
+        await user.click(screen.getByRole("button", { name: "Xác nhận xóa congty.vn" }));
+      }
+    }
+
+    await waitFor(() => expect(source.list).toHaveBeenCalledTimes(2));
+    await user.click(screen.getByRole("tab", { name: "Dải IP" }));
+    expect(await screen.findByText("203.0.113.0/24")).toBeInTheDocument();
+    await act(async () => oldRefresh.reject(new AssetDataError("unavailable")));
+
+    await waitFor(() => expect(source.list).toHaveBeenCalledTimes(3));
+    expect(screen.getByRole("tab", { name: "Dải IP" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("203.0.113.0/24")).toBeInTheDocument();
+    expect(screen.queryByText("congty.vn")).not.toBeInTheDocument();
+    expect(screen.queryByText("Đã lưu nhưng chưa tải lại được danh sách. Chỉ tải lại danh sách; không gửi lại thao tác ghi.")).not.toBeInTheDocument();
+    expect(source[operation === "delete" ? "remove" : operation]).toHaveBeenCalledTimes(1);
+  });
 });
