@@ -155,6 +155,33 @@ class AssetPage(ExactModel):
     items: Annotated[list[AssetView], Field(max_length=1000)]
 
 
+class TechnologyCreateRequest(ExactModel):
+    vendor: Annotated[str, Field(min_length=1, max_length=4096)]
+    product: Annotated[str, Field(min_length=1, max_length=4096)]
+    software_version: Annotated[str, Field(min_length=1, max_length=4096)]
+    note: Annotated[str, Field(max_length=500)]
+
+
+class TechnologyUpdateRequest(TechnologyCreateRequest):
+    expected_version: SafePositiveInt
+
+
+class TechnologyView(ExactModel):
+    id: SafePositiveInt
+    vendor: Annotated[str, Field(min_length=1, max_length=128)]
+    product: Annotated[str, Field(min_length=1, max_length=256)]
+    software_version: Annotated[str, Field(min_length=1, max_length=128)]
+    note: Annotated[str, Field(max_length=500)]
+    created_by: Annotated[str, Field(min_length=1, max_length=512)]
+    created_at: str
+    updated_at: str
+    version: SafePositiveInt
+
+
+class TechnologyPage(ExactModel):
+    items: Annotated[list[TechnologyView], Field(max_length=1000)]
+
+
 class Source(ExactModel):
     name: str
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")

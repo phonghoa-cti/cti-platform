@@ -128,6 +128,11 @@ Cập nhật lần cuối: 11/11/2026
   sau refresh để notice domain cũ không lọt sang tab IP. TDD ghi nhận 4/6/3 failure RED, sau GREEN focused assets
   đạt 53/53 và probe Leader độc lập đạt 6/6; typecheck/lint/build/diff-check đều exit 0. API thật và browser vẫn
   chưa được kiểm trong rework này.
+- W04 technology backend cục bộ: `TechnologyStore` và API opt-in quản lý vendor/product/software version bằng
+  SQLite riêng, optimistic version và before/after audit nguyên tử; migration additive kiểm schema/index/marker,
+  duplicate chỉ map đúng identity active. Đã kiểm JWT/role, Origin/body, bound Unicode/actor/safe integer,
+  rollback/corruption/giới hạn và regression assets/W02 bằng fixture tổng hợp. Chưa nối gateway, UI/browser,
+  Cloudflare/JWKS thật, W03/OpenCTI, lab hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

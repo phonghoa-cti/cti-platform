@@ -1,0 +1,46 @@
+{
+  "created": {
+    "status": 201,
+    "body": {
+      "id": 41,
+      "vendor": "Fortinet",
+      "product": "FortiOS",
+      "software_version": "7.2.1",
+      "note": "VPN gateway mẫu",
+      "created_by": "synthetic-it",
+      "created_at": "2026-11-11T16:00:00Z",
+      "updated_at": "2026-11-11T16:00:00Z",
+      "version": 1
+    }
+  },
+  "list": {
+    "status": 200,
+    "body": {
+      "items": [
+        {
+          "id": 41,
+          "vendor": "Fortinet",
+          "product": "FortiOS",
+          "software_version": "7.2.1",
+          "note": "VPN gateway mẫu",
+          "created_by": "synthetic-it",
+          "created_at": "2026-11-11T16:00:00Z",
+          "updated_at": "2026-11-11T16:00:00Z",
+          "version": 1
+        }
+      ]
+    }
+  },
+  "duplicate": {
+    "status": 409,
+    "body": {"error": {"code": "technology_exists", "message": "Công nghệ đã tồn tại"}}
+  },
+  "conflict": {
+    "status": 409,
+    "body": {"error": {"code": "technology_conflict", "message": "Công nghệ đã thay đổi"}}
+  },
+  "unavailable": {
+    "status": 503,
+    "body": {"error": {"code": "assets_unavailable", "message": "Dịch vụ tài sản tạm thời không sẵn sàng"}}
+  }
+}

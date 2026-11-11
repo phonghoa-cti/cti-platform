@@ -51,9 +51,21 @@ from portal_api.schemas import (
     IocLookupResponse,
     SelectionSaveRequest,
     SelectionView,
+    TechnologyCreateRequest,
+    TechnologyPage,
+    TechnologyUpdateRequest,
+    TechnologyView,
 )
 from portal_api.service import ApiFailure, ReviewService
 from portal_api.settings import Settings
+from portal_api.technologies import (
+    InvalidTechnology,
+    TechnologiesUnavailable,
+    TechnologyConflict,
+    TechnologyExists,
+    TechnologyNotFound,
+    TechnologyStore,
+)
 
 JWT_HEADER = "Cf-Access-Jwt-Assertion"
 ALLOWED_ROLES = {"analyst", "admin"}
@@ -95,6 +107,13 @@ def _parse_asset_positive_integer(value: str) -> int:
         return _parse_positive_integer(value, "asset", maximum=JSON_SAFE_INTEGER)
     except ApiFailure as exc:
         raise ApiFailure(422, "invalid_asset", "Tài sản không hợp lệ") from exc
+
+
+def _parse_technology_positive_integer(value: str) -> int:
+    try:
+        return _parse_positive_integer(value, "technology", maximum=JSON_SAFE_INTEGER)
+    except ApiFailure as exc:
+        raise ApiFailure(422, "invalid_technology", "Công nghệ không hợp lệ") from exc
 
 
 def _parse_list_query(request: Request, *, maximum: int = SQLITE_MAX_INTEGER) -> tuple[int, int | None]:
@@ -153,6 +172,7 @@ def create_app(
     verifier: AccessJwtVerifier | None = None,
     lookup_port: IocLookupPort | None = None,
     asset_store: AssetStore | None = None,
+    technology_store: TechnologyStore | None = None,
 ) -> FastAPI:
     """Tạo app; cấu hình đã được Settings kiểm fail-closed trước đó."""
 
@@ -257,6 +277,11 @@ def create_app(
             raise ApiFailure(503, "assets_unavailable", "Dịch vụ tài sản tạm thời không sẵn sàng")
         return asset_store
 
+    def configured_technology_store() -> TechnologyStore:
+        if technology_store is None:
+            raise ApiFailure(503, "assets_unavailable", "Dịch vụ tài sản tạm thời không sẵn sàng")
+        return technology_store
+
     def asset_failure(exc: Exception) -> ApiFailure:
         if isinstance(exc, InvalidAsset):
             return ApiFailure(422, "invalid_asset", "Tài sản không hợp lệ")
@@ -272,6 +297,22 @@ def create_app(
 
     def as_asset_view(item) -> AssetView:
         return AssetView.model_validate(asdict(item))
+
+    def technology_failure(exc: Exception) -> ApiFailure:
+        if isinstance(exc, InvalidTechnology):
+            return ApiFailure(422, "invalid_technology", "Công nghệ không hợp lệ")
+        if isinstance(exc, TechnologyExists):
+            return ApiFailure(409, "technology_exists", "Công nghệ đã tồn tại")
+        if isinstance(exc, TechnologyNotFound):
+            return ApiFailure(404, "technology_not_found", "Không tìm thấy công nghệ")
+        if isinstance(exc, TechnologyConflict):
+            return ApiFailure(409, "technology_conflict", "Công nghệ đã thay đổi")
+        if isinstance(exc, TechnologiesUnavailable):
+            return ApiFailure(503, "assets_unavailable", "Dịch vụ tài sản tạm thời không sẵn sàng")
+        raise exc
+
+    def as_technology_view(item) -> TechnologyView:
+        return TechnologyView.model_validate(asdict(item))
 
     @app.get("/api/ioc", response_model=IocLookupResponse)
     def lookup_ioc(
@@ -293,6 +334,100 @@ def create_app(
                 "lookup_unavailable",
                 "Dịch vụ tra cứu tạm thời không sẵn sàng",
             ) from exc
+
+    @app.get("/api/assets/technologies", response_model=TechnologyPage)
+    def list_technologies(
+        request: Request,
+        _principal: Principal = Depends(require_assets_role),  # noqa: B008
+    ):
+        if request.query_params:
+            raise ApiFailure(422, "invalid_technology", "Query công nghệ không hợp lệ")
+        store = configured_technology_store()
+        try:
+            return TechnologyPage(items=[as_technology_view(item) for item in store.list()])
+        except Exception as exc:
+            raise technology_failure(exc) from exc
+
+    @app.post("/api/assets/technologies", response_model=TechnologyView, status_code=201)
+    async def create_technology(
+        request: Request,
+        principal: Principal = Depends(require_assets_role),  # noqa: B008
+    ):
+        _require_origin(request, settings)
+        _require_json(request)
+        try:
+            body = TechnologyCreateRequest.model_validate(await _read_limited_json(request, ASSET_BODY_LIMIT))
+            store = configured_technology_store()
+            return as_technology_view(
+                store.create(
+                    body.vendor,
+                    body.product,
+                    body.software_version,
+                    body.note,
+                    principal.subject,
+                )
+            )
+        except ApiFailure:
+            raise
+        except (json.JSONDecodeError, UnicodeDecodeError, ValidationError, TypeError, ValueError) as exc:
+            if isinstance(exc, InvalidTechnology):
+                raise technology_failure(exc) from exc
+            raise ApiFailure(422, "invalid_technology", "Công nghệ không hợp lệ") from exc
+        except Exception as exc:
+            raise technology_failure(exc) from exc
+
+    @app.put("/api/assets/technologies/{technology_id}", response_model=TechnologyView)
+    async def update_technology(
+        request: Request,
+        technology_id: str,
+        principal: Principal = Depends(require_assets_role),  # noqa: B008
+    ):
+        _require_origin(request, settings)
+        parsed_id = _parse_technology_positive_integer(technology_id)
+        _require_json(request)
+        try:
+            body = TechnologyUpdateRequest.model_validate(await _read_limited_json(request, ASSET_BODY_LIMIT))
+            store = configured_technology_store()
+            return as_technology_view(
+                store.update(
+                    parsed_id,
+                    body.vendor,
+                    body.product,
+                    body.software_version,
+                    body.note,
+                    body.expected_version,
+                    principal.subject,
+                )
+            )
+        except ApiFailure:
+            raise
+        except (json.JSONDecodeError, UnicodeDecodeError, ValidationError, TypeError, ValueError) as exc:
+            if isinstance(exc, InvalidTechnology):
+                raise technology_failure(exc) from exc
+            raise ApiFailure(422, "invalid_technology", "Công nghệ không hợp lệ") from exc
+        except Exception as exc:
+            raise technology_failure(exc) from exc
+
+    @app.delete("/api/assets/technologies/{technology_id}", status_code=204)
+    def delete_technology(
+        request: Request,
+        technology_id: str,
+        principal: Principal = Depends(require_assets_role),  # noqa: B008
+    ):
+        _require_origin(request, settings)
+        parsed_id = _parse_technology_positive_integer(technology_id)
+        if (
+            set(request.query_params) != {"expected_version"}
+            or len(request.query_params.getlist("expected_version")) != 1
+        ):
+            raise ApiFailure(422, "invalid_technology", "Query công nghệ không hợp lệ")
+        expected_version = _parse_technology_positive_integer(request.query_params["expected_version"])
+        store = configured_technology_store()
+        try:
+            store.delete(parsed_id, expected_version, principal.subject)
+        except Exception as exc:
+            raise technology_failure(exc) from exc
+        return Response(status_code=204)
 
     @app.get("/api/assets", response_model=AssetPage)
     def list_assets(
