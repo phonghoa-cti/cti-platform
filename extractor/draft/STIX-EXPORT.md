@@ -32,6 +32,8 @@ TLP snapshot. Không đưa subject/email người duyệt vào config vì Identi
 Output mới được publish nguyên tử theo điều kiện local NTFS bằng hardlink từ temp đã ghi hoàn chỉnh. Chạy lại
 cùng bytes thành công mà không sửa file; output khác nội dung bị từ chối. Parent phải tồn tại và không được là
 symlink/reparse. DB, sidecar SQLite, config và alias của chúng không thể làm output.
+Alias tĩnh của DB/config vẫn đọc được; bộ bảo vệ áp dụng cho cả tên được nhập và đích đã resolve cùng các tên
+`-wal`, `-shm`, `-journal` tương ứng.
 
 Stdout thành công chỉ có `draft_id`, SHA-256 bundle và số object. Lỗi nghiệp vụ chỉ có một dòng stderr an toàn.
 Bundle đạt validator 3.3.2 ở MUST/schema/ref và `strict except 103`; đây không phải bằng chứng import OpenCTI,

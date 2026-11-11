@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from test_stix_export import approve_draft, exporter_config
 
 from phonghoa_extractor import store
@@ -92,6 +93,40 @@ def test_cli_errors_are_one_safe_line_and_do_not_create_or_clobber_output(tmp_pa
     assert result.stdout == ""
     assert result.stderr == '{"error":"export_failed"}\n'
     assert output.read_bytes() == b"keep-me"
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"tlp": []},
+        {"tlp": {}},
+        {"created": "0001-01-01T00:00:00+01:00"},
+        {"created": "9999-12-31T23:59:59-01:00"},
+    ],
+)
+def test_cli_config_domain_errors_are_one_safe_line(tmp_path: Path, change: dict[str, object]):
+    config_value = exporter_config()
+    config_value.update(change)
+    config = tmp_path / "exporter.json"
+    config.write_text(json.dumps(config_value), encoding="utf-8")
+    output = tmp_path / "bundle.json"
+
+    result = run_cli(
+        "export-approved",
+        "--db",
+        str(tmp_path / "absent.sqlite"),
+        "--id",
+        "1",
+        "--exporter-config",
+        str(config),
+        "--output",
+        str(output),
+    )
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr == '{"error":"export_failed"}\n'
+    assert not output.exists()
 
 
 def test_cli_rejects_output_aliases_for_database_config_and_sidecars(tmp_path: Path):

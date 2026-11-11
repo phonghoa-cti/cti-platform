@@ -458,10 +458,14 @@ def test_report_and_bundle_ids_change_with_provenance_but_sco_id_does_not(tmp_pa
         {"name": " "},
         {"identity_class": "individual"},
         {"created": "2026-01-01T00:00:00"},
+        {"created": "0001-01-01T00:00:00+01:00"},
+        {"created": "9999-12-31T23:59:59-01:00"},
         {"tlp": "TLP:BLUE"},
+        {"tlp": []},
+        {"tlp": {}},
     ],
 )
-def test_exporter_config_is_strict(change: dict):
+def test_exporter_config_is_strict(change: dict[str, object]):
     config = exporter_config()
     config.update(change)
     with pytest.raises(stix_export.StixExportError):
@@ -534,6 +538,78 @@ def test_publish_rejects_reparse_ancestor_not_only_immediate_parent(tmp_path: Pa
 
     with pytest.raises(stix_export.StixExportError, match="reparse"):
         stix_export.publish_bytes(alias_parent / "child" / "bundle.json", b"complete\n")
+
+
+@pytest.mark.parametrize("alias_kind", ["file_symlink", "directory_symlink"])
+@pytest.mark.parametrize("suffix", ["-wal", "-shm", "-journal"])
+@pytest.mark.parametrize("protected_kind", ["database", "config"])
+def test_export_protects_resolved_input_sidecars(
+    tmp_path: Path, alias_kind: str, suffix: str, protected_kind: str
+):
+    real_dir = tmp_path / "real"
+    real_dir.mkdir()
+    db = real_dir / "approved.sqlite"
+    draft_id = approve_draft(db, values=("evil.example",))
+    config = real_dir / "exporter.json"
+    config.write_text(json.dumps(exporter_config()), encoding="utf-8")
+    protected = db if protected_kind == "database" else config
+    if alias_kind == "file_symlink":
+        alias = tmp_path / protected.name
+        alias.symlink_to(protected)
+    else:
+        alias_dir = tmp_path / "alias-dir"
+        alias_dir.symlink_to(real_dir, target_is_directory=True)
+        alias = alias_dir / protected.name
+    db_input = alias if protected_kind == "database" else db
+    config_input = alias if protected_kind == "config" else config
+    output = Path(str(protected) + suffix)
+    before_db = hashlib.sha256(db.read_bytes()).hexdigest()
+    before_config = hashlib.sha256(config.read_bytes()).hexdigest()
+
+    with pytest.raises(stix_export.StixExportError, match="bảo vệ"):
+        stix_export.export_approved(
+            db_path=db_input,
+            draft_id=draft_id,
+            exporter_config_path=config_input,
+            output_path=output,
+        )
+
+    assert not output.exists()
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before_db
+    assert hashlib.sha256(config.read_bytes()).hexdigest() == before_config
+    assert not list(real_dir.glob(".*.tmp"))
+
+
+@pytest.mark.parametrize("alias_kind", ["file_symlink", "directory_symlink"])
+@pytest.mark.parametrize("protected_kind", ["database", "config"])
+def test_export_supports_static_input_alias_to_regular_bundle(
+    tmp_path: Path, alias_kind: str, protected_kind: str
+):
+    real_dir = tmp_path / "real"
+    real_dir.mkdir()
+    db = real_dir / "approved.sqlite"
+    draft_id = approve_draft(db, values=("evil.example",))
+    config = real_dir / "exporter.json"
+    config.write_text(json.dumps(exporter_config()), encoding="utf-8")
+    protected = db if protected_kind == "database" else config
+    if alias_kind == "file_symlink":
+        alias = tmp_path / protected.name
+        alias.symlink_to(protected)
+    else:
+        alias_dir = tmp_path / "alias-dir"
+        alias_dir.symlink_to(real_dir, target_is_directory=True)
+        alias = alias_dir / protected.name
+    output = tmp_path / "bundle.json"
+
+    result = stix_export.export_approved(
+        db_path=alias if protected_kind == "database" else db,
+        draft_id=draft_id,
+        exporter_config_path=alias if protected_kind == "config" else config,
+        output_path=output,
+    )
+
+    assert result.object_count == 4
+    assert json.loads(output.read_bytes())["type"] == "bundle"
 
 
 def test_publish_windows_race_same_bytes_both_succeed(tmp_path: Path):

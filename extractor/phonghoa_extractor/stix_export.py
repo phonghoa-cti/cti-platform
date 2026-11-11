@@ -149,7 +149,10 @@ def _normalize_utc_timestamp(value: Any, label: str) -> str:
         raise StixExportError(f"{label} không hợp lệ") from exc
     if parsed.utcoffset() is None:
         raise StixExportError(f"{label} phải có múi giờ")
-    parsed = parsed.astimezone(UTC)
+    try:
+        parsed = parsed.astimezone(UTC)
+    except (OverflowError, ValueError) as exc:
+        raise StixExportError(f"{label} nằm ngoài miền UTC hỗ trợ") from exc
     timespec = "microseconds" if parsed.microsecond % 1000 else "milliseconds"
     return parsed.isoformat(timespec=timespec).replace("+00:00", "Z")
 
@@ -172,7 +175,7 @@ def validate_exporter_config(value: Any) -> ExporterConfig:
     if value["identity_class"] != "organization":
         raise StixExportError("identity_class v1 chỉ hỗ trợ organization")
     created = _normalize_utc_timestamp(value["created"], "created")
-    if value["tlp"] not in CONFIG_TLPS:
+    if not isinstance(value["tlp"], str) or value["tlp"] not in CONFIG_TLPS:
         raise StixExportError("Exporter config TLP không hợp lệ")
     canonical_value = {
         "schema_version": "1",
@@ -406,9 +409,19 @@ def _protected_aliases(paths: Sequence[str | Path]) -> tuple[Path, ...]:
     protected: list[Path] = []
     for raw in paths:
         path = Path(raw)
-        protected.extend(
-            (path, Path(str(path) + "-wal"), Path(str(path) + "-shm"), Path(str(path) + "-journal"))
-        )
+        try:
+            resolved = path.resolve(strict=False)
+        except (OSError, RuntimeError) as exc:
+            raise StixExportError("Không resolve được đường dẫn được bảo vệ") from exc
+        for alias in (path, resolved):
+            protected.extend(
+                (
+                    alias,
+                    Path(str(alias) + "-wal"),
+                    Path(str(alias) + "-shm"),
+                    Path(str(alias) + "-journal"),
+                )
+            )
     return tuple(protected)
 
 

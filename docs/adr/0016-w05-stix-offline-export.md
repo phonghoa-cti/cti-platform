@@ -27,7 +27,7 @@ SCO dùng UUIDv5 chuẩn OASIS. Identity, Report và Bundle dùng ba child names
 
 Publish local dùng temp hoàn chỉnh cùng parent và hardlink `os.link(temp, output)`: không replace, không truncate,
 không ghi đè. Existing byte-identical là idempotent; existing khác bytes là lỗi. DB/sidecars/config và alias bị
-từ chối.
+từ chối làm output; cả tên input và đích đã resolve cùng ba sidecar SQLite đều được bảo vệ.
 
 ## Hệ quả (tốt / xấu / cách giảm thiểu)
 
