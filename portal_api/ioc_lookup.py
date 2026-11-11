@@ -81,6 +81,16 @@ class IocLookupPort(Protocol):
     def lookup(self, ioc: Ioc, allowed_tlps: frozenset[str]) -> LookupRecord | None: ...
 
 
+class AssetSnapshotPort(Protocol):
+    def match(self, ioc: Ioc) -> tuple[str, ...]: ...
+
+    def allows(self, ioc: Ioc) -> bool: ...
+
+
+class AssetStorePort(Protocol):
+    def snapshot(self) -> AssetSnapshotPort: ...
+
+
 class LookupService:
     """Chuẩn hóa, kiểm tra TLP và tính score chỉ từ facts visible."""
 
@@ -89,14 +99,22 @@ class LookupService:
         lookup_port: IocLookupPort | None,
         *,
         allowlist: Allowlist | None = None,
+        asset_store: AssetStorePort | None = None,
     ) -> None:
         self._lookup_port = lookup_port
         self._allowlist = allowlist or Allowlist.default()
+        self._asset_store = asset_store
 
     def lookup(self, raw: str, roles: frozenset[str]) -> IocLookupResponse:
         ioc = self._normalize(raw)
-        if self._allowlist.contains(ioc):
-            return self._allowlisted(ioc)
+        try:
+            snapshot = self._asset_store.snapshot() if self._asset_store is not None else None
+            local_assets = () if snapshot is None else snapshot.match(ioc)
+            asset_allowed = snapshot is not None and snapshot.allows(ioc)
+        except Exception as exc:
+            raise LookupUnavailable("asset store failed") from exc
+        if self._allowlist.contains(ioc) or asset_allowed:
+            return self._allowlisted(ioc, local_assets)
         allowed_tlps = _allowed_tlps(roles)
         if self._lookup_port is None:
             raise LookupUnavailable("lookup port is not configured")
@@ -105,9 +123,9 @@ class LookupService:
         except Exception as exc:
             raise LookupUnavailable("lookup adapter failed") from exc
         if record is None:
-            return self._not_found(ioc)
+            return self._not_found(ioc, local_assets)
         try:
-            return self._from_record(ioc, record, allowed_tlps)
+            return self._from_record(ioc, record, allowed_tlps, local_assets)
         except LookupUnavailable:
             raise
         except (TypeError, ValueError, ValidationError, OverflowError) as exc:
@@ -129,7 +147,7 @@ class LookupService:
         return ioc
 
     @staticmethod
-    def _allowlisted(ioc: Ioc) -> IocLookupResponse:
+    def _allowlisted(ioc: Ioc, local_assets: tuple[str, ...] = ()) -> IocLookupResponse:
         result = score(
             ScoreInput(
                 ioc_type=ioc.type,
@@ -144,28 +162,33 @@ class LookupService:
             state="allowlisted",
             score_view=ScoreView(value=result.score, level="low", reason=result.reason, parts=None),
             tlp="TLP:CLEAR",
+            asset_names=local_assets,
         )
 
     @staticmethod
-    def _not_found(ioc: Ioc) -> IocLookupResponse:
-        return _response(ioc=ioc, state="not_found")
+    def _not_found(ioc: Ioc, local_assets: tuple[str, ...] = ()) -> IocLookupResponse:
+        return _response(ioc=ioc, state="not_found", asset_names=local_assets)
 
     def _from_record(
         self,
         ioc: Ioc,
         record: LookupRecord,
         allowed_tlps: frozenset[str],
+        local_assets: tuple[str, ...],
     ) -> IocLookupResponse:
         _validate_record_header(record, ioc)
         if record.record_tlp not in allowed_tlps:
-            return self._not_found(ioc)
+            return self._not_found(ioc, local_assets)
         _validate_nested_facts(record)
 
         visible_sources = _dedupe_sources(tuple(item for item in record.sources if item.tlp in allowed_tlps))
         visible_related = tuple(item for item in record.related if item.tlp in allowed_tlps)
         visible_assets = tuple(item for item in record.assets if item.tlp in allowed_tlps)
         if not visible_sources:
-            return self._not_found(ioc)
+            return self._not_found(ioc, local_assets)
+        asset_names = list(dict.fromkeys([item.name for item in visible_assets] + list(local_assets)))
+        if len(asset_names) > 100:
+            raise LookupUnavailable("too many visible assets")
 
         latest = max(item.last_seen for item in visible_sources)
         reliability = sum(float(item.reliability) for item in visible_sources) / len(visible_sources)
@@ -175,7 +198,7 @@ class LookupService:
                 reliability=reliability,
                 confirmations=len(visible_sources),
                 days_since_last_seen=(record.as_of - latest).total_seconds() / 86_400,
-                asset_match=bool(visible_assets),
+                asset_match=bool(asset_names),
             )
         )
         level = "low" if result.score <= 39 else "medium" if result.score <= 69 else "high"
@@ -215,8 +238,8 @@ class LookupService:
                 actors=grouped["actor"],
             ),
             asset_match=AssetMatchView(
-                matched=bool(visible_assets),
-                assets=[item.name for item in visible_assets],
+                matched=bool(asset_names),
+                assets=asset_names,
             ),
             tlp=output_tlp,
         )
@@ -234,6 +257,7 @@ def _response(
     state: str,
     score_view: ScoreView | None = None,
     tlp: str | None = None,
+    asset_names: tuple[str, ...] = (),
 ) -> IocLookupResponse:
     return IocLookupResponse(
         ioc=IocView(type=ioc.type.value, value=ioc.value, display=ioc.display()),
@@ -243,7 +267,7 @@ def _response(
         score=score_view,
         sources=[],
         related=RelatedView(techniques=[], malware=[], actors=[]),
-        asset_match=AssetMatchView(matched=False, assets=[]),
+        asset_match=AssetMatchView(matched=bool(asset_names), assets=list(asset_names)),
         tlp=tlp,
     )
 

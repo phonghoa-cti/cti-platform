@@ -401,6 +401,22 @@ def test_response_schema_rejects_extra_fields_and_boolean_score():
         IocLookupResponse.model_validate(payload)
 
 
+@pytest.mark.parametrize("state", ["allowlisted", "not_found"])
+def test_response_schema_allows_local_asset_match_without_changing_lookup_state(state):
+    response = (
+        _service(FixtureLookupPort()).lookup("8.8.8.8", frozenset({"it"}))
+        if state == "allowlisted"
+        else _service(FixtureLookupPort()).lookup("unknown.example", frozenset({"it"}))
+    )
+    payload = response.model_dump(mode="json")
+    payload["asset_match"] = {"matched": True, "assets": ["congty.vn"]}
+
+    validated = IocLookupResponse.model_validate(payload)
+
+    assert validated.state == state
+    assert validated.asset_match.assets == ["congty.vn"]
+
+
 @pytest.mark.parametrize(
     ("raw", "ioc_type"),
     [

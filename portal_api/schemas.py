@@ -25,6 +25,7 @@ class LookupExactModel(ExactModel):
 Tlp = Literal["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"]
 IocKind = Literal["ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256"]
 BoundedName = Annotated[str, Field(min_length=1, max_length=128)]
+BoundedAssetName = Annotated[str, Field(min_length=1, max_length=253)]
 
 
 class IocView(LookupExactModel):
@@ -69,7 +70,7 @@ class RelatedView(LookupExactModel):
 
 class AssetMatchView(LookupExactModel):
     matched: bool
-    assets: Annotated[list[BoundedName], Field(max_length=100)]
+    assets: Annotated[list[BoundedAssetName], Field(max_length=100)]
 
     @model_validator(mode="after")
     def matched_agrees_with_assets(self):
@@ -111,7 +112,6 @@ class IocLookupResponse(LookupExactModel):
                 or self.score.parts is not None
                 or self.sources
                 or not empty_related
-                or self.asset_match.matched
                 or self.tlp != "TLP:CLEAR"
             ):
                 raise ValueError("allowlisted response is inconsistent")
@@ -121,11 +121,38 @@ class IocLookupResponse(LookupExactModel):
             or self.score is not None
             or self.sources
             or not empty_related
-            or self.asset_match.matched
             or self.tlp is not None
         ):
             raise ValueError("not-found response is inconsistent")
         return self
+
+
+AssetType = Literal["domain", "ip_range"]
+
+
+class AssetCreateRequest(ExactModel):
+    type: AssetType
+    value: Annotated[str, Field(min_length=1, max_length=4096)]
+    note: Annotated[str, Field(max_length=500)]
+
+
+class AssetUpdateRequest(AssetCreateRequest):
+    expected_version: SafePositiveInt
+
+
+class AssetView(ExactModel):
+    id: SafePositiveInt
+    type: AssetType
+    value: BoundedAssetName
+    note: Annotated[str, Field(max_length=500)]
+    created_by: Annotated[str, Field(min_length=1, max_length=512)]
+    created_at: str
+    updated_at: str
+    version: SafePositiveInt
+
+
+class AssetPage(ExactModel):
+    items: Annotated[list[AssetView], Field(max_length=1000)]
 
 
 class Source(ExactModel):

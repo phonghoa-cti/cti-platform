@@ -99,6 +99,10 @@ Cập nhật lần cuối: 11/11/2026
 - W02 rework tài liệu tái chạy: README dùng module command từ đúng cwd với Python integration có `uvicorn`;
   report tách log HTTP Leader khỏi artifact browser cũ và giữ clipboard UNVERIFIED. Không chạy lại matrix,
   test/build hay browser trong rework này; mức bằng chứng tích hợp cục bộ không đổi.
+- W04 tài sản cục bộ: API in-process opt-in quản lý domain/CIDR bằng SQLite, optimistic version và audit
+  nguyên tử; W02 dùng snapshot để gắn `asset_match` và effective allowlist mà không đổi mặc định khi store
+  chưa inject. Đã kiểm bằng dữ liệu/JWT/SQLite tổng hợp cục bộ; chưa có UI/CSV, OpenCTI, browser, lab,
+  network thật hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
