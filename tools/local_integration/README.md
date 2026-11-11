@@ -13,4 +13,3 @@ Chạy ma trận E2E ngoại tuyến:
 Kết quả PASS chỉ in summary hash/count đã lược dữ liệu. Fixture hoàn toàn synthetic; không gọi Internet, model,
 feed, OpenCTI hay lab. Đây là bằng chứng CLI + HTTP cục bộ, không phải browser cùng draft, Cloudflare/JWKS thật,
 OpenCTI import hoặc production.
-
