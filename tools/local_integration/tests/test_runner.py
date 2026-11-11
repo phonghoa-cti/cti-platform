@@ -1,19 +1,207 @@
 from __future__ import annotations
 
+import hashlib
+import io
 import json
 import socket
+import sqlite3
 import subprocess
+import sys
+import threading
 import time
+from contextlib import closing
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import httpx
 import pytest
 
-from tools.local_integration.runner import LocalRun
+from phonghoa_extractor import store
+from phonghoa_extractor.drafts import build_regex_draft
+from tools.local_integration.runner import LocalRun, seed_ingest_fixture
+from tools.local_integration.tests.run_ingest_browser_stix import (
+    verify_browser_outcome,
+    wait_for_browser_signal,
+)
 
 E2E_SOURCE_BYTES = "Cảnh báo thử nghiệm 😀 ghi nhận evil-one.example và evil-two.example.\n".encode()
 E2E_SOURCE_SHA256 = "e73038e5d68d0aee0757bf72cd8a404b3f55a94ef9d6c519f5e0c3fb1292a655"
+
+
+def make_fixture_producer(tmp_path: Path, source: Path) -> Path:
+    producer_root = tmp_path / "producer"
+    script = producer_root / "extractor" / "ingest" / "run.py"
+    script.parent.mkdir(parents=True)
+    text = source.read_text(encoding="utf-8")
+    envelope = {
+        "schema_version": "x01-local-ingest/1.0",
+        "input": {
+            "format": "text",
+            "display_name": source.name,
+            "raw_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "raw_bytes": len(source.read_bytes()),
+            "canonical_text_sha256": hashlib.sha256(text.encode()).hexdigest(),
+            "page_count": None,
+            "page_text_ranges": None,
+        },
+        "draft": build_regex_draft(text, source=source.name, language="vi", tlp="TLP:GREEN"),
+    }
+    fixture = script.with_name("fixture.json")
+    fixture.write_text(json.dumps(envelope, ensure_ascii=False), encoding="utf-8")
+    script.write_text(
+        """import argparse, json, shutil
+from pathlib import Path
+parser = argparse.ArgumentParser()
+parser.add_argument('--input', required=True, type=Path)
+parser.add_argument('--output', required=True, type=Path)
+parser.add_argument('--language', required=True)
+parser.add_argument('--tlp', required=True)
+args = parser.parse_args()
+shutil.copyfile(Path(__file__).with_name('fixture.json'), args.output)
+print(json.dumps({'format':'text','output_created':True,'schema_version':'x01-local-ingest/1.0'}))
+""",
+        encoding="utf-8",
+    )
+    return producer_root
+
+
+def test_seed_ingest_fixture_uses_two_clis_and_one_database_without_mutating_input(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "synthetic.txt"
+    source.write_bytes(E2E_SOURCE_BYTES)
+    input_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+    producer_root = make_fixture_producer(tmp_path, source)
+    envelope = tmp_path / "envelope.json"
+    database = tmp_path / "drafts.sqlite"
+
+    result = seed_ingest_fixture(
+        input_path=source,
+        envelope_path=envelope,
+        db_path=database,
+        producer_root=producer_root,
+        producer_python=Path(sys.executable),
+        importer_python=Path(sys.executable),
+        created_by_subject="e2e-author-sub",
+    )
+
+    assert result.draft_id == 1
+    assert result.import_result == "imported"
+    assert result.duplicate_result == "duplicate"
+    assert result.eligible_indices == (0, 1)
+    assert result.ioc_values == ("evil-one.example", "evil-two.example")
+    assert result.raw_sha256 == input_hash
+    assert result.canonical_text_sha256 == E2E_SOURCE_SHA256
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == input_hash
+    with closing(sqlite3.connect(database)) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM drafts").fetchone()[0] == 1
+        assert connection.execute("SELECT COUNT(*) FROM draft_ingest_provenance").fetchone()[0] == 1
+        assert connection.execute("SELECT COUNT(*) FROM draft_selection_audit").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM draft_audit").fetchone()[0] == 0
+
+
+def test_ingest_browser_scenario_seeds_real_api_and_cleans_owned_resources(tmp_path: Path) -> None:
+    source = tmp_path / "synthetic.txt"
+    source.write_bytes(E2E_SOURCE_BYTES)
+    producer_root = make_fixture_producer(tmp_path, source)
+    run = LocalRun(
+        "ingest-browser-stix",
+        duration_seconds=20,
+        start_ui=False,
+        producer_root=producer_root,
+        producer_python=Path(sys.executable),
+        ingest_input=source,
+        created_by_subject="e2e-author-sub",
+    )
+
+    with run:
+        response = httpx.get(f"{run.url}/api/v1/drafts/{run.selection_draft_id}", timeout=2)
+        assert response.status_code == 200
+        assert response.json()["source"] == {
+            "name": "synthetic.txt",
+            "sha256": E2E_SOURCE_SHA256,
+        }
+        assert run.ingest_seed is not None
+        assert run.ingest_seed.eligible_indices == (0, 1)
+        temp_root = run.temp_root
+
+    assert not temp_root.exists()
+
+
+def test_offline_postcheck_verifies_selection_audit_and_stix_on_seed_database(tmp_path: Path) -> None:
+    source = tmp_path / "synthetic.txt"
+    source.write_bytes(E2E_SOURCE_BYTES)
+    producer_root = make_fixture_producer(tmp_path, source)
+    envelope = tmp_path / "envelope.json"
+    database = tmp_path / "drafts.sqlite"
+    config = tmp_path / "exporter-config.json"
+    bundle = tmp_path / "approved-bundle.json"
+    repository = Path(__file__).resolve().parents[3]
+    config.write_bytes(
+        (
+            repository / "extractor" / "draft" / "examples" / "stix" / "exporter-config.example.json"
+        ).read_bytes()
+    )
+    seed = seed_ingest_fixture(
+        input_path=source,
+        envelope_path=envelope,
+        db_path=database,
+        producer_root=producer_root,
+        producer_python=Path(sys.executable),
+        importer_python=Path(sys.executable),
+        created_by_subject="e2e-author-sub",
+    )
+    actor = store.Actor("admin-sub", frozenset({"admin"}))
+    selection = store.save_selection(
+        database,
+        seed.draft_id,
+        actor=actor,
+        selected_indices=[1],
+        expected_version=0,
+    )
+    store.decide_draft_with_selection(
+        database,
+        seed.draft_id,
+        actor=actor,
+        decision="approve",
+        expected_version=selection.review_version,
+    )
+    run = SimpleNamespace(
+        db_path=database,
+        selection_draft_id=seed.draft_id,
+        exporter_config_path=config,
+        bundle_path=bundle,
+        source_path=source,
+        draft_json_path=envelope,
+        created_by_subject="e2e-author-sub",
+        ingest_seed=seed,
+    )
+
+    summary = verify_browser_outcome(run, expected_selected_indices=(1,))
+
+    assert summary["status"] == "PASS"
+    assert summary["selected_indices"] == [1]
+    assert summary["source_sha256"] == E2E_SOURCE_SHA256
+    assert summary["object_count"] == 4
+    assert summary["bundle_sha256"] == hashlib.sha256(bundle.read_bytes()).hexdigest()
+
+
+def test_browser_signal_distinguishes_continue_eof_and_timeout() -> None:
+    assert wait_for_browser_signal(io.StringIO("done\n"), timeout=0.1) == "continue"
+    assert wait_for_browser_signal(io.StringIO(""), timeout=0.1) == "eof"
+
+    release = threading.Event()
+
+    class BlockingInput:
+        def readline(self) -> str:
+            release.wait()
+            return "done\n"
+
+    try:
+        assert wait_for_browser_signal(BlockingInput(), timeout=0.01) == "timeout"
+    finally:
+        release.set()
 
 
 def recover_resources_created_by_failed_lifecycle_test(run: LocalRun) -> None:

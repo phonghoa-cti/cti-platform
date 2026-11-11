@@ -1,0 +1,339 @@
+"""Điều khiển seed X01 → browser W05 → hậu kiểm STIX trên cùng SQLite."""
+
+from __future__ import annotations
+
+# ruff: noqa: E402, I001 -- executable harness bootstraps repository packages
+
+import argparse
+import hashlib
+import json
+import queue
+import shutil
+import sys
+import tempfile
+import threading
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, TextIO
+
+ROOT = Path(__file__).resolve().parents[3]
+for package_root in (ROOT, ROOT / "core", ROOT / "extractor"):
+    if str(package_root) not in sys.path:
+        sys.path.insert(0, str(package_root))
+
+from phonghoa_extractor.ingest_queue import get_ingest_provenance, load_ingest_envelope
+from phonghoa_extractor import store
+from tools.local_integration.runner import E2E_SOURCE_BYTES, LocalRun, seed_ingest_fixture
+from tools.local_integration.tests.run_stix_e2e import database_state, file_inventory, run_export
+
+
+def verify_browser_outcome(
+    run: Any,
+    *,
+    expected_selected_indices: tuple[int, ...],
+    expected_selection_audit_count: int = 1,
+) -> dict[str, Any]:
+    """Hậu kiểm final audit và STIX; không ghi DB ngoài artifact bundle."""
+
+    seed = run.ingest_seed
+    if seed is None or any(index not in seed.eligible_indices for index in expected_selected_indices):
+        raise RuntimeError("seed hoặc selection hậu kiểm không hợp lệ")
+    state = database_state(run.db_path, seed.draft_id)
+    draft = state["draft"]
+    decision = state["decision"]
+    if (
+        draft is None
+        or draft[1] != "approved"
+        or type(draft[2]) is not int
+        or draft[2] < 1
+        or type(draft[3]) is not int
+        or draft[3] < 0
+    ):
+        observed = None if draft is None else draft[1:]
+        raise RuntimeError(f"draft chưa ở final state mong đợi: {observed!r}")
+    if (
+        state["selection_count"] != expected_selection_audit_count
+        or decision is None
+        or decision[1] != "approve"
+        or decision[2] != draft[3]
+    ):
+        raise RuntimeError("audit count hoặc action không hợp lệ")
+    selected = tuple(json.loads(decision[3]))
+    if selected != expected_selected_indices:
+        raise RuntimeError("final selection không khớp thao tác mong đợi")
+
+    envelope = load_ingest_envelope(run.draft_json_path)
+    provenance = get_ingest_provenance(run.db_path, seed.draft_id)
+    if (
+        provenance.envelope_sha256 != seed.envelope_sha256
+        or provenance.raw_sha256 != seed.raw_sha256
+        or provenance.canonical_text_sha256 != seed.canonical_text_sha256
+        or envelope["draft"]["source"]["sha256"] != seed.canonical_text_sha256
+        or hashlib.sha256(run.source_path.read_bytes()).hexdigest() != seed.raw_sha256
+    ):
+        raise RuntimeError("source/envelope/provenance đã thay đổi")
+
+    db_before = file_inventory(run.db_path)
+    exported = run_export(run, run.bundle_path)
+    db_after = file_inventory(run.db_path)
+    if exported.returncode != 0 or exported.stderr or db_before != db_after:
+        raise RuntimeError("STIX CLI thất bại hoặc đã ghi DB")
+    try:
+        export_summary = json.loads(exported.stdout)
+        bundle_bytes = run.bundle_path.read_bytes()
+        bundle = json.loads(bundle_bytes)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        raise RuntimeError("artifact STIX không hợp lệ") from None
+    bundle_sha256 = hashlib.sha256(bundle_bytes).hexdigest()
+    if (
+        export_summary.get("draft_id") != seed.draft_id
+        or export_summary.get("bundle_sha256") != bundle_sha256
+        or export_summary.get("object_count") != len(bundle.get("objects", []))
+    ):
+        raise RuntimeError("summary STIX không khớp artifact")
+
+    serialized = bundle_bytes.decode("utf-8")
+    selected_values = {
+        value
+        for index, value in zip(seed.eligible_indices, seed.ioc_values, strict=True)
+        if index in selected
+    }
+    deselected_values = set(seed.ioc_values) - selected_values
+    if any(value not in serialized for value in selected_values):
+        raise RuntimeError("STIX thiếu IOC đã chọn")
+    if any(value in serialized for value in deselected_values):
+        raise RuntimeError("STIX chứa IOC đã bỏ")
+    if run.created_by_subject in serialized or "admin-sub" in serialized:
+        raise RuntimeError("STIX lộ subject")
+
+    report = next((item for item in bundle["objects"] if item.get("type") == "report"), None)
+    if report is None:
+        raise RuntimeError("STIX thiếu Report")
+    try:
+        stix_provenance = json.loads(report["external_references"][0]["description"])
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError):
+        raise RuntimeError("STIX provenance không hợp lệ") from None
+    if (
+        stix_provenance.get("source_sha256") != seed.canonical_text_sha256
+        or stix_provenance.get("draft_id") != seed.draft_id
+        or stix_provenance.get("approved_audit_id") != decision[0]
+        or stix_provenance.get("review_version") != draft[2]
+        or stix_provenance.get("selection_version") != draft[3]
+        or tuple(stix_provenance.get("selected_indices", [])) != selected
+        or stix_provenance.get("selected_sha256") != decision[4]
+    ):
+        raise RuntimeError("STIX provenance không khớp final audit")
+    return {
+        "status": "PASS",
+        "draft_id": seed.draft_id,
+        "source_sha256": seed.canonical_text_sha256,
+        "selected_indices": list(selected),
+        "bundle_sha256": bundle_sha256,
+        "object_count": len(bundle["objects"]),
+        "selection_audit_count": state["selection_count"],
+        "decision_audit_id": decision[0],
+        "database_read_only_during_export": db_before == db_after,
+    }
+
+
+def wait_for_browser_signal(stream: TextIO, *, timeout: float) -> str:
+    """Đợi đúng một dòng có deadline; thread đọc stdin là daemon để timeout không giữ process."""
+
+    result: queue.Queue[str] = queue.Queue(maxsize=1)
+
+    def read_line() -> None:
+        try:
+            result.put(stream.readline())
+        except (OSError, UnicodeError):
+            result.put("")
+
+    reader = threading.Thread(target=read_line, name="w05-browser-signal", daemon=True)
+    reader.start()
+    reader.join(timeout=timeout)
+    if reader.is_alive():
+        return "timeout"
+    line = result.get_nowait()
+    return "eof" if line == "" else "continue"
+
+
+def _stage_input(root: Path, input_kind: str, producer_root: Path) -> Path:
+    if input_kind == "txt":
+        path = root / "ingest-browser-synthetic.txt"
+        path.write_bytes(E2E_SOURCE_BYTES)
+        return path
+    source = producer_root / "extractor" / "tests" / "fixtures" / "local_ingest" / "two-text-pages.pdf"
+    if not source.is_file():
+        raise RuntimeError("fixture PDF producer không tồn tại")
+    path = root / source.name
+    shutil.copyfile(source, path)
+    return path
+
+
+def _offline_check(
+    *, input_kind: str, producer_root: Path, producer_python: Path, importer_python: Path
+) -> dict[str, Any]:
+    with tempfile.TemporaryDirectory(prefix="x01-ingest-browser-offline-") as temp:
+        root = Path(temp)
+        source = _stage_input(root, input_kind, producer_root)
+        envelope = root / "envelope.json"
+        database = root / "drafts.sqlite"
+        config = root / "exporter-config.json"
+        bundle = root / "approved-bundle.json"
+        config.write_bytes(
+            (ROOT / "extractor" / "draft" / "examples" / "stix" / "exporter-config.example.json").read_bytes()
+        )
+        seed = seed_ingest_fixture(
+            input_path=source,
+            envelope_path=envelope,
+            db_path=database,
+            producer_root=producer_root,
+            producer_python=producer_python,
+            importer_python=importer_python,
+            created_by_subject="e2e-author-sub",
+        )
+        summary: dict[str, Any] = {
+            "status": "PASS",
+            "mode": "offline",
+            "input_format": seed.input_format,
+            "draft_id": seed.draft_id,
+            "eligible_indices": list(seed.eligible_indices),
+            "source_sha256": seed.canonical_text_sha256,
+            "envelope_sha256": seed.envelope_sha256,
+            "duplicate_verified": seed.duplicate_result == "duplicate",
+            "browser": "UNVERIFIED",
+        }
+        if not seed.eligible_indices:
+            summary["postcheck"] = "SEED_ONLY_NO_ELIGIBLE_IOC"
+            return summary
+
+        expected = seed.eligible_indices[1:] if len(seed.eligible_indices) > 1 else ()
+        actor = store.Actor("admin-sub", frozenset({"admin"}))
+        selection = store.save_selection(
+            database,
+            seed.draft_id,
+            actor=actor,
+            selected_indices=expected,
+            expected_version=0,
+        )
+        selection_audit_count = 1
+        if not expected:
+            expected = seed.eligible_indices
+            selection = store.save_selection(
+                database,
+                seed.draft_id,
+                actor=actor,
+                selected_indices=expected,
+                expected_version=selection.review_version,
+            )
+            selection_audit_count = 2
+        store.decide_draft_with_selection(
+            database,
+            seed.draft_id,
+            actor=actor,
+            decision="approve",
+            expected_version=selection.review_version,
+        )
+        run = SimpleNamespace(
+            db_path=database,
+            selection_draft_id=seed.draft_id,
+            exporter_config_path=config,
+            bundle_path=bundle,
+            source_path=source,
+            draft_json_path=envelope,
+            created_by_subject="e2e-author-sub",
+            ingest_seed=seed,
+        )
+        summary.update(
+            verify_browser_outcome(
+                run,
+                expected_selected_indices=expected,
+                expected_selection_audit_count=selection_audit_count,
+            )
+        )
+        summary.update({"mode": "offline", "input_format": seed.input_format, "browser": "UNVERIFIED"})
+        return summary
+
+
+def _browser_session(
+    *, input_kind: str, producer_root: Path, producer_python: Path, duration_seconds: int
+) -> dict[str, Any]:
+    if input_kind != "txt":
+        raise RuntimeError("browser-session hiện chỉ chấp nhận fixture TXT hai IOC")
+    with tempfile.TemporaryDirectory(prefix="x01-ingest-browser-input-") as temp:
+        source = _stage_input(Path(temp), input_kind, producer_root)
+        with LocalRun(
+            "ingest-browser-stix",
+            duration_seconds=duration_seconds,
+            start_ui=True,
+            producer_root=producer_root,
+            producer_python=producer_python,
+            ingest_input=source,
+            created_by_subject="e2e-author-sub",
+        ) as run:
+            seed = run.ingest_seed
+            if seed is None or not seed.eligible_indices:
+                raise RuntimeError("input không có IOC eligible để duyệt")
+            expected = seed.eligible_indices[1:] if len(seed.eligible_indices) > 1 else seed.eligible_indices
+            print(
+                json.dumps(
+                    {
+                        "status": "READY",
+                        "url": run.url,
+                        "draft_id": seed.draft_id,
+                        "eligible_indices": list(seed.eligible_indices),
+                        "expected_selected_indices": list(expected),
+                        "deadline_seconds": duration_seconds,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            signal = wait_for_browser_signal(sys.stdin, timeout=duration_seconds)
+            if signal != "continue":
+                raise RuntimeError(f"browser session kết thúc do {signal}")
+            return verify_browser_outcome(run, expected_selected_indices=expected)
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    for name in ("offline-check", "browser-session"):
+        command = subparsers.add_parser(name)
+        command.add_argument("--input-kind", choices=("txt", "pdf"), required=True)
+        command.add_argument("--producer-root", required=True, type=Path)
+        command.add_argument("--producer-python", type=Path)
+        if name == "browser-session":
+            command.add_argument("--duration-seconds", type=int, default=300)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
+    producer_python = args.producer_python or args.producer_root / ".venv" / "Scripts" / "python.exe"
+    try:
+        if args.command == "offline-check":
+            summary = _offline_check(
+                input_kind=args.input_kind,
+                producer_root=args.producer_root,
+                producer_python=producer_python,
+                importer_python=Path(sys.executable),
+            )
+        else:
+            if isinstance(args.duration_seconds, bool) or not 1 <= args.duration_seconds <= 300:
+                raise RuntimeError("duration_seconds phải từ 1 đến 300")
+            summary = _browser_session(
+                input_kind=args.input_kind,
+                producer_root=args.producer_root,
+                producer_python=producer_python,
+                duration_seconds=args.duration_seconds,
+            )
+    except (OSError, RuntimeError, store.DraftStoreError):
+        print('{"error":"harness_failed","status":"FAIL"}', file=sys.stderr)
+        return 1
+    print(json.dumps(summary, separators=(",", ":"), sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

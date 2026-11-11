@@ -83,6 +83,10 @@ Cập nhật lần cuối: 11/11/2026
 - X01 ingest queue: CLI local/offline kiểm envelope TXT/PDF đã có, migrate SQLite v2→v3 và ghi draft pending cùng
   provenance nguyên tử; retry cùng creator không nhân bản, creator khác conflict, payload/selection/review/STIX cũ
   giữ nguyên. Đây chỉ là importer/core synthetic; chưa kiểm browser, identity HTTP thật, OpenCTI, lab hoặc production.
+- X01 ingest browser harness (chuẩn bị): thêm controller seed producer CLI → importer CLI vào cùng SQLite tạm,
+  kiểm duplicate/hash/provenance/selection/final audit/STIX offline và cleanup loopback qua `LocalRun`; TXT/PDF
+  synthetic đạt offline. Chế độ browser chưa chạy, importer còn gate F1 tên nguồn, nên browser/end-to-end vẫn
+  `UNVERIFIED`; không phải bằng chứng OpenCTI, lab, Cloudflare/JWKS/HTTPS thật hay production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

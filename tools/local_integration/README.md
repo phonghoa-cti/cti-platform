@@ -13,3 +13,21 @@ Chạy ma trận E2E ngoại tuyến:
 Kết quả PASS chỉ in summary hash/count đã lược dữ liệu. Fixture hoàn toàn synthetic; không gọi Internet, model,
 feed, OpenCTI hay lab. Đây là bằng chứng CLI + HTTP cục bộ, không phải browser cùng draft, Cloudflare/JWKS thật,
 OpenCTI import hoặc production.
+
+## Chuẩn bị demo X01 ingest → browser → STIX
+
+`run_ingest_browser_stix.py` dùng producer CLI đã ghim, importer CLI của checkout này và một SQLite tạm duy
+nhất. Chế độ `offline-check` nhập hai lần để chứng minh duplicate không nhân bản, thực hiện selection/approve
+qua core rồi hậu kiểm source/envelope/provenance, final audit và STIX read-only. Nó không mở listener hay browser:
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 -B tools\local_integration\tests\run_ingest_browser_stix.py offline-check `
+  --input-kind txt `
+  --producer-root <cti-x01-ingest-local> `
+  --producer-python <cti-x01-ingest-local>\.venv\Scripts\python.exe
+```
+
+Sau khi importer được nghiệm thu, `browser-session --input-kind txt` sẽ seed fixture hai IOC vào cùng DB, mở stack loopback W05 do
+`LocalRun` sở hữu, in một dòng `READY`, rồi chờ tối đa `--duration-seconds` để người chạy hoàn tất thao tác bằng
+trình duyệt tích hợp và nhấn Enter. EOF/timeout đều FAIL đóng; cleanup luôn thuộc context manager. Chưa chạy chế
+độ này và chưa có bằng chứng browser/end-to-end cho importer hiện tại.

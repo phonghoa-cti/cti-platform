@@ -6,14 +6,19 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import os
+import shutil
 import socket
+import sqlite3
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+from contextlib import closing
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -30,6 +35,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 from phonghoa_extractor import store
 from phonghoa_extractor.drafts import build_regex_draft
+from phonghoa_extractor.ingest_queue import get_ingest_provenance, load_ingest_envelope
 from portal_api.app import create_app
 from portal_api.auth import AccessJwtVerifier
 from tools.local_integration.local_settings import make_local_settings
@@ -44,6 +50,7 @@ SELECTION_SCENARIOS = frozenset(
     }
 )
 STIX_E2E_SCENARIOS = frozenset({"stix-e2e"})
+INGEST_BROWSER_SCENARIOS = frozenset({"ingest-browser-stix"})
 SCENARIOS = (
     frozenset(
         {
@@ -58,9 +65,169 @@ SCENARIOS = (
     )
     | SELECTION_SCENARIOS
     | STIX_E2E_SCENARIOS
+    | INGEST_BROWSER_SCENARIOS
 )
 E2E_SOURCE_BYTES = "Cảnh báo thử nghiệm 😀 ghi nhận evil-one.example và evil-two.example.\n".encode()
 E2E_CREATOR_SUBJECT = "e2e-author-sub"
+
+
+@dataclass(frozen=True)
+class IngestSeedResult:
+    draft_id: int
+    import_result: str
+    duplicate_result: str
+    input_format: str
+    raw_sha256: str
+    canonical_text_sha256: str
+    envelope_sha256: str
+    eligible_indices: tuple[int, ...]
+    ioc_values: tuple[str, ...]
+
+
+def _run_harness_cli(
+    command: list[str], *, cwd: Path, timeout: float = 20
+) -> subprocess.CompletedProcess[str]:
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+            timeout=timeout,
+            shell=False,
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("CLI seed quá thời hạn") from None
+    except OSError:
+        raise RuntimeError("không khởi chạy được CLI seed") from None
+    if result.returncode != 0:
+        raise RuntimeError("CLI seed thất bại")
+    return result
+
+
+def _decode_cli_summary(stdout: str, keys: set[str]) -> dict[str, Any]:
+    try:
+        value = json.loads(stdout)
+    except (TypeError, json.JSONDecodeError):
+        raise RuntimeError("CLI seed trả kết quả không hợp lệ") from None
+    if type(value) is not dict or set(value) != keys:
+        raise RuntimeError("CLI seed trả kết quả không hợp lệ")
+    return value
+
+
+def seed_ingest_fixture(
+    *,
+    input_path: Path,
+    envelope_path: Path,
+    db_path: Path,
+    producer_root: Path,
+    producer_python: Path,
+    importer_python: Path,
+    created_by_subject: str,
+) -> IngestSeedResult:
+    """Chạy producer/importer thật và chứng minh retry duplicate trên cùng DB."""
+
+    producer_script = producer_root / "extractor" / "ingest" / "run.py"
+    importer_script = ROOT / "extractor" / "ingest_queue" / "run.py"
+    if not input_path.is_file() or not producer_script.is_file() or not importer_script.is_file():
+        raise RuntimeError("đầu vào harness không tồn tại")
+    if envelope_path.exists() or db_path.exists():
+        raise RuntimeError("đầu ra harness phải chưa tồn tại")
+
+    source_bytes = input_path.read_bytes()
+    source_digest = hashlib.sha256(source_bytes).hexdigest()
+    produced = _run_harness_cli(
+        [
+            str(producer_python),
+            "-X",
+            "utf8",
+            "-B",
+            str(producer_script),
+            "--input",
+            str(input_path),
+            "--output",
+            str(envelope_path),
+            "--language",
+            "vi",
+            "--tlp",
+            "TLP:GREEN",
+        ],
+        cwd=producer_root,
+    )
+    producer_summary = _decode_cli_summary(produced.stdout, {"schema_version", "format", "output_created"})
+    if (
+        producer_summary["schema_version"] != "x01-local-ingest/1.0"
+        or producer_summary["format"] not in {"text", "pdf"}
+        or producer_summary["output_created"] is not True
+    ):
+        raise RuntimeError("producer CLI trả kết quả không hợp lệ")
+
+    envelope = load_ingest_envelope(envelope_path)
+    metadata = envelope["input"]
+    draft = envelope["draft"]
+    if metadata["raw_sha256"] != source_digest:
+        raise RuntimeError("producer raw hash không khớp input")
+    with closing(sqlite3.connect(db_path)):
+        pass
+
+    importer_command = [
+        str(importer_python),
+        "-X",
+        "utf8",
+        "-B",
+        str(importer_script),
+        "import",
+        "--envelope",
+        str(envelope_path),
+        "--db",
+        str(db_path),
+        "--created-by-subject",
+        created_by_subject,
+    ]
+    first = _decode_cli_summary(_run_harness_cli(importer_command, cwd=ROOT).stdout, {"draft_id", "result"})
+    second = _decode_cli_summary(_run_harness_cli(importer_command, cwd=ROOT).stdout, {"draft_id", "result"})
+    if (
+        type(first["draft_id"]) is not int
+        or first["draft_id"] < 1
+        or first["result"] != "imported"
+        or second != {"draft_id": first["draft_id"], "result": "duplicate"}
+    ):
+        raise RuntimeError("importer CLI trả kết quả không hợp lệ")
+
+    provenance = get_ingest_provenance(db_path, first["draft_id"])
+    if (
+        provenance.raw_sha256 != metadata["raw_sha256"]
+        or provenance.canonical_text_sha256 != metadata["canonical_text_sha256"]
+        or provenance.input_format != metadata["format"]
+        or draft["source"]["sha256"] != metadata["canonical_text_sha256"]
+    ):
+        raise RuntimeError("provenance sau import không khớp envelope")
+    with closing(sqlite3.connect(db_path)) as connection:
+        counts = tuple(
+            connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("drafts", "draft_ingest_provenance", "draft_selection_audit", "draft_audit")
+        )
+    if counts != (1, 1, 0, 0) or hashlib.sha256(input_path.read_bytes()).hexdigest() != source_digest:
+        raise RuntimeError("import hoặc retry làm thay đổi dữ liệu ngoài contract")
+
+    eligible = tuple(
+        index
+        for index, item in enumerate(draft["items"])
+        if item["kind"] == "ioc" and item["keep"] is True and item["status"] == "ok"
+    )
+    return IngestSeedResult(
+        draft_id=first["draft_id"],
+        import_result=first["result"],
+        duplicate_result=second["result"],
+        input_format=metadata["format"],
+        raw_sha256=metadata["raw_sha256"],
+        canonical_text_sha256=metadata["canonical_text_sha256"],
+        envelope_sha256=provenance.envelope_sha256,
+        eligible_indices=eligible,
+        ioc_values=tuple(draft["items"][index]["value"] for index in eligible),
+    )
 
 
 def _free_port() -> int:
@@ -122,11 +289,20 @@ class LocalRun:
         *,
         start_ui: bool = True,
         gateway_port: int | None = None,
+        producer_root: Path | None = None,
+        producer_python: Path | None = None,
+        ingest_input: Path | None = None,
+        created_by_subject: str | None = None,
     ):
         if scenario not in SCENARIOS:
             raise ValueError("scenario không được phép")
         if isinstance(duration_seconds, bool) or not 1 <= duration_seconds <= 300:
             raise ValueError("duration phải từ 1 đến 300 giây")
+        ingest_values = (producer_root, producer_python, ingest_input, created_by_subject)
+        if scenario in INGEST_BROWSER_SCENARIOS and any(value is None for value in ingest_values):
+            raise ValueError("scenario ingest-browser cần đủ producer/input/creator")
+        if scenario not in INGEST_BROWSER_SCENARIOS and any(value is not None for value in ingest_values):
+            raise ValueError("producer/input/creator chỉ dành cho scenario ingest-browser")
         self.scenario = scenario
         self.duration_seconds = duration_seconds
         self.start_ui = start_ui
@@ -140,6 +316,11 @@ class LocalRun:
         self.draft_json_path = self.temp_root / "stix-e2e-draft.json"
         self.exporter_config_path = self.temp_root / "exporter-config.json"
         self.bundle_path = self.temp_root / "approved-bundle.json"
+        self.producer_root = producer_root
+        self.producer_python = producer_python
+        self.ingest_input = ingest_input
+        self.created_by_subject = created_by_subject
+        self.ingest_seed: IngestSeedResult | None = None
         self.draft_ids: tuple[int, ...] = ()
         self.selection_draft_id: int | None = None
         self._temporary: tempfile.TemporaryDirectory[str] | None = None
@@ -194,6 +375,9 @@ class LocalRun:
         return token, AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
 
     def _save_fixtures(self) -> None:
+        if self.scenario in INGEST_BROWSER_SCENARIOS:
+            self._save_ingest_browser_fixture()
+            return
         if self.scenario in STIX_E2E_SCENARIOS:
             self._save_stix_e2e_fixture()
             return
@@ -225,6 +409,30 @@ class LocalRun:
                     expected_version=0,
                 )
         self.draft_ids = tuple(ids)
+
+    def _save_ingest_browser_fixture(self) -> None:
+        if (
+            self.producer_root is None
+            or self.producer_python is None
+            or self.ingest_input is None
+            or self.created_by_subject is None
+        ):
+            raise RuntimeError("cấu hình ingest-browser bị thiếu")
+        self.source_path = self.temp_root / self.ingest_input.name
+        shutil.copyfile(self.ingest_input, self.source_path)
+        config_source = ROOT / "extractor" / "draft" / "examples" / "stix" / "exporter-config.example.json"
+        self.exporter_config_path.write_bytes(config_source.read_bytes())
+        self.ingest_seed = seed_ingest_fixture(
+            input_path=self.source_path,
+            envelope_path=self.draft_json_path,
+            db_path=self.db_path,
+            producer_root=self.producer_root,
+            producer_python=self.producer_python,
+            importer_python=Path(sys.executable),
+            created_by_subject=self.created_by_subject,
+        )
+        self.selection_draft_id = self.ingest_seed.draft_id
+        self.draft_ids = (self.ingest_seed.draft_id,)
 
     def _run_seed_cli(self, command: list[str]) -> subprocess.CompletedProcess[str]:
         try:
