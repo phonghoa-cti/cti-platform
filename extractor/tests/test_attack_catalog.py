@@ -12,6 +12,7 @@ import pytest
 from phonghoa_extractor.attack_catalog import (
     AttackCatalogError,
     SnapshotPin,
+    TechniqueRecord,
     load_catalog,
     validate_technique,
 )
@@ -20,6 +21,7 @@ PARENT_STIX_ID = "attack-pattern--11111111-1111-4111-8111-111111111111"
 CHILD_STIX_ID = "attack-pattern--22222222-2222-4222-8222-222222222222"
 INACTIVE_STIX_ID = "attack-pattern--33333333-3333-4333-8333-333333333333"
 RELATIONSHIP_ID = "relationship--44444444-4444-4444-8444-444444444444"
+_MISSING_DESCRIPTION = object()
 
 
 def pattern(
@@ -32,10 +34,11 @@ def pattern(
     deprecated: bool = False,
     subtechnique: bool | None = None,
     domains: list[object] | None = None,
+    description: object = _MISSING_DESCRIPTION,
 ) -> dict[str, object]:
     if subtechnique is None:
         subtechnique = "." in external_id
-    return {
+    result = {
         "type": "attack-pattern",
         "spec_version": "2.1",
         "id": stix_id,
@@ -47,6 +50,9 @@ def pattern(
         "x_mitre_domains": domains if domains is not None else ["enterprise-attack"],
         "external_references": [{"source_name": "mitre-attack", "external_id": external_id}],
     }
+    if description is not _MISSING_DESCRIPTION:
+        result["description"] = description
+    return result
 
 
 def relationship(
@@ -137,6 +143,59 @@ def assert_error(code: str, action) -> None:
     assert caught.value.code == code
     assert str(caught.value) == code
     assert repr(caught.value) == code
+
+
+def test_description_is_optional_and_old_record_builder_remains_compatible(tmp_path: Path) -> None:
+    old_builder = TechniqueRecord(
+        stix_id=PARENT_STIX_ID,
+        external_id="T1000",
+        name="Old builder",
+        modified="2026-11-11T00:00:00Z",
+        revoked=False,
+        deprecated=False,
+        is_subtechnique=False,
+        parent_external_ids=(),
+    )
+    assert old_builder.description is None
+
+    objects = [
+        pattern(PARENT_STIX_ID, "T1000"),
+        pattern(INACTIVE_STIX_ID, "T2000", description=""),
+        pattern(CHILD_STIX_ID, "T3000", subtechnique=False, description="Mô tả hợp lệ"),
+    ]
+    snapshot, pin = write_snapshot(tmp_path, bundle(objects))
+    records = load_catalog(snapshot, pin).records_by_external_id
+    assert records["T1000"].description is None
+    assert records["T2000"].description is None
+    assert records["T3000"].description == "Mô tả hợp lệ"
+
+
+@pytest.mark.parametrize(
+    "description",
+    [None, 1, True, [], {}, "\ud800", "a" * 32769, "é" * 16385],
+)
+def test_rejects_invalid_present_description(tmp_path: Path, description: object) -> None:
+    snapshot, pin = write_snapshot(
+        tmp_path,
+        bundle([pattern(PARENT_STIX_ID, "T1000", description=description)]),
+    )
+    assert_error("invalid_attack_pattern", lambda: load_catalog(snapshot, pin))
+
+
+def test_canonical_description_comes_only_from_newest_version(tmp_path: Path) -> None:
+    older = pattern(
+        PARENT_STIX_ID,
+        "T1000",
+        modified="2026-11-10T00:00:00Z",
+        description="Old description",
+    )
+    newer = pattern(
+        PARENT_STIX_ID,
+        "T1000",
+        modified="2026-11-11T00:00:00Z",
+    )
+    snapshot, pin = write_snapshot(tmp_path, bundle([older, newer]))
+    assert load_catalog(snapshot, pin).records_by_external_id["T1000"].description is None
 
 
 def test_loads_active_inactive_unknown_and_invalid_without_semantic_eligibility(

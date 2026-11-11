@@ -34,6 +34,7 @@ class TechniqueRecord:
     deprecated: bool
     is_subtechnique: bool
     parent_external_ids: tuple[str, ...]
+    description: str | None = None
 
 
 @dataclass(frozen=True)
@@ -83,6 +84,7 @@ class _PatternVersion:
     deprecated: bool
     is_subtechnique: bool
     enterprise: bool
+    description: str | None
 
 
 @dataclass(frozen=True)
@@ -302,6 +304,21 @@ def _external_id(item: dict[str, object], code: str) -> str:
     return mitre_ids[0]
 
 
+def _description(item: dict[str, object], code: str) -> str | None:
+    if "description" not in item:
+        return None
+    value = item["description"]
+    if type(value) is not str:
+        _fail(code)
+    try:
+        encoded = value.encode("utf-8")
+    except UnicodeEncodeError:
+        _fail(code)
+    if len(encoded) > 32 * 1024:
+        _fail(code)
+    return value or None
+
+
 def _parse_pattern(item: dict[str, object]) -> _PatternVersion:
     code = "invalid_attack_pattern"
     stix_id = _stix_id(item.get("id"), "attack-pattern", code)
@@ -335,6 +352,7 @@ def _parse_pattern(item: dict[str, object]) -> _PatternVersion:
         deprecated=deprecated,
         is_subtechnique=is_subtechnique,
         enterprise="enterprise-attack" in domains,
+        description=_description(item, code),
     )
 
 
@@ -491,6 +509,7 @@ def _build_records(
             parent_external_ids=tuple(
                 sorted(enterprise[parent_id].external_id for parent_id in parents.get(item.stix_id, set()))
             ),
+            description=item.description,
         )
         for item in enterprise.values()
     }

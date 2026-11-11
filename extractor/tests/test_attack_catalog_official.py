@@ -82,6 +82,7 @@ def test_public_loader_reads_pinned_official_v20_1_without_semantic_eligibility(
     malformed = validate_technique(catalog, " T1001")
 
     assert active.catalog_status == "active"
+    assert catalog.records_by_external_id["T1001"].description
     assert child.catalog_status == "active"
     assert child.is_subtechnique is True
     assert child.parent_external_ids == ("T1001",)

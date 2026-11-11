@@ -69,6 +69,10 @@ Cập nhật lần cuối: 11/11/2026
   aggregate/mode/TTP consistency rồi dựng Markdown bất biến có hash từng input và nhãn synthetic. Publish mặc
   định no-clobber, chỉ overwrite khi có cờ và từ chối alias input; reporter không chấm lại prediction hoặc gọi
   model/mạng/catalog/DB. Đây là bảng smoke tổng hợp, không phải kết quả model/corpus thật.
+- X01 component retrieval ATT&CK ngoại tuyến: canonical loader giữ optional description; lexical retriever trả
+  raw result bất biến và JSON context có provenance, đo toàn envelope theo budget UTF-8. Ranking/tokenizer được
+  kiểm bằng fixture tổng hợp Việt/Anh qua public loader và regression dùng asset Enterprise v20.1 local; chưa nối
+  generator/model, chưa phải full C4/RAG hoặc bằng chứng chất lượng semantic.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -86,3 +90,5 @@ Cập nhật lần cuối: 11/11/2026
   corpus hai người gán nhãn, model/provider thật, C4/RAG, lab và production vẫn chưa xác minh.
 - Reporter chưa được dùng với corpus thật hoặc artifact model thật; semantic TTP, C4/RAG, khả năng chống power
   loss/hostile directory mutation, W05, OpenCTI, lab và production vẫn chưa xác minh.
+- Retrieval lexical chưa được nối trước generation, chưa đo semantic/multilingual recall trên corpus hai người
+  gán nhãn và chưa gọi model thật; ranking score chỉ là token overlap, không phải confidence hay semantic truth.
