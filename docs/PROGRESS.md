@@ -155,6 +155,11 @@ Cập nhật lần cuối: 11/11/2026
   nguồn/as-of/notice, tooltip Việt và bỏ chuỗi trang khi snapshot đổi; leader summary không gọi API tài sản.
   Ownership token chặn callback cũ khi đổi filter/provider/route/unmount. Đây là frontend/test cục bộ; chưa nối
   API/gateway thật, chưa chạy browser, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab hoặc production.
+- W03 frontend rework F1–F3: parser chỉ nhận đúng notice hợp đồng, từ chối CVE trùng ở detail/summary và match
+  công nghệ trùng hoặc không tăng nghiêm ngặt; response cùng options công nghệ chỉ thuộc provider/context hiện
+  hành nên detail cũ không kích hoạt provider mới trong lúc summary/detail kế tiếp còn chờ. Regression mới RED
+  7/49 rồi GREEN 51/51, probe QA độc lập 3/3 và toàn bộ portal 356/356; typecheck/lint/build đều đạt sau khi chạy
+  độc lập. API/gateway/browser/feed/OpenCTI/lab/production vẫn chưa được kiểm trong rework này.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

@@ -15,6 +15,7 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
 const MAX_BODY_BYTES = 1024 * 1024;
 const TIMEOUT_MS = 10_000;
 const CONTROL = /[\p{Cc}\p{Cf}\p{Cs}]/u;
+const NOTICE = "Liên quan theo tên sản phẩm; cần kiểm tra phiên bản/phạm vi bị ảnh hưởng trước khi vá.";
 
 class InvalidCveResponse extends Error {}
 
@@ -152,6 +153,10 @@ function detailItem(value: unknown): CveDetailItem {
   if (cvssVersion !== null && cvssVersion !== "3.1" && cvssVersion !== "4.0") throw new InvalidCveResponse();
   if ((common.cvssBaseScore === null) !== (cvssVersion === null)) throw new InvalidCveResponse();
   if (!Array.isArray(raw.matches) || raw.matches.length < 1 || raw.matches.length > 1000) throw new InvalidCveResponse();
+  const matches = raw.matches.map(match);
+  if (matches.some((entry, index) => index > 0 && entry.technologyId <= matches[index - 1].technologyId)) {
+    throw new InvalidCveResponse();
+  }
   return {
     ...common,
     kevDueDate,
@@ -161,7 +166,7 @@ function detailItem(value: unknown): CveDetailItem {
     cvssVersion,
     publishedAt: raw.published_at === null ? null : timestamp(raw.published_at),
     advisoryUrl: advisory(raw.advisory_url),
-    matches: raw.matches.map(match),
+    matches,
   };
 }
 
@@ -189,12 +194,19 @@ function envelope(raw: Record<string, unknown>) {
     sourceAsOf: timestamp(sourceRaw.source_as_of),
     retrievedAt: timestamp(sourceRaw.retrieved_at),
   };
+  const notice = text(raw.notice, 1, 1000, true);
+  if (notice !== NOTICE) throw new InvalidCveResponse();
   return {
     summary: { matchedCves: integer(summary.matched_cves, 0), kevCves: integer(summary.kev_cves, 0) },
     page: { nextCursor: cursor, limit: integer(page.limit, 1, 100) },
     source,
-    notice: text(raw.notice, 1, 1000, true),
+    notice,
   };
+}
+
+function uniqueCves<T extends { cveId: string }>(items: T[]) {
+  if (new Set(items.map((item) => item.cveId)).size !== items.length) throw new InvalidCveResponse();
+  return items;
 }
 
 export function parseCveResponse(value: unknown): CveResponse {
@@ -203,10 +215,10 @@ export function parseCveResponse(value: unknown): CveResponse {
   if (!Array.isArray(raw.items) || raw.items.length > 100) throw new InvalidCveResponse();
   const common = envelope(raw);
   if (raw.view === "detail") {
-    return { view: "detail", items: raw.items.map(detailItem), ...common } satisfies CveDetailResponse;
+    return { view: "detail", items: uniqueCves(raw.items.map(detailItem)), ...common } satisfies CveDetailResponse;
   }
   if (raw.view === "summary") {
-    return { view: "summary", items: raw.items.map(summaryItem), ...common } satisfies CveSummaryResponse;
+    return { view: "summary", items: uniqueCves(raw.items.map(summaryItem)), ...common } satisfies CveSummaryResponse;
   }
   throw new InvalidCveResponse();
 }
