@@ -158,6 +158,42 @@ test("gateway proxies only exact IOC route and replaces a caller-spoofed JWT", a
   }
 });
 
+test("gateway allows only exact CVE status routes and gives PUT its own 16 KiB cap", async () => {
+  const seen = [];
+  const api = await listen((req, res) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      seen.push({ method: req.method, path: req.url, size: Buffer.concat(chunks).length });
+      res.writeHead(200, { "Cache-Control": "no-store" });
+      res.end("{}");
+    });
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: null });
+  try {
+    const statusPath = "/api/cves/CVE-2026-2001/technologies/1/status";
+    assert.equal((await request(gateway.address().port, `${statusPath}?ignored=upstream`)).status, 200);
+    assert.equal((await request(gateway.address().port, statusPath, { method: "PUT", body: "x".repeat(8193) })).status, 200);
+    assert.equal((await request(gateway.address().port, statusPath, { method: "PUT", body: "x".repeat(16385) })).status, 413);
+    assert.equal((await request(gateway.address().port, `${statusPath}-history?limit=1`)).status, 200);
+    for (const [path, method] of [
+      [statusPath, "POST"],
+      [`${statusPath}-history`, "PUT"],
+      ["/api/cves/CVE-2026-2001/technologies/0/status", "GET"],
+      ["/api/cves/CVE-2026-2001/technologies/01/status", "GET"],
+      ["/api/cves/CVE-2026-2001/technologies/1/status/extra", "GET"],
+    ]) assert.equal((await request(gateway.address().port, path, { method })).status, 404, `${method} ${path}`);
+    assert.deepEqual(seen.map(({ method, path, size }) => [method, path, size]), [
+      ["GET", `${statusPath}?ignored=upstream`, 0],
+      ["PUT", statusPath, 8193],
+      ["GET", `${statusPath}-history?limit=1`, 0],
+    ]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
 test("gateway proxies only exact asset collection and positive-id routes", async () => {
   const seen = [];
   const api = await listen((req, res) => {

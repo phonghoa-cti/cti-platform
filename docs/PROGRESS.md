@@ -191,6 +191,11 @@ Cập nhật lần cuối: 11/11/2026
   unchecked 16 tổng/3 KEV, hai trang đủ 16 CVE duy nhất và checked lại còn 3; lọc `q` rồi bỏ lọc phục hồi 16.
   Trace chỉ có GET, hai SQLite snapshot trùng SHA-256 và cleanup đóng port/xóa temp. Commit sau browser chỉ cập nhật
   dòng PROGRESS này; mobile/feed/OpenCTI/Cloudflare/JWKS/lab/production vẫn chưa kiểm.
+- W03-S1 chuẩn bị tích hợp status cục bộ: gateway mở đúng GET/PUT status và GET history với cap PUT 16 KiB;
+  runner opt-in inject `CveStatusStore` cùng SQLite W04 và fixture CVE tổng hợp sau bootstrap explicit. Ma trận
+  socket HTTP kiểm quyền/JWT giả, strict body, status/history/cursor, cạnh tranh ghi, drift W04/dataset/identity,
+  SQL non-mutation và hai chuỗi PUT một lần + GET phục hồi; cleanup đóng port/xóa temp. Chưa ghép frontend, chưa
+  chạy browser, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab và production chưa kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

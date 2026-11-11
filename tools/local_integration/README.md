@@ -141,3 +141,20 @@ W03 GET vẫn giữ nguyên schema/row/audit/user version.
 Browser helper cho bốn scenario bounded: `w03-it`, `w03-leader`, `w03-snapshot-change`,
 `w03-refresh-503`. Helper lưu DB ban đầu/cuối, trace đã lược và cleanup; nó không tự mở
 browser. Kết quả này chỉ chứng minh loopback/desktop cục bộ với dữ liệu tổng hợp.
+
+## W03-S1 — status/history qua gateway và cùng SQLite W04
+
+Các scenario `w03-status-*` bật `CveStatusStore`, `TechnologyStore`, fixture CVE tổng hợp và schema bằng
+bootstrap explicit trước khi listener nhận request. Scenario cũ không tự bật status. Gateway chỉ cho `GET|PUT`
+trên `/api/cves/<CVE>/technologies/<positive-id>/status` và `GET` trên `status-history`; route/method gần đúng trả
+404. Chỉ PUT status có cap 16 KiB, các cap cũ không đổi.
+
+```powershell
+Set-Location C:\Users\ABC\.openmausbot\task-workspaces\0c356bb4-b9e0-4899-a6f5-232bc89b4048\7f8ce74d-7efd-4136-940a-c5fab132c149\cti-w03-status-integration
+..\cti-w03-read-backend\.venv\Scripts\python.exe -X utf8 -B -m tools.local_integration.tests.run_w03_status_matrix --output ..\w03-status-integration-prep-evidence\http-matrix.json --evidence-dir ..\w03-status-integration-prep-evidence\http
+```
+
+Fault `known-commit` trả PUT 200 rồi GET `503→503→200`; fault `unknown-outcome` để upstream commit đúng một lần
+nhưng trả PUT 503 rồi GET `503→200`. Trace chỉ ghi counter/method/path/status, và client chỉ retry GET. Ma trận
+chứng minh HTTP loopback cục bộ bằng JWT, SQLite và dữ liệu tổng hợp; chưa ghép UI, chưa chạy browser và không
+chứng minh Cloudflare/JWKS/HTTPS thật, feed/OpenCTI, lab hay production.

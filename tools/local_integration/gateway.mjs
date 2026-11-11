@@ -10,6 +10,7 @@ const IOC_API_PATH = "/api/ioc";
 const ASSET_API_PATH = /^\/api\/assets(?:\/[1-9][0-9]*)?$/;
 const TECHNOLOGY_API_PATH = /^\/api\/assets\/technologies(?:\/[1-9][0-9]*)?$/;
 const CVE_API_PATH = "/api/cves";
+const CVE_STATUS_API_PATH = /^\/api\/cves\/CVE-[0-9]{4}-[0-9]{4,}\/technologies\/[1-9][0-9]*\/status(?:-history)?$/;
 
 function dynamicHopHeaders(headers) {
   const names = new Set(HOP_BY_HOP);
@@ -71,7 +72,7 @@ function readBody(request, limit) {
   });
 }
 
-export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false, failAssetRefreshOnce = false, failAssetMutationResponseOnce = false, failTechnologyRefreshCount = 0, failTechnologyMutationResponseOnce = false, failCveGetOnce = false, tracePath = null }) {
+export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, maxStatusBodyBytes = 16384, failRefreshAfterPost = false, failAssetRefreshOnce = false, failAssetMutationResponseOnce = false, failTechnologyRefreshCount = 0, failTechnologyMutationResponseOnce = false, failCveGetOnce = false, failStatusGetCount = 0, failStatusMutationResponseOnce = false, tracePath = null }) {
   for (const value of [apiPort, uiPort]) {
     if (!Number.isInteger(value) || value < 1 || value > 65535) throw new TypeError("upstream port không hợp lệ");
   }
@@ -84,6 +85,8 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
   let technologyRefreshFailuresRemaining = 0;
   let technologyMutationFaultUsed = false;
   let cveGetFailurePending = failCveGetOnce;
+  let statusGetFailuresRemaining = 0;
+  let statusMutationFaultUsed = false;
   let requestCounter = 0;
   const server = http.createServer(async (request, response) => {
     const ownPort = server.address()?.port;
@@ -106,12 +109,21 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     const isAsset = ASSET_API_PATH.test(url.pathname);
     const isTechnology = TECHNOLOGY_API_PATH.test(url.pathname);
     const isCve = url.pathname === CVE_API_PATH;
+    const isStatus = CVE_STATUS_API_PATH.test(url.pathname);
+    const isStatusHistory = isStatus && url.pathname.endsWith("/status-history");
+    const statusMethodAllowed = isStatusHistory ? request.method === "GET" : ["GET", "PUT"].includes(request.method ?? "");
     if (isCve && request.method !== "GET") return safeError(response, 404, "not_found");
-    if (isApi && !isV1 && !isAsset && !isTechnology && !isCve && url.pathname !== IOC_API_PATH && !LEGACY_API_PATH.test(url.pathname)) {
+    if (isStatus && !statusMethodAllowed) return safeError(response, 404, "not_found");
+    if (isApi && !isV1 && !isAsset && !isTechnology && !isCve && !isStatus && url.pathname !== IOC_API_PATH && !LEGACY_API_PATH.test(url.pathname)) {
       return safeError(response, 404, "not_found");
     }
     if (isCve && cveGetFailurePending) {
       cveGetFailurePending = false;
+      trace(503);
+      return safeError(response, 503, "synthetic_refresh_failure");
+    }
+    if (isStatus && request.method === "GET" && statusGetFailuresRemaining > 0) {
+      statusGetFailuresRemaining -= 1;
       trace(503);
       return safeError(response, 503, "synthetic_refresh_failure");
     }
@@ -131,7 +143,10 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     }
     let body;
     try {
-      body = await readBody(request, isV1 ? maxV1BodyBytes : maxBodyBytes);
+      body = await readBody(
+        request,
+        isV1 ? maxV1BodyBytes : (isStatus && request.method === "PUT" ? maxStatusBodyBytes : maxBodyBytes),
+      );
     } catch (error) {
       if (error.code === "BODY_TOO_LARGE") return safeError(response, 413, "request_too_large");
       return safeError(response, 400, "invalid_request");
@@ -162,6 +177,13 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
       const successfulTechnologyMutation = isTechnology
         && ["POST", "PUT", "DELETE"].includes(request.method ?? "")
         && (upstreamResponse.statusCode ?? 500) < 300;
+      const successfulStatusMutation = isStatus
+        && !isStatusHistory
+        && request.method === "PUT"
+        && (upstreamResponse.statusCode ?? 500) < 300;
+      if (successfulStatusMutation && failStatusGetCount > 0) {
+        statusGetFailuresRemaining = failStatusGetCount;
+      }
       if (failAssetMutationResponseOnce && !assetMutationFaultUsed && successfulAssetMutation) {
         assetMutationFaultUsed = true;
         upstreamResponse.once("end", () => {
@@ -174,6 +196,16 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
       if (failTechnologyMutationResponseOnce && !technologyMutationFaultUsed && successfulTechnologyMutation) {
         technologyMutationFaultUsed = true;
         technologyRefreshFailuresRemaining = 1;
+        upstreamResponse.once("end", () => {
+          trace(503);
+          safeError(response, 503, "synthetic_unknown_outcome");
+        });
+        upstreamResponse.resume();
+        return;
+      }
+      if (failStatusMutationResponseOnce && !statusMutationFaultUsed && successfulStatusMutation) {
+        statusMutationFaultUsed = true;
+        statusGetFailuresRemaining = Math.max(statusGetFailuresRemaining, 1);
         upstreamResponse.once("end", () => {
           trace(503);
           safeError(response, 503, "synthetic_unknown_outcome");
@@ -213,6 +245,8 @@ async function main() {
     failTechnologyRefreshCount: process.env.W04_FAIL_TECHNOLOGY_REFRESH_TWICE === "1" ? 2 : 0,
     failTechnologyMutationResponseOnce: process.env.W04_FAIL_TECHNOLOGY_MUTATION_RESPONSE_ONCE === "1",
     failCveGetOnce: process.env.W03_FAIL_CVE_GET_ONCE === "1",
+    failStatusGetCount: Number(process.env.W03_FAIL_STATUS_GET_COUNT ?? "0"),
+    failStatusMutationResponseOnce: process.env.W03_FAIL_STATUS_MUTATION_RESPONSE_ONCE === "1",
     tracePath: process.env.W04_TRACE_PATH ?? null,
   });
   const stop = () => server.close(() => process.exit(0));

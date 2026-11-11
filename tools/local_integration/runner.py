@@ -10,6 +10,7 @@ import gc
 import json
 import os
 import socket
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -36,9 +37,10 @@ from portal_api.assets import AssetStore
 from portal_api.auth import AccessJwtVerifier
 from portal_api.technologies import TechnologyStore
 from portal_api.cves import FixtureCveReadPort
+from portal_api.cves_status import CveStatusStore
 from tools.local_integration.local_settings import make_local_settings
 from tools.local_integration.w02_fixture import build_w02_fixture
-from tools.local_integration.w03_fixture import build_w03_fixture
+from tools.local_integration.w03_fixture import FIXTURE_PATH as W03_FIXTURE_PATH, build_w03_fixture
 from tools.local_integration.w04_fixture import build_w04_fixture, build_w04_technology_fixture
 
 SELECTION_SCENARIOS = frozenset(
@@ -98,6 +100,18 @@ W03_SCENARIOS = frozenset(
         "w03-refresh-503",
     }
 )
+W03_STATUS_SCENARIOS = frozenset(
+    {
+        "w03-status-it",
+        "w03-status-analyst",
+        "w03-status-admin",
+        "w03-status-multi-role",
+        "w03-status-leader",
+        "w03-status-missing-token",
+        "w03-status-known-commit",
+        "w03-status-unknown-outcome",
+    }
+)
 SCENARIOS = (
     frozenset(
         {
@@ -116,6 +130,7 @@ SCENARIOS = (
     | W04_SCENARIOS
     | W04_TECHNOLOGY_SCENARIOS
     | W03_SCENARIOS
+    | W03_STATUS_SCENARIOS
 )
 E2E_SOURCE_BYTES = "Cảnh báo thử nghiệm 😀 ghi nhận evil-one.example và evil-two.example.\n".encode()
 E2E_CREATOR_SUBJECT = "e2e-author-sub"
@@ -200,10 +215,12 @@ class LocalRun:
         self.draft_json_path = self.temp_root / "stix-e2e-draft.json"
         self.exporter_config_path = self.temp_root / "exporter-config.json"
         self.bundle_path = self.temp_root / "approved-bundle.json"
+        self.cve_fixture_path = self.temp_root / "w03-cves-synthetic.json"
         self.draft_ids: tuple[int, ...] = ()
         self.selection_draft_id: int | None = None
         self.asset_store: AssetStore | None = None
         self.technology_store: TechnologyStore | None = None
+        self.cve_status_store: CveStatusStore | None = None
         self._temporary: tempfile.TemporaryDirectory[str] | None = None
         self._api_server: uvicorn.Server | None = None
         self._api_thread: threading.Thread | None = None
@@ -232,6 +249,7 @@ class LocalRun:
             "w04-analyst",
             "w04-technology-analyst",
             "w03-analyst",
+            "w03-status-analyst",
         }:
             subject = "analyst-sub"
         elif self.scenario in {
@@ -245,6 +263,9 @@ class LocalRun:
             "w03-it",
             "w03-snapshot-change",
             "w03-refresh-503",
+            "w03-status-it",
+            "w03-status-known-commit",
+            "w03-status-unknown-outcome",
         }:
             subject = "it-sub"
         elif self.scenario in {
@@ -252,11 +273,17 @@ class LocalRun:
             "w04-multi-role",
             "w04-technology-multi-role",
             "w03-multi-role",
+            "w03-status-multi-role",
         }:
             subject = "multi-sub"
         elif self.scenario in {"w02-forbidden", "w03-forbidden"}:
             subject = "viewer-sub"
-        elif self.scenario in {"w04-forbidden", "w04-technology-forbidden", "w03-leader"}:
+        elif self.scenario in {
+            "w04-forbidden",
+            "w04-technology-forbidden",
+            "w03-leader",
+            "w03-status-leader",
+        }:
             subject = "leader-sub"
         else:
             subject = "admin-sub"
@@ -284,6 +311,7 @@ class LocalRun:
                 "w04-missing-token",
                 "w04-technology-missing-token",
                 "w03-missing-token",
+                "w03-status-missing-token",
             }
             else jwt.encode(claims, signing_key, algorithm="RS256", headers={"kid": "w05-local"})
         )
@@ -409,6 +437,7 @@ class LocalRun:
             self.draft_json_path = self.temp_root / "stix-e2e-draft.json"
             self.exporter_config_path = self.temp_root / "exporter-config.json"
             self.bundle_path = self.temp_root / "approved-bundle.json"
+            self.cve_fixture_path = self.temp_root / "w03-cves-synthetic.json"
             roles = {
                 "admin-sub": frozenset({"admin"}),
                 "analyst-sub": frozenset({"analyst"}),
@@ -425,6 +454,7 @@ class LocalRun:
             asset_store = None
             technology_store = None
             cve_port = None
+            cve_status_store = None
             if self.scenario in W02_SCENARIOS:
                 lookup_port = build_w02_fixture(
                     fail=self.scenario == "w02-lookup-503",
@@ -443,6 +473,15 @@ class LocalRun:
                 self.technology_store = technology_store
                 if self.scenario == "w03-unavailable":
                     cve_port = FixtureCveReadPort(self.temp_root / "missing-cves.json")
+            elif self.scenario in W03_STATUS_SCENARIOS:
+                asset_store, technology_store, lookup_port, cve_port = build_w03_fixture(self.db_path)
+                shutil.copyfile(W03_FIXTURE_PATH, self.cve_fixture_path)
+                cve_port = FixtureCveReadPort(self.cve_fixture_path)
+                cve_status_store = CveStatusStore(self.db_path)
+                cve_status_store.initialize()
+                self.asset_store = asset_store
+                self.technology_store = technology_store
+                self.cve_status_store = cve_status_store
             app = create_app(
                 settings,
                 store,
@@ -451,6 +490,7 @@ class LocalRun:
                 asset_store=asset_store,
                 technology_store=technology_store,
                 cve_port=cve_port,
+                cve_status_store=cve_status_store,
             )
             self._api_server = uvicorn.Server(
                 uvicorn.Config(app, host="127.0.0.1", port=self.api_port, log_level="warning", lifespan="off")
@@ -506,6 +546,10 @@ class LocalRun:
                 env["W04_FAIL_TECHNOLOGY_MUTATION_RESPONSE_ONCE"] = "1"
             if self.scenario == "w03-refresh-503":
                 env["W03_FAIL_CVE_GET_ONCE"] = "1"
+            if self.scenario == "w03-status-known-commit":
+                env["W03_FAIL_STATUS_GET_COUNT"] = "2"
+            if self.scenario == "w03-status-unknown-outcome":
+                env["W03_FAIL_STATUS_MUTATION_RESPONSE_ONCE"] = "1"
             if self.trace_path is not None:
                 self.trace_path.parent.mkdir(parents=True, exist_ok=True)
                 env["W04_TRACE_PATH"] = str(self.trace_path)
@@ -593,6 +637,8 @@ class LocalRun:
                         self.asset_store = None
                     if self.technology_store is not None:
                         self.technology_store = None
+                    if self.cve_status_store is not None:
+                        self.cve_status_store = None
                     gc.collect()
                     self._temporary.cleanup()
                     self._temporary = None

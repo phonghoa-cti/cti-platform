@@ -169,6 +169,17 @@ def test_non_w03_scenario_keeps_cve_fixture_disabled() -> None:
         assert response.json()["error"]["code"] == "cves_unavailable"
 
 
+def test_w03_status_scenario_injects_status_store_on_shared_database() -> None:
+    with LocalRun("w03-status-it", duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/cves/CVE-2026-2001/technologies/1/status", timeout=2)
+        assert response.status_code == 200
+        assert response.json()["record"] is None
+        assert run.asset_store is not None
+        assert run.technology_store is not None
+        assert run.cve_status_store is not None
+        assert run.asset_store.path == run.technology_store.path == run.cve_status_store.path == run.db_path
+
+
 def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixtures() -> None:
     with LocalRun("selection-admin", duration_seconds=20, start_ui=False) as selection_run:
         response = httpx.get(

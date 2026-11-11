@@ -25,5 +25,10 @@ Sai binding/canonical/position trả 422; status, technology hoặc dataset đ�
 
 ## Giới hạn bằng chứng
 
-Test dùng JWT RSA, dataset và SQLite tổng hợp in-process. Chưa chứng minh browser/gateway, Cloudflare/JWKS/HTTPS
-thật, feed/OpenCTI, lab hay production.
+Runner tích hợp chỉ bật status theo scenario opt-in, inject store vào cùng SQLite W04 và chạy migration/seed trước
+request. Gateway giữ JWT phía server, chặn route/method gần đúng và dành cap 16 KiB riêng cho PUT status. Hai fault
+hữu hạn chỉ mô phỏng mất response sau commit và lỗi GET đối soát; mutation không được tự replay.
+
+Test Backend dùng JWT RSA, dataset và SQLite tổng hợp in-process. Ma trận tích hợp bổ sung socket gateway/API thật,
+SQL snapshot và trace đã lược. Chưa ghép UI, chưa chạy browser, và chưa chứng minh Cloudflare/JWKS/HTTPS thật,
+feed/OpenCTI, lab hay production.
