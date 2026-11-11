@@ -84,7 +84,7 @@ export function parseAssetItem(value: unknown): WireAsset {
     type: assetType(raw.type),
     value: text(raw.value, 1, 253),
     note: text(raw.note, 0, 500),
-    created_by: text(raw.created_by, 1, 253),
+    created_by: text(raw.created_by, 1, 512),
     created_at: timestamp(raw.created_at),
     updated_at: timestamp(raw.updated_at),
     version: integer(raw.version),
@@ -171,13 +171,14 @@ function parseError(value: unknown) {
   return { code: text(error.code, 1, 64), message: text(error.message, 1, 160) };
 }
 
-function errorKind(status: number, code: string): AssetErrorKind {
+function knownErrorKind(status: number, code: string): AssetErrorKind | null {
   if (status === 401 && code === "authentication_required") return "authentication-required";
   if (status === 403 && code === "forbidden") return "forbidden";
   if (status === 409 && (code === "asset_exists" || code === "asset_conflict")) return "conflict";
   if (status === 404 && code === "asset_not_found") return "not-found";
   if (status === 422 && code === "invalid_asset") return "invalid";
-  return "unavailable";
+  if (status === 503 && code === "assets_unavailable") return "unavailable";
+  return null;
 }
 
 function body(input: AssetInput | AssetUpdateInput) {
@@ -226,7 +227,8 @@ export function createAssetsHttpDataSource({
         return parse(await readJson(response, controller.signal));
       }
       const error = parseError(await readJson(response, controller.signal));
-      throw new AssetDataError(errorKind(response.status, error.code));
+      const knownKind = knownErrorKind(response.status, error.code);
+      throw new AssetDataError(knownKind ?? (mutation ? "unknown-mutation" : "unavailable"));
     } catch (error) {
       if (error instanceof AssetDataError) throw error;
       throw new AssetDataError(mutation ? "unknown-mutation" : "unavailable");

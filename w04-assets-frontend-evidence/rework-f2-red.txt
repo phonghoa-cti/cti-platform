@@ -1,0 +1,73 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web
+
+ ❯ tests/assets-http.test.ts (38 tests | 6 failed) 35ms
+   ❯ W04 same-origin assets adapter (24)
+     × classifies create upstream_unavailable as unknown without replay 5ms
+     × classifies update upstream_unavailable as unknown without replay 1ms
+     × classifies remove upstream_unavailable as unknown without replay 1ms
+     × classifies an unknown create error envelope as unknown without replay 1ms
+     × classifies an unknown update error envelope as unknown without replay 1ms
+     × classifies an unknown remove error envelope as unknown without replay 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > classifies create upstream_unavailable as unknown without replay
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > classifies update upstream_unavailable as unknown without replay
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > classifies remove upstream_unavailable as unknown without replay
+AssertionError: expected AssetDataError: unavailable { …(1) } to deeply equal AssetDataError: unknown-mutation { kind: '…' }
+
+- Expected
++ Received
+
+  AssetDataError {
+-   "message": "unknown-mutation",
+-   "kind": "unknown-mutation",
++   "message": "unavailable",
++   "kind": "unavailable",
+    "name": "AssetDataError",
+  }
+
+ ❯ tests/assets-http.test.ts:167:26
+    165|         : source.remove(1, 1);
+    166|
+    167|     await expect(pending).rejects.toEqual(new AssetDataError("unknown-…
+       |                          ^
+    168|     expect(fetcher).toHaveBeenCalledTimes(1);
+    169|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > classifies an unknown create error envelope as unknown without replay
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > classifies an unknown update error envelope as unknown without replay
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > classifies an unknown remove error envelope as unknown without replay
+AssertionError: expected AssetDataError: unavailable { …(1) } to deeply equal AssetDataError: unknown-mutation { kind: '…' }
+
+- Expected
++ Received
+
+  AssetDataError {
+-   "message": "unknown-mutation",
+-   "kind": "unknown-mutation",
++   "message": "unavailable",
++   "kind": "unavailable",
+    "name": "AssetDataError",
+  }
+
+ ❯ tests/assets-http.test.ts:180:26
+    178|         : source.remove(1, 1);
+    179|
+    180|     await expect(pending).rejects.toEqual(new AssetDataError("unknown-…
+       |                          ^
+    181|     expect(fetcher).toHaveBeenCalledTimes(1);
+    182|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 32 passed (38)
+   Start at  22:12:57
+   Duration  1.81s (environment 76%, setup 17%, transform 3%, tests 2%, import 1%)
+
+EXIT_CODE=1

@@ -1,0 +1,99 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web
+
+ ❯ tests/assets-http.test.ts (31 tests | 4 failed) 26ms
+   ❯ strict W04 assets HTTP parser (14)
+     × accepts created_by with 254 characters 3ms
+     × accepts created_by with 512 characters 0ms
+   ❯ W04 same-origin assets adapter (17)
+     × accepts a 512-character created_by from list 4ms
+     × accepts a 512-character created_by from create 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/assets-http.test.ts > strict W04 assets HTTP parser > accepts created_by with 254 characters
+ FAIL  tests/assets-http.test.ts > strict W04 assets HTTP parser > accepts created_by with 512 characters
+{
+  stack: 'Error: \n' +
+    '    at text (C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/data/assets-http.ts:47:51)\n' +
+    '    at parseAssetItem (C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/data/assets-http.ts:87:17)\n' +
+    '    at C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/tests/assets-http.test.ts:37:12\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2886:64\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:1632:35\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:2801:26\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3338:20\n' +
+    '    at new Promise (<anonymous>)\n' +
+    '    at runWithCancel (file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3333:10)\n' +
+    '    at file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/node_modules/vitest/dist/chunks/run.CjdgFZiW.js:3318:20',
+  constructor: 'Function<InvalidAssetResponse>',
+  name: 'Error',
+  message: '',
+  toString: 'Function<toString>',
+  stacks: [
+    {
+      method: 'text',
+      file: 'C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/data/assets-http.ts',
+      line: 47,
+      column: 51
+    },
+    {
+      method: 'parseAssetItem',
+      file: 'C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/data/assets-http.ts',
+      line: 87,
+      column: 17
+    },
+    {
+      method: '',
+      file: 'C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web/tests/assets-http.test.ts',
+      line: 37,
+      column: 12
+    }
+  ]
+}
+ ❯ text data/assets-http.ts:47:51
+     45|   if (typeof value !== "string") throw new InvalidAssetResponse();
+     46|   const length = Array.from(value).length;
+     47|   if (length < minimum || length > maximum) throw new InvalidAssetResp…
+       |                                                   ^
+     48|   return value;
+     49| }
+ ❯ parseAssetItem data/assets-http.ts:87:17
+ ❯ tests/assets-http.test.ts:37:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > accepts a 512-character created_by from list
+AssetDataError: unavailable
+ ❯ request data/assets-http.ts:232:13
+    230|     } catch (error) {
+    231|       if (error instanceof AssetDataError) throw error;
+    232|       throw new AssetDataError(mutation ? "unknown-mutation" : "unavai…
+       |             ^
+    233|     } finally {
+    234|       clearTimeout(timeout);
+ ❯ Object.list data/assets-http.ts:240:21
+ ❯ tests/assets-http.test.ts:69:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/assets-http.test.ts > W04 same-origin assets adapter > accepts a 512-character created_by from create
+AssetDataError: unknown-mutation
+ ❯ request data/assets-http.ts:232:13
+    230|     } catch (error) {
+    231|       if (error instanceof AssetDataError) throw error;
+    232|       throw new AssetDataError(mutation ? "unknown-mutation" : "unavai…
+       |             ^
+    233|     } finally {
+    234|       clearTimeout(timeout);
+ ❯ Object.create data/assets-http.ts:250:20
+ ❯ tests/assets-http.test.ts:70:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 27 passed (31)
+   Start at  22:11:53
+   Duration  1.70s (environment 78%, setup 18%, tests 2%, transform 2%, import 1%)
+
+EXIT_CODE=1
