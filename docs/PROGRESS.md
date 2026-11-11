@@ -183,6 +183,11 @@ Cập nhật lần cuối: 11/11/2026
   kiểm thêm W04 POST tạo match và DELETE bỏ match, cursor cũ trả 409, mọi W03 GET giữ SQL bất biến. **Toàn luồng
   vẫn CHƯA ĐẠT:** R1 checkbox KEV thuộc frontend đang chờ commit riêng được review và ghép; rework này không sửa
   component/provider sản phẩm, không tự coi R1 đã xong.
+- W03 filter tích hợp cuối: đã ghép R1 để checkbox bỏ chọn không gửi `kev=false`; focused frontend 53/53, wire
+  10/10 và probe độc lập 3/3 đạt. Browser desktop 1280×720 trên runtime SHA `90af6d7` chứng minh checked 3 KEV,
+  unchecked 16 tổng/3 KEV, hai trang đủ 16 CVE duy nhất và checked lại còn 3; lọc `q` rồi bỏ lọc phục hồi 16.
+  Trace chỉ có GET, hai SQLite snapshot trùng SHA-256 và cleanup đóng port/xóa temp. Commit sau browser chỉ cập nhật
+  dòng PROGRESS này; mobile/feed/OpenCTI/Cloudflare/JWKS/lab/production vẫn chưa kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
