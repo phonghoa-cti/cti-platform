@@ -196,6 +196,9 @@ Cập nhật lần cuối: 11/11/2026
   socket HTTP kiểm quyền/JWT giả, strict body, status/history/cursor, cạnh tranh ghi, drift W04/dataset/identity,
   SQL non-mutation và hai chuỗi PUT một lần + GET phục hồi; cleanup đóng port/xóa temp. Chưa ghép frontend, chưa
   chạy browser, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab và production chưa kiểm.
+- W03-S1 prep rework R1: fault phục hồi được ràng buộc theo exact pathname status vừa PUT; GET relation khác và
+  status-history không nhận hoặc tiêu thụ bộ đếm. Probe gateway và ma trận HTTP/SQLite có request xen kẽ chứng minh
+  từng scenario vẫn chỉ một PUT, một status, một audit và phục hồi hữu hạn; phạm vi chưa ghép UI/browser không đổi.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

@@ -194,6 +194,38 @@ test("gateway allows only exact CVE status routes and gives PUT its own 16 KiB c
   }
 });
 
+test("status recovery fault stays on the mutated relation and never applies to history", async () => {
+  const api = await listen((_req, res) => { res.writeHead(200); res.end("{}"); });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({
+    apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: null,
+    failStatusGetCount: 2,
+  });
+  const a = "/api/cves/CVE-2026-2001/technologies/1/status";
+  const b = "/api/cves/CVE-2026-2002/technologies/2/status";
+  try {
+    assert.equal((await request(gateway.address().port, a, { method: "PUT", body: "{}" })).status, 200);
+    assert.equal((await request(gateway.address().port, b)).status, 200);
+    assert.equal((await request(gateway.address().port, `${a}-history`)).status, 200);
+    assert.deepEqual([
+      (await request(gateway.address().port, a)).status,
+      (await request(gateway.address().port, a)).status,
+      (await request(gateway.address().port, a)).status,
+    ], [503, 503, 200]);
+
+    assert.equal((await request(gateway.address().port, a, { method: "PUT", body: "{}" })).status, 200);
+    assert.equal((await request(gateway.address().port, b, { method: "PUT", body: "{}" })).status, 200);
+    assert.deepEqual([
+      (await request(gateway.address().port, a)).status,
+      (await request(gateway.address().port, b)).status,
+      (await request(gateway.address().port, a)).status,
+      (await request(gateway.address().port, b)).status,
+    ], [503, 503, 503, 503]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
 test("gateway proxies only exact asset collection and positive-id routes", async () => {
   const seen = [];
   const api = await listen((req, res) => {

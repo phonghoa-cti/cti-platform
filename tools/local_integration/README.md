@@ -156,5 +156,6 @@ Set-Location C:\Users\ABC\.openmausbot\task-workspaces\0c356bb4-b9e0-4899-a6f5-2
 
 Fault `known-commit` trả PUT 200 rồi GET `503→503→200`; fault `unknown-outcome` để upstream commit đúng một lần
 nhưng trả PUT 503 rồi GET `503→200`. Trace chỉ ghi counter/method/path/status, và client chỉ retry GET. Ma trận
-chứng minh HTTP loopback cục bộ bằng JWT, SQLite và dữ liệu tổng hợp; chưa ghép UI, chưa chạy browser và không
+khóa fault theo đúng pathname status vừa PUT; GET relation khác và status-history không nhận hoặc tiêu thụ fault.
+Ma trận chứng minh HTTP loopback cục bộ bằng JWT, SQLite và dữ liệu tổng hợp; chưa ghép UI, chưa chạy browser và không
 chứng minh Cloudflare/JWKS/HTTPS thật, feed/OpenCTI, lab hay production.

@@ -409,6 +409,19 @@ def faults(matrix: Matrix, evidence: Path) -> dict[str, Any]:
             context = request("GET", run.url, STATUS).json()["context"]
             committed = put(run.url, body(context, 0))
             matrix.check(committed.status_code == put_status, f"{scenario} PUT status")
+            after_put = sql_snapshot(run.db_path)
+            other_relation = request(
+                "GET",
+                run.url,
+                "/api/cves/CVE-2026-2013/technologies/2/status",
+            )
+            history = request("GET", run.url, HISTORY)
+            matrix.check(other_relation.status_code == 200, f"{scenario} other relation bypasses fault")
+            matrix.check(history.status_code == 200, f"{scenario} history bypasses fault")
+            matrix.check(
+                sql_snapshot(run.db_path) == after_put,
+                f"{scenario} interleaved GETs do not mutate SQL",
+            )
             statuses = [request("GET", run.url, STATUS).status_code for _ in gets]
             matrix.check(statuses == gets, f"{scenario} GET recovery")
             snapshot = sql_snapshot(run.db_path)
@@ -420,7 +433,15 @@ def faults(matrix: Matrix, evidence: Path) -> dict[str, Any]:
                 not any("token" in json.dumps(row).lower() for row in records), f"{scenario} trace sanitized"
             )
             backup(run.db_path, evidence / f"{scenario}-before-cleanup.sqlite")
-        results[scenario] = {"put": put_status, "gets": gets, "counts": counts(snapshot)}
+        results[scenario] = {
+            "put": put_status,
+            "interleaved": {
+                "other_relation": other_relation.status_code,
+                "history": history.status_code,
+            },
+            "gets": gets,
+            "counts": counts(snapshot),
+        }
     return results
 
 

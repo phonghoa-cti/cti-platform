@@ -85,7 +85,7 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
   let technologyRefreshFailuresRemaining = 0;
   let technologyMutationFaultUsed = false;
   let cveGetFailurePending = failCveGetOnce;
-  let statusGetFailuresRemaining = 0;
+  const statusGetFailuresByPath = new Map();
   let statusMutationFaultUsed = false;
   let requestCounter = 0;
   const server = http.createServer(async (request, response) => {
@@ -122,8 +122,12 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
       trace(503);
       return safeError(response, 503, "synthetic_refresh_failure");
     }
-    if (isStatus && request.method === "GET" && statusGetFailuresRemaining > 0) {
-      statusGetFailuresRemaining -= 1;
+    const statusGetFailuresRemaining = isStatus && !isStatusHistory
+      ? (statusGetFailuresByPath.get(url.pathname) ?? 0)
+      : 0;
+    if (request.method === "GET" && statusGetFailuresRemaining > 0) {
+      if (statusGetFailuresRemaining === 1) statusGetFailuresByPath.delete(url.pathname);
+      else statusGetFailuresByPath.set(url.pathname, statusGetFailuresRemaining - 1);
       trace(503);
       return safeError(response, 503, "synthetic_refresh_failure");
     }
@@ -182,7 +186,7 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
         && request.method === "PUT"
         && (upstreamResponse.statusCode ?? 500) < 300;
       if (successfulStatusMutation && failStatusGetCount > 0) {
-        statusGetFailuresRemaining = failStatusGetCount;
+        statusGetFailuresByPath.set(url.pathname, failStatusGetCount);
       }
       if (failAssetMutationResponseOnce && !assetMutationFaultUsed && successfulAssetMutation) {
         assetMutationFaultUsed = true;
@@ -205,7 +209,10 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
       }
       if (failStatusMutationResponseOnce && !statusMutationFaultUsed && successfulStatusMutation) {
         statusMutationFaultUsed = true;
-        statusGetFailuresRemaining = Math.max(statusGetFailuresRemaining, 1);
+        statusGetFailuresByPath.set(
+          url.pathname,
+          Math.max(statusGetFailuresByPath.get(url.pathname) ?? 0, 1),
+        );
         upstreamResponse.once("end", () => {
           trace(503);
           safeError(response, 503, "synthetic_unknown_outcome");
