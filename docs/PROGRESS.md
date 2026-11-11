@@ -149,6 +149,12 @@ Cập nhật lần cuối: 11/11/2026
   timestamp hỏng không ghi, danh sách đủ 1.000 và từ chối 1.001, non-impact assets/W02, domain/CIDR lookup và
   hai chuỗi fault không replay. Frontend focused 120/120, Python harness 42/42, gateway 14/14, typecheck/lint/
   build 9/9 route đều đạt; browser OpenMausBot và viewport desktop/mobile vẫn UNVERIFIED trong lượt này.
+- W03 frontend đọc lỗ hổng: `/lo-hong` dùng provider HTTP GET-only và `/lo-hong/mau` dùng 12 CVE tổng hợp có
+  nhãn mẫu; parser phân biệt strict detail/summary, giữ null khác điểm 0, giới hạn response 1 MiB và map lỗi
+  401/403/404/422/409/503 an toàn. Giao diện lọc KEV/công nghệ/từ khóa, phân trang, detail từ dòng hiện tại,
+  nguồn/as-of/notice, tooltip Việt và bỏ chuỗi trang khi snapshot đổi; leader summary không gọi API tài sản.
+  Ownership token chặn callback cũ khi đổi filter/provider/route/unmount. Đây là frontend/test cục bộ; chưa nối
+  API/gateway thật, chưa chạy browser, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab hoặc production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
