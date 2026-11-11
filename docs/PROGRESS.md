@@ -105,8 +105,9 @@ Cập nhật lần cuối: 11/11/2026
   network thật hoặc production.
 - W04 Backend rework F1–F4: mọi row active dùng cho list/snapshot/mutation được kiểm lại canonical và bound;
   actor/version/output bị chặn trước commit; tên `AssetFact` dùng bound 253 riêng; chỉ lỗi unique active asset
-  thật trả `asset_exists`, còn lỗi audit/constraint/storage trả unavailable và rollback. Regression assets + W02
-  đạt 99 test và probe QA gốc đạt 7/7 cục bộ; các phạm vi browser/lab/production vẫn chưa được kiểm.
+  `assets(type, canonical_value)` thật trả `asset_exists`, còn UNIQUE ở bảng/cột khác cùng lỗi
+  audit/constraint/storage trả unavailable và rollback. Regression F4 RED 2/2 rồi GREEN 2/2, nhóm assets đạt
+  55/55 và probe F4 độc lập đạt 2/2 cục bộ; các phạm vi browser/lab/production vẫn chưa được kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

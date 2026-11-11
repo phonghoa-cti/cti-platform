@@ -177,7 +177,7 @@ class AssetStore:
                         (asset_type, canonical, note, actor, now, now),
                     )
                 except sqlite3.IntegrityError as exc:
-                    self._raise_write_integrity(connection, asset_type, canonical, exc)
+                    self._raise_write_integrity(exc)
                 asset = _validated_asset(
                     Asset(cursor.lastrowid, asset_type, canonical, note, actor, now, now, 1)
                 )
@@ -227,7 +227,7 @@ class AssetStore:
                         (asset_type, canonical, note, updated.version, now, asset_id),
                     )
                 except sqlite3.IntegrityError as exc:
-                    self._raise_write_integrity(connection, asset_type, canonical, exc)
+                    self._raise_write_integrity(exc)
                 self._audit(connection, "asset_updated", asset_id, actor, before, updated)
                 connection.commit()
                 return updated
@@ -271,17 +271,9 @@ class AssetStore:
         return None if row is None else _asset_from_row(row)
 
     @staticmethod
-    def _raise_write_integrity(
-        connection: sqlite3.Connection,
-        asset_type: str,
-        canonical: str,
-        error: sqlite3.IntegrityError,
-    ) -> None:
-        duplicate = connection.execute(
-            "SELECT 1 FROM assets WHERE type=? AND canonical_value=? AND deleted_at IS NULL LIMIT 1",
-            (asset_type, canonical),
-        ).fetchone()
-        if error.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE and duplicate is not None:
+    def _raise_write_integrity(error: sqlite3.IntegrityError) -> None:
+        active_asset_unique = "UNIQUE constraint failed: assets.type, assets.canonical_value"
+        if error.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE and str(error) == active_asset_unique:
             raise AssetExists("active asset exists") from error
         raise AssetsUnavailable("asset integrity failure") from error
 

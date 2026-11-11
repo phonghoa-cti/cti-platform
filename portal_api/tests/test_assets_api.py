@@ -593,6 +593,38 @@ def test_true_active_duplicate_is_conflict_without_extra_audit(tmp_path, rsa_key
 
 
 @pytest.mark.parametrize("operation", ["create", "update"])
+def test_unrelated_unique_failure_is_unavailable_and_rolls_back(tmp_path, rsa_keys, operation):
+    store = _store(tmp_path)
+    item = store.create("domain", "company.example", "", "it-sub")
+    before_counts = _row_counts(store)
+    with sqlite3.connect(store.path) as connection:
+        connection.execute("CREATE TABLE synthetic_guard (value TEXT UNIQUE)")
+        connection.execute("INSERT INTO synthetic_guard VALUES ('taken')")
+        action = "INSERT" if operation == "create" else "UPDATE"
+        connection.execute(
+            f"CREATE TRIGGER unrelated_unique BEFORE {action} ON assets "
+            "BEGIN INSERT INTO synthetic_guard VALUES ('taken'); END"
+        )
+    client, private_key = _client(tmp_path, rsa_keys, asset_store=store)
+    body = {"type": "domain", "value": "company.example", "note": "changed"}
+
+    if operation == "create":
+        response = client.post("/api/assets", headers=_mutation_headers(private_key), json=body)
+    else:
+        response = client.put(
+            f"/api/assets/{item.id}",
+            headers=_mutation_headers(private_key),
+            json={**body, "expected_version": item.version},
+        )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "assets_unavailable"
+    assert "synthetic_guard" not in response.text
+    assert _row_counts(store) == before_counts
+    assert store.list() == (item,)
+
+
+@pytest.mark.parametrize("operation", ["create", "update"])
 def test_non_unique_asset_trigger_wins_over_existing_duplicate(tmp_path, rsa_keys, operation):
     store = _store(tmp_path)
     store.create("domain", "duplicate.example", "", "it-sub")
