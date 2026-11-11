@@ -1,0 +1,67 @@
+{
+  "type": "bundle",
+  "x_phonghoa_provenance": {
+    "kind": "synthetic",
+    "generator": "hand-authored-test-fixture",
+    "purpose": "restricted-catalog-test",
+    "mitre_release": null,
+    "source_url": null,
+    "release_tag": null,
+    "commit": null
+  },
+  "objects": [
+    {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--11111111-1111-4111-8111-111111111111",
+      "modified": "2026-11-11T00:00:00.1234567Z",
+      "name": "Synthetic parent",
+      "revoked": false,
+      "x_mitre_deprecated": false,
+      "x_mitre_is_subtechnique": false,
+      "x_mitre_domains": ["enterprise-attack"],
+      "external_references": [
+        {"source_name": "mitre-attack", "external_id": "T1000"}
+      ]
+    },
+    {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--22222222-2222-4222-8222-222222222222",
+      "modified": "2026-11-11T00:00:00.1234568Z",
+      "name": "Synthetic child",
+      "revoked": false,
+      "x_mitre_deprecated": false,
+      "x_mitre_is_subtechnique": true,
+      "x_mitre_domains": ["enterprise-attack"],
+      "external_references": [
+        {"source_name": "mitre-attack", "external_id": "T1000.001"}
+      ]
+    },
+    {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--33333333-3333-4333-8333-333333333333",
+      "modified": "2026-11-11T00:00:00.1234569Z",
+      "name": "Synthetic inactive",
+      "revoked": true,
+      "x_mitre_deprecated": false,
+      "x_mitre_is_subtechnique": false,
+      "x_mitre_domains": ["enterprise-attack"],
+      "external_references": [
+        {"source_name": "mitre-attack", "external_id": "T2000"}
+      ]
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--44444444-4444-4444-8444-444444444444",
+      "modified": "2026-11-11T00:00:00.1234568Z",
+      "relationship_type": "subtechnique-of",
+      "source_ref": "attack-pattern--22222222-2222-4222-8222-222222222222",
+      "target_ref": "attack-pattern--11111111-1111-4111-8111-111111111111",
+      "revoked": false,
+      "x_mitre_deprecated": false
+    }
+  ]
+}
