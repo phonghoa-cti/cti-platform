@@ -151,8 +151,9 @@ Cập nhật lần cuối: 11/11/2026
   build 9/9 route đều đạt; browser OpenMausBot và viewport desktop/mobile vẫn UNVERIFIED trong lượt này.
 - W03-R backend chỉ đọc: `GET /api/cves` fixture-first đối chiếu exact casefold với snapshot Technology SQLite
   mở `mode=ro`, tách detail/leader summary, rank KEV/EPSS/CVSS/thời gian, cursor theo snapshot/context và cap
-  response 1 MiB. Test cục bộ kiểm auth/query precedence, schema strict, paging/stale cursor và bất biến SQL;
-  wire detail/summary/empty/error/409 đã xuất. Chưa nối frontend/gateway/browser, feed/OpenCTI, lab/production.
+  response 1 MiB. R1 khóa product 128, nhãn KEV synthetic exact và raw JSON cursor canonical. Test cục bộ kiểm
+  auth/query precedence, schema strict, paging/stale cursor, bất biến SQL cả success/failure và wire fixture exact
+  với API thật. Chưa nối frontend/gateway/browser, feed/OpenCTI, lab/production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

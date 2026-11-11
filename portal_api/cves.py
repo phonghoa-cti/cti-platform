@@ -27,6 +27,7 @@ CVE_ID = re.compile(r"CVE-[0-9]{4}-[0-9]{4,}\Z")
 WIRE_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?Z\Z")
 WIRE_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 NOTICE = "Liên quan theo tên sản phẩm; cần kiểm tra phiên bản/phạm vi bị ảnh hưởng trước khi vá."
+SYNTHETIC_KEV_SOURCE = "CISA KEV synthetic sample"
 
 
 class InvalidCveQuery(ValueError):
@@ -290,7 +291,7 @@ def _product(value: object) -> dict[str, str]:
     if not isinstance(value, dict) or set(value) != {"vendor", "product"}:
         raise CvesUnavailable("invalid product")
     vendor = _text(value["vendor"], 128)
-    product = _text(value["product"], 256)
+    product = _text(value["product"], 128)
     return {
         "vendor": vendor,
         "product": product,
@@ -310,7 +311,7 @@ def _kev(value: object) -> dict[str, object]:
         raise CvesUnavailable("invalid kev due")
     return {
         "known_exploited": known,
-        "source": _text(value["source"], 128),
+        "source": _synthetic_kev_source(value["source"]),
         "as_of": _date(value["as_of"], required=True),
         "due_date": due,
     }
@@ -462,6 +463,12 @@ def _decode_cursor(value: str | None) -> Mapping[str, object] | None:
         or not CVE_ID.fullmatch(parsed["after"])
     ):
         raise InvalidCveQuery("invalid cursor")
+    try:
+        canonical = _canonical_bytes(parsed)
+    except (TypeError, ValueError) as exc:
+        raise InvalidCveQuery("invalid cursor") from exc
+    if raw != canonical:
+        raise InvalidCveQuery("non-canonical cursor json")
     return parsed
 
 
@@ -483,6 +490,12 @@ def _text(value: object, maximum: int, *, trim: bool = True) -> str:
     if not 1 <= len(result) <= maximum or (trim and result != value.strip()):
         raise CvesUnavailable("invalid text")
     return result
+
+
+def _synthetic_kev_source(value: object) -> str:
+    if value != SYNTHETIC_KEV_SOURCE:
+        raise CvesUnavailable("invalid synthetic kev source")
+    return SYNTHETIC_KEV_SOURCE
 
 
 def _has_control(value: str) -> bool:

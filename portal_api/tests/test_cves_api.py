@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import json
@@ -12,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from portal_api import cves
 from portal_api.app import create_app
-from portal_api.auth import AccessJwtVerifier
+from portal_api.auth import AccessJwtVerifier, AuthenticationUnavailable
 from portal_api.technologies import TechnologyStore
 from portal_api.tests import test_w02_ioc_api as w02_test_api
 from portal_api.tests.test_w02_ioc_api import LocalJwksClient, _auth, _settings
@@ -98,6 +99,55 @@ def _store(tmp_path, *rows):
     return store
 
 
+def _fixed_store(tmp_path, *rows):
+    store = TechnologyStore(tmp_path / "technologies.sqlite", timeout=0.01)
+    store.initialize()
+    stamp = "2026-11-01T00:00:00Z"
+    with sqlite3.connect(store.path) as connection:
+        connection.executemany(
+            "INSERT INTO technology_assets(vendor,vendor_key,product,product_key,software_version,note,"
+            "record_version,created_by,created_at,updated_at,deleted_at) VALUES(?,?,?,?,?,?,1,?,?,?,NULL)",
+            [
+                (
+                    vendor,
+                    vendor.casefold(),
+                    product,
+                    product.casefold(),
+                    version,
+                    "kept-private",
+                    "seed-sub",
+                    stamp,
+                    stamp,
+                )
+                for vendor, product, version in rows
+            ],
+        )
+    return store
+
+
+def _sql_snapshot(store):
+    with sqlite3.connect(store.path) as connection:
+        return {
+            "schema": connection.execute(
+                "SELECT type,name,sql FROM sqlite_master ORDER BY type,name"
+            ).fetchall(),
+            "rows": connection.execute("SELECT * FROM technology_assets").fetchall(),
+            "audit": connection.execute("SELECT * FROM technology_asset_audit").fetchall(),
+            "version": connection.execute("PRAGMA user_version").fetchone(),
+        }
+
+
+def _wire(response):
+    return {
+        "status": response.status_code,
+        "headers": {
+            "cache-control": response.headers["cache-control"],
+            "vary": response.headers["vary"],
+        },
+        "body": response.json(),
+    }
+
+
 def _client(tmp_path, rsa_keys, *, port=None, store=None, roles=None):
     private_key, jwk = rsa_keys
     settings = _settings(tmp_path)
@@ -146,6 +196,31 @@ def test_auth_and_query_precede_dependencies_and_leader_asset_is_forbidden(tmp_p
     )
     assert (leader_asset.status_code, leader_asset.json()["error"]["code"]) == (403, "forbidden")
     assert port.calls == 0
+
+
+def test_verifier_unavailable_is_cves_unavailable_before_dependencies(tmp_path, rsa_keys):
+    class UnavailableVerifier:
+        def verify(self, _token):
+            raise AuthenticationUnavailable("synthetic outage")
+
+    port = StaticPort(_dataset())
+    store = TechnologyStore(tmp_path / "must-not-open.sqlite")
+    settings = _settings(tmp_path)
+    app = create_app(
+        settings,
+        object(),
+        verifier=UnavailableVerifier(),
+        cve_port=port,
+        technology_store=store,
+    )
+    response = TestClient(app, raise_server_exceptions=False).get(
+        "/api/cves?limit=0",
+        headers={"Cf-Access-Jwt-Assertion": "synthetic"},
+    )
+
+    assert (response.status_code, response.json()["error"]["code"]) == (503, "cves_unavailable")
+    assert port.calls == 0
+    assert not store.path.exists()
 
 
 @pytest.mark.parametrize(
@@ -314,6 +389,53 @@ def test_pagination_cursor_is_stable_and_snapshot_change_is_409(tmp_path, rsa_ke
     assert (changed.status_code, changed.json()["error"]["code"]) == (409, "cve_snapshot_changed")
 
 
+def test_cursor_rejects_missing_after_and_cross_role_context(tmp_path, rsa_keys):
+    roles = {"it-sub": frozenset({"it"}), "leader-sub": frozenset({"leader"})}
+    port = StaticPort(_dataset([_candidate("CVE-2026-1001"), _candidate("CVE-2026-1002")]))
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        port=port,
+        store=_fixed_store(tmp_path, ("Fortinet", "FortiOS", "7.2")),
+        roles=roles,
+    )
+    detail = _get(client, private_key, "?limit=1", "it-sub")
+    detail_cursor = detail.json()["page"]["next_cursor"]
+    raw = base64.urlsafe_b64decode(detail_cursor + "=" * (-len(detail_cursor) % 4))
+    parsed = json.loads(raw)
+    noncanonical = (
+        base64.urlsafe_b64encode(json.dumps(parsed, indent=1).encode("utf-8")).rstrip(b"=").decode("ascii")
+    )
+    parsed["after"] = "CVE-2099-9999"
+    missing_after = (
+        base64.urlsafe_b64encode(json.dumps(parsed, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+        .rstrip(b"=")
+        .decode("ascii")
+    )
+    summary = _get(client, private_key, "?limit=1", "leader-sub")
+
+    missing = _get(client, private_key, f"?limit=1&cursor={missing_after}", "it-sub")
+    noncanonical_response = _get(
+        client,
+        private_key,
+        f"?limit=1&cursor={noncanonical}",
+        "it-sub",
+    )
+    cross_role = _get(
+        client,
+        private_key,
+        f"?limit=1&cursor={summary.json()['page']['next_cursor']}",
+        "it-sub",
+    )
+
+    assert (missing.status_code, missing.json()["error"]["code"]) == (422, "invalid_cve_query")
+    assert (
+        noncanonical_response.status_code,
+        noncanonical_response.json()["error"]["code"],
+    ) == (422, "invalid_cve_query")
+    assert (cross_role.status_code, cross_role.json()["error"]["code"]) == (422, "invalid_cve_query")
+
+
 @pytest.mark.parametrize(
     "mutate",
     [
@@ -352,6 +474,25 @@ def test_invalid_dataset_fails_closed(tmp_path, rsa_keys, mutate):
     assert (response.status_code, response.json()["error"]["code"]) == (503, "cves_unavailable")
 
 
+@pytest.mark.parametrize("case", ["product_too_long", "ambiguous_kev_source"])
+def test_w03_synthetic_product_and_source_contract_fails_closed(tmp_path, rsa_keys, case):
+    data = _dataset()
+    product = "P" * 129 if case == "product_too_long" else "FortiOS"
+    data["candidates"][0]["affected_products"][0]["product"] = product
+    if case == "ambiguous_kev_source":
+        data["candidates"][0]["kev"]["source"] = "CISA KEV"
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        port=StaticPort(data),
+        store=_store(tmp_path, ("Fortinet", product, "7.2")),
+    )
+
+    response = _get(client, private_key)
+
+    assert (response.status_code, response.json()["error"]["code"]) == (503, "cves_unavailable")
+
+
 def test_read_does_not_create_missing_database_or_modify_sql_state(tmp_path, rsa_keys):
     missing = TechnologyStore(tmp_path / "missing.sqlite")
     client, private_key = _client(tmp_path, rsa_keys, port=StaticPort(_dataset()), store=missing)
@@ -361,27 +502,31 @@ def test_read_does_not_create_missing_database_or_modify_sql_state(tmp_path, rsa
     assert not missing.path.exists()
 
     store = _store(tmp_path, ("Fortinet", "FortiOS", "7.2"))
-    with sqlite3.connect(store.path) as connection:
-        before = {
-            "schema": connection.execute(
-                "SELECT type,name,sql FROM sqlite_master ORDER BY type,name"
-            ).fetchall(),
-            "rows": connection.execute("SELECT * FROM technology_assets").fetchall(),
-            "audit": connection.execute("SELECT * FROM technology_asset_audit").fetchall(),
-            "version": connection.execute("PRAGMA user_version").fetchone(),
-        }
+    before = _sql_snapshot(store)
     client, private_key = _client(tmp_path, rsa_keys, port=StaticPort(_dataset()), store=store)
     assert _get(client, private_key).status_code == 200
-    with sqlite3.connect(store.path) as connection:
-        after = {
-            "schema": connection.execute(
-                "SELECT type,name,sql FROM sqlite_master ORDER BY type,name"
-            ).fetchall(),
-            "rows": connection.execute("SELECT * FROM technology_assets").fetchall(),
-            "audit": connection.execute("SELECT * FROM technology_asset_audit").fetchall(),
-            "version": connection.execute("PRAGMA user_version").fetchone(),
-        }
+    after = _sql_snapshot(store)
     assert after == before
+
+
+def test_dependency_failures_do_not_modify_sql_state(tmp_path, rsa_keys):
+    candidates = [_candidate("CVE-2026-1001"), _candidate("CVE-2026-1002")]
+    store = _store(tmp_path, ("Fortinet", "FortiOS", "7.2"))
+    client, private_key = _client(tmp_path, rsa_keys, port=StaticPort(_dataset(candidates)), store=store)
+
+    before_404 = _sql_snapshot(store)
+    missing = _get(client, private_key, "?asset_id=2")
+    assert _sql_snapshot(store) == before_404
+
+    first = _get(client, private_key, "?limit=1")
+    cursor = first.json()["page"]["next_cursor"]
+    store.create("Extra", "Product", "1", "", "seed-sub")
+    before_409 = _sql_snapshot(store)
+    changed = _get(client, private_key, f"?limit=1&cursor={cursor}")
+
+    assert (missing.status_code, missing.json()["error"]["code"]) == (404, "technology_not_found")
+    assert (changed.status_code, changed.json()["error"]["code"]) == (409, "cve_snapshot_changed")
+    assert _sql_snapshot(store) == before_409
 
 
 def test_fixture_port_hashes_exact_bytes_and_rejects_more_than_four_mib(tmp_path):
@@ -420,6 +565,36 @@ def test_checked_in_fixture_runs_through_real_api(tmp_path, rsa_keys):
     assert [item["cve_id"] for item in response.json()["items"]] == ["CVE-2026-1001", "CVE-2026-1002"]
     expected_hash = hashlib.sha256(fixture.path.read_bytes()).hexdigest()
     assert response.json()["source"]["dataset_id"] == f"sha256:{expected_hash}"
+
+
+def test_checked_in_wire_fixtures_equal_real_api_responses(tmp_path, rsa_keys):
+    fixture_dir = Path(__file__).parent / "fixtures"
+    port = cves.FixtureCveReadPort(fixture_dir / "w03-cves-synthetic.json")
+    roles = {"it-sub": frozenset({"it"}), "leader-sub": frozenset({"leader"})}
+    store = _fixed_store(tmp_path / "wire", ("Fortinet", "FortiOS", "7.2"))
+    client, private_key = _client(tmp_path / "wire", rsa_keys, port=port, store=store, roles=roles)
+
+    actual = {
+        "detail": _wire(_get(client, private_key, "?limit=1", "it-sub")),
+        "summary": _wire(_get(client, private_key, "?limit=1", "leader-sub")),
+        "error": _wire(_get(client, private_key, "?limit=0", "it-sub")),
+    }
+    cursor = actual["detail"]["body"]["page"]["next_cursor"]
+    store.create("Extra", "Product", "1", "", "seed-sub")
+    actual["cursor-changed"] = _wire(_get(client, private_key, f"?limit=1&cursor={cursor}", "it-sub"))
+    empty_store = _fixed_store(tmp_path / "empty")
+    empty_client, empty_key = _client(
+        tmp_path / "empty",
+        rsa_keys,
+        port=port,
+        store=empty_store,
+        roles=roles,
+    )
+    actual["empty"] = _wire(_get(empty_client, empty_key, subject="it-sub"))
+
+    for name, response in actual.items():
+        expected = json.loads((fixture_dir / f"w03-wire-{name}.json").read_text(encoding="utf-8"))
+        assert response == expected
 
 
 def test_response_over_one_mib_fails_closed(tmp_path, rsa_keys):

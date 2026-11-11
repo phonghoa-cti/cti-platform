@@ -26,7 +26,8 @@ Mã lỗi ổn định: 401 `authentication_required`, 403 `forbidden`, 404 `tec
 Fixture tối đa 4 MiB, 0..1.000 candidate, mỗi candidate 1..20 product. Adapter tính `dataset_id` là
 `sha256:<64 hex>` từ chính bytes fixture. Service kiểm exact key/type, CVE ID uppercase, ngày/timestamp UTC,
 HTTPS URL, bool không nhận số, số hữu hạn, quan hệ null và duplicate trước khi trả bất kỳ kết quả nào. KEV
-overlay phải đánh dấu đầy đủ; `false` chỉ có nghĩa không nằm trong snapshot mẫu.
+overlay phải đánh dấu đầy đủ; affected vendor/product đều 1..128 code point và nguồn KEV fixture phải đúng nhãn
+`CISA KEV synthetic sample`. `false` chỉ có nghĩa không nằm trong snapshot mẫu.
 
 Detail item có CVE/source scores, `matches` tăng theo `technology_id` và `priority`. Summary item chỉ có
 `cve_id,title,kev,epss_score,cvss_base_score,priority,match_count`; không có metadata technology. Tổng kết được
@@ -35,7 +36,8 @@ thực, CVE ID tăng; null đứng sau cả giá trị 0. JSON UTF-8 vượt 1 M
 
 ## Cursor canonical v1
 
-Cursor là base64url không padding của JSON UTF-8 canonical (sort key, separator compact):
+Cursor là base64url không padding của JSON UTF-8 canonical (sort key, separator compact); JSON có whitespace
+hoặc thứ tự key khác bị từ chối dù base64url vẫn hợp lệ:
 `{"after":"CVE-...","context":"<sha256>","snapshot":"<sha256>","v":1}`. Tối đa 1.024 ASCII.
 `context` hash từ `view,kev,asset_id,q đã trim,limit`; `snapshot` hash từ dataset đã validation và toàn bộ
 technology snapshot theo ID. Cursor không chứa asset thô. Context sai trả 422 trước dependency; snapshot đổi
