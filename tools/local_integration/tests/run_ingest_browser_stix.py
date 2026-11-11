@@ -12,7 +12,7 @@ import shutil
 import sys
 import tempfile
 import threading
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, TextIO
@@ -93,6 +93,20 @@ PRIVATE_MARKER_KEYS = {
     "creator_subject",
     "reviewer_subject",
 }
+
+
+def _iter_json_strings(value: Any) -> Iterator[str]:
+    """Duyệt chuỗi semantic sau JSON parse, độc lập escape và whitespace."""
+
+    if type(value) is str:
+        yield value
+    elif type(value) is list:
+        for item in value:
+            yield from _iter_json_strings(item)
+    elif type(value) is dict:
+        for key, item in value.items():
+            yield key
+            yield from _iter_json_strings(item)
 
 
 def _validate_bundle_allowlist(bundle: Any) -> None:
@@ -255,11 +269,15 @@ def verify_browser_outcome(
     ):
         raise RuntimeError("summary STIX không khớp artifact")
 
-    serialized = bundle_bytes.decode("utf-8")
     selected_values = {
         value
         for index, value in zip(seed.eligible_indices, seed.ioc_values, strict=True)
         if index in selected
+    }
+    deselected_values = {
+        value
+        for index, value in zip(seed.eligible_indices, seed.ioc_values, strict=True)
+        if index not in selected and value not in selected_values
     }
     sco_values = set()
     for item in bundle["objects"]:
@@ -269,8 +287,11 @@ def verify_browser_outcome(
             sco_values.update(item["hashes"].values())
     if sco_values != selected_values:
         raise RuntimeError("bundle SCO không khớp IOC đã chọn")
-    if any(marker in serialized for marker in private_markers.values()):
+    semantic_strings = tuple(_iter_json_strings(bundle))
+    if any(marker in field for marker in private_markers.values() for field in semantic_strings):
         raise RuntimeError("STIX lộ privacy marker")
+    if any(value in field for value in deselected_values for field in semantic_strings):
+        raise RuntimeError("STIX chứa IOC đã bỏ ngoài SCO")
 
     report = next((item for item in bundle["objects"] if item.get("type") == "report"), None)
     if report is None:

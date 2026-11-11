@@ -85,9 +85,9 @@ Cập nhật lần cuối: 11/11/2026
   giữ nguyên. Đây chỉ là importer/core synthetic; chưa kiểm browser, identity HTTP thật, OpenCTI, lab hoặc production.
 - X01 ingest browser harness (chuẩn bị): thêm controller seed producer CLI → importer CLI vào cùng SQLite tạm,
   kiểm duplicate/hash/provenance/selection/final audit/STIX offline và cleanup loopback qua `LocalRun`; TXT/PDF
-  synthetic đạt offline. Hậu kiểm đã chặn đổi canonical envelope, actor/audit/version/hash sai và field/marker
-  riêng tư ngoài allowlist STIX bằng regression RED→GREEN. Chế độ browser chưa chạy, importer còn gate F1 tên
-  nguồn riêng, nên browser/end-to-end vẫn `UNVERIFIED`; không phải bằng chứng OpenCTI, lab,
+  synthetic đạt offline. Hậu kiểm đã chặn đổi canonical envelope, actor/audit/version/hash sai, field/marker
+  riêng tư kể cả JSON escape và IOC đã bỏ xuất hiện ngoài SCO bằng regression RED→GREEN. Chế độ browser chưa chạy,
+  importer còn gate F1 tên nguồn riêng, nên browser/end-to-end vẫn `UNVERIFIED`; không phải bằng chứng OpenCTI, lab,
   Cloudflare/JWKS/HTTPS thật hay production.
 
 ## Vướng mắc

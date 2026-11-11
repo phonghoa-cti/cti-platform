@@ -34,6 +34,7 @@ trình duyệt tích hợp và nhấn Enter. EOF/timeout đều FAIL đóng; cle
 
 Hậu kiểm fail-closed tính lại canonical SHA-256 của toàn envelope bằng cùng quy tắc importer; đối chiếu actor
 phiên độc lập, từng selection event và final audit (action/version/hash); đồng thời khóa allowlist cấu trúc STIX
-và năm marker riêng cho source name/raw/evidence/creator/reviewer. IOC được chọn chỉ hợp lệ trong SCO tương ứng,
-không được dùng thay marker evidence. Các kiểm này bảo vệ harness, không chứng minh exporter hiện từng làm lộ dữ
-liệu và không thay thế browser run.
+và năm marker riêng cho source name/raw/evidence/creator/reviewer trên chuỗi semantic đã parse, không phụ thuộc
+JSON escape/whitespace. IOC được chọn chỉ hợp lệ trong SCO tương ứng; IOC đã bỏ phải vắng trong toàn bundle semantic
+(sau khi trừ giá trị trùng vẫn được chọn). Các kiểm này bảo vệ harness, không chứng minh exporter hiện từng làm lộ
+dữ liệu và không thay thế browser run.

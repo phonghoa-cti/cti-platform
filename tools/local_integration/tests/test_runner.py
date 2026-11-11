@@ -386,6 +386,58 @@ def test_postcheck_rejects_forbidden_bundle_structure_or_private_marker(
         )
 
 
+@pytest.mark.parametrize(
+    ("mutation", "expected_error"),
+    [
+        ("escaped_evidence_in_description", "privacy marker"),
+        ("deselected_ioc_in_description", "IOC đã bỏ"),
+    ],
+)
+def test_postcheck_rejects_semantic_description_leak(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    expected_error: str,
+) -> None:
+    run = make_approved_postcheck_case(tmp_path)
+    original_export = harness_module.run_export
+
+    def leaking_export(run_arg, output):
+        result = original_export(run_arg, output)
+        bundle = json.loads(output.read_text(encoding="utf-8"))
+        report = next(item for item in bundle["objects"] if item["type"] == "report")
+        leaked = (
+            run.private_markers["evidence"]
+            if mutation == "escaped_evidence_in_description"
+            else run.ingest_seed.ioc_values[0]
+        )
+        report["description"] += f" | {leaked}"
+        raw = json.dumps(
+            bundle,
+            ensure_ascii=mutation == "escaped_evidence_in_description",
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+        output.write_bytes(raw)
+        summary = json.loads(result.stdout)
+        summary["bundle_sha256"] = hashlib.sha256(raw).hexdigest()
+        return subprocess.CompletedProcess(
+            result.args,
+            0,
+            json.dumps(summary, separators=(",", ":"), sort_keys=True),
+            "",
+        )
+
+    monkeypatch.setattr(harness_module, "run_export", leaking_export)
+    with pytest.raises(RuntimeError, match=expected_error):
+        verify_browser_outcome(
+            run,
+            expected_selected_indices=(1,),
+            expected_actor_subject="admin-sub",
+            expected_selection_events=((1,),),
+        )
+
+
 def test_browser_signal_distinguishes_continue_eof_and_timeout() -> None:
     assert wait_for_browser_signal(io.StringIO("done\n"), timeout=0.1) == "continue"
     assert wait_for_browser_signal(io.StringIO(""), timeout=0.1) == "eof"
