@@ -155,6 +155,65 @@ test("gateway proxies only exact IOC route and replaces a caller-spoofed JWT", a
   }
 });
 
+test("gateway proxies only exact asset collection and positive-id routes", async () => {
+  const seen = [];
+  const api = await listen((req, res) => {
+    seen.push({ path: req.url, token: req.headers["cf-access-jwt-assertion"] });
+    res.writeHead(200, { "Cache-Control": "no-store", "Vary": "Cf-Access-Jwt-Assertion" });
+    res.end("{}");
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: "gateway-token" });
+  try {
+    for (const path of ["/api/assets?type=domain", "/api/assets/1?expected_version=1"]) {
+      const result = await request(gateway.address().port, path, {
+        headers: { "Cf-Access-Jwt-Assertion": "caller-token" },
+      });
+      assert.equal(result.status, 200, path);
+      assert.equal(result.headers["cache-control"], "no-store", path);
+      assert.equal(result.headers.vary, "Cf-Access-Jwt-Assertion", path);
+    }
+    for (const path of ["/api/assets/", "/api/assets/0", "/api/assets/01", "/api/assets/-1", "/api/assets/1/extra", "/api/asset"]) {
+      assert.equal((await request(gateway.address().port, path)).status, 404, path);
+    }
+    assert.deepEqual(seen, [
+      { path: "/api/assets?type=domain", token: "gateway-token" },
+      { path: "/api/assets/1?expected_version=1", token: "gateway-token" },
+    ]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
+test("asset refresh fault fires once after a successful mutation then recovers", async () => {
+  const seen = [];
+  const api = await listen((req, res) => {
+    seen.push(`${req.method} ${req.url}`);
+    res.writeHead(req.method === "POST" ? 201 : 200, { "Cache-Control": "no-store" });
+    res.end("{}");
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const gateway = await startGateway({
+    apiPort: api.address().port,
+    uiPort: ui.address().port,
+    port: 0,
+    jwt: "gateway-token",
+    failAssetRefreshOnce: true,
+  });
+  try {
+    assert.equal((await request(gateway.address().port, "/api/assets", {
+      method: "POST",
+      headers: { Origin: `http://127.0.0.1:${gateway.address().port}` },
+      body: "{}",
+    })).status, 201);
+    assert.equal((await request(gateway.address().port, "/api/assets")).status, 503);
+    assert.equal((await request(gateway.address().port, "/api/assets")).status, 200);
+    assert.deepEqual(seen, ["POST /api/assets", "GET /api/assets"]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
 test("v1 accepts chunked bodies through 65536 bytes without raising the legacy cap", async () => {
   const sizes = [];
   const api = await listen((req, res) => {

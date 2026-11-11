@@ -108,6 +108,10 @@ Cập nhật lần cuối: 11/11/2026
   `assets(type, canonical_value)` thật trả `asset_exists`, còn UNIQUE ở bảng/cột khác cùng lỗi
   audit/constraint/storage trả unavailable và rollback. Regression F4 RED 2/2 rồi GREEN 2/2, nhóm assets đạt
   55/55 và probe F4 độc lập đạt 2/2 cục bộ; các phạm vi browser/lab/production vẫn chưa được kiểm.
+- W04 chuẩn bị tích hợp cục bộ: gateway mở đúng collection/positive-id assets với cap 8 KiB và thay JWT client;
+  LocalRun chỉ inject AssetStore trong scenario W04, dùng cùng SQLite cho CRUD/audit và W02 lookup. Ma trận HTTP
+  loopback kiểm quyền, Origin/body/version, domain/subdomain/CIDR/URL-path, xóa cập nhật snapshot và một chuỗi
+  refresh 503→200 không replay mutation; UI/browser, Cloudflare/JWKS/HTTPS thật, lab/production chưa được kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

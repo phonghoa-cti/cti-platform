@@ -6,6 +6,7 @@ const HOP_BY_HOP = new Set(["connection", "keep-alive", "proxy-authenticate", "p
 const LEGACY_API_PATH = /^\/api\/drafts(?:\/[1-9][0-9]*(?:\/decision)?)?$/;
 const V1_API_PATH = /^\/api\/v1\/drafts(?:\/[1-9][0-9]*(?:\/(?:selection|decision))?)?$/;
 const IOC_API_PATH = "/api/ioc";
+const ASSET_API_PATH = /^\/api\/assets(?:\/[1-9][0-9]*)?$/;
 
 function dynamicHopHeaders(headers) {
   const names = new Set(HOP_BY_HOP);
@@ -67,13 +68,14 @@ function readBody(request, limit) {
   });
 }
 
-export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false }) {
+export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false, failAssetRefreshOnce = false }) {
   for (const value of [apiPort, uiPort]) {
     if (!Number.isInteger(value) || value < 1 || value > 65535) throw new TypeError("upstream port không hợp lệ");
   }
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new TypeError("gateway port không hợp lệ");
   if (jwt !== null && typeof jwt !== "string") throw new TypeError("jwt phải là string hoặc null");
   let postRecorded = false;
+  let assetRefreshPending = false;
   const server = http.createServer(async (request, response) => {
     const ownPort = server.address()?.port;
     if (request.headers.host !== `127.0.0.1:${ownPort}`) return safeError(response, 400, "invalid_host");
@@ -85,10 +87,15 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     }
     const isApi = url.pathname.startsWith("/api/");
     const isV1 = V1_API_PATH.test(url.pathname);
-    if (isApi && !isV1 && url.pathname !== IOC_API_PATH && !LEGACY_API_PATH.test(url.pathname)) {
+    const isAsset = ASSET_API_PATH.test(url.pathname);
+    if (isApi && !isV1 && !isAsset && url.pathname !== IOC_API_PATH && !LEGACY_API_PATH.test(url.pathname)) {
       return safeError(response, 404, "not_found");
     }
     if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") return safeError(response, 503, "synthetic_refresh_failure");
+    if (isAsset && failAssetRefreshOnce && assetRefreshPending && request.method === "GET") {
+      assetRefreshPending = false;
+      return safeError(response, 503, "synthetic_refresh_failure");
+    }
     let body;
     try {
       body = await readBody(request, isV1 ? maxV1BodyBytes : maxBodyBytes);
@@ -107,6 +114,7 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     };
     const upstream = http.request({ host: "127.0.0.1", port: targetPort, method: request.method, path: `${url.pathname}${url.search}`, headers, timeout: requestTimeoutMs }, (upstreamResponse) => {
       if (isApi && failRefreshAfterPost && request.method === "POST" && (upstreamResponse.statusCode ?? 500) < 300) postRecorded = true;
+      if (isAsset && failAssetRefreshOnce && ["POST", "PUT", "DELETE"].includes(request.method ?? "") && (upstreamResponse.statusCode ?? 500) < 300) assetRefreshPending = true;
       upstreamResponse.once("end", () => { responseComplete = true; });
       upstreamResponse.once("aborted", failUpstream);
       upstreamResponse.once("error", failUpstream);
@@ -139,6 +147,7 @@ async function main() {
     port: Number(process.env.W05_GATEWAY_PORT), jwt: process.env.W05_GATEWAY_JWT ?? null,
     requestTimeoutMs: Number(process.env.W05_REQUEST_TIMEOUT_MS ?? "1000"),
     failRefreshAfterPost: process.env.W05_FAIL_REFRESH === "1",
+    failAssetRefreshOnce: process.env.W04_FAIL_ASSET_REFRESH_ONCE === "1",
   });
   const stop = () => server.close(() => process.exit(0));
   process.on("SIGINT", stop); process.on("SIGTERM", stop);

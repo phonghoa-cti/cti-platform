@@ -69,6 +69,44 @@ def test_non_w02_scenario_keeps_production_default_lookup_port_missing() -> None
         assert response.json()["error"]["code"] == "lookup_unavailable"
 
 
+@pytest.mark.parametrize(
+    ("scenario", "status"),
+    [
+        ("w04-it", 200),
+        ("w04-analyst", 200),
+        ("w04-multi-role", 200),
+        ("w04-missing-token", 401),
+        ("w04-forbidden", 403),
+    ],
+)
+def test_w04_scenarios_opt_in_assets_and_role_policy(scenario: str, status: int) -> None:
+    with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/assets", timeout=2)
+        assert response.status_code == status
+        assert response.headers["cache-control"] == "no-store"
+        assert response.headers["vary"] == "Cf-Access-Jwt-Assertion"
+        assert run.asset_store is not None
+        assert run.asset_store.path == run.db_path
+
+
+def test_w04_asset_store_is_shared_with_w02_lookup_and_cleaned() -> None:
+    run = LocalRun("w04-it", duration_seconds=20, start_ui=False)
+    with run:
+        created = httpx.post(
+            f"{run.url}/api/assets",
+            headers={"Origin": run.url},
+            json={"type": "domain", "value": "company.example", "note": "synthetic"},
+            timeout=2,
+        )
+        assert created.status_code == 201
+        lookup = httpx.get(f"{run.url}/api/ioc", params={"value": "mail.company.example"}, timeout=2)
+        assert lookup.status_code == 200
+        assert lookup.json()["asset_match"] == {"matched": True, "assets": ["company.example"]}
+        assert run.db_path.exists()
+        temp_root = run.temp_root
+    assert not temp_root.exists()
+
+
 def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixtures() -> None:
     with LocalRun("selection-admin", duration_seconds=20, start_ui=False) as selection_run:
         response = httpx.get(
