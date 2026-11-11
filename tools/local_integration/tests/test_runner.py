@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import socket
 import subprocess
 import time
@@ -10,6 +11,9 @@ import httpx
 import pytest
 
 from tools.local_integration.runner import LocalRun
+
+E2E_SOURCE_BYTES = "Cảnh báo thử nghiệm 😀 ghi nhận evil-one.example và evil-two.example.\n".encode()
+E2E_SOURCE_SHA256 = "e73038e5d68d0aee0757bf72cd8a404b3f55a94ef9d6c519f5e0c3fb1292a655"
 
 
 def recover_resources_created_by_failed_lifecycle_test(run: LocalRun) -> None:
@@ -55,6 +59,78 @@ def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixture
     with LocalRun("admin-other", duration_seconds=20, start_ui=False) as legacy_run:
         assert len(legacy_run.draft_ids) == 4
         assert legacy_run.selection_draft_id is None
+
+
+def test_stix_e2e_scenario_seeds_reviewable_draft_through_two_real_clis() -> None:
+    run = LocalRun("stix-e2e", duration_seconds=120, start_ui=False)
+    with run:
+        response = httpx.get(f"{run.url}/api/v1/drafts/{run.selection_draft_id}", timeout=2)
+        assert response.status_code == 200
+        body = response.json()
+        assert run.source_path.read_bytes() == E2E_SOURCE_BYTES
+        assert json.loads(run.draft_json_path.read_text(encoding="utf-8"))["source"]["sha256"] == (
+            E2E_SOURCE_SHA256
+        )
+        assert run.draft_ids == (1,)
+        assert run.selection_draft_id == 1
+        assert body["source"] == {"name": "stix-e2e-input.txt", "sha256": E2E_SOURCE_SHA256}
+        assert body["text"] == E2E_SOURCE_BYTES.decode("utf-8")
+        assert body["language"] == "vi"
+        assert body["tlp"] == "TLP:GREEN"
+        assert body["model"] == "regex-C1"
+        assert body["review"]["created_by_subject"] == "e2e-author-sub"
+        assert [item["value"] for item in body["items"]] == ["evil-one.example", "evil-two.example"]
+        assert all(
+            body["text"][item["span"][0] : item["span"][1]] == item["evidence"] for item in body["items"]
+        )
+        assert body["selection"]["selected_indices"] == [0, 1]
+        assert run.exporter_config_path.read_bytes()
+        assert not run.bundle_path.exists()
+        temp_root = run.temp_root
+        gateway = run._gateway_process
+        api_thread = run._api_thread
+
+    assert not temp_root.exists()
+    assert gateway is not None and gateway.poll() is not None
+    assert api_thread is not None and not api_thread.is_alive()
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected_message"),
+    [
+        (subprocess.CompletedProcess(["python"], 1, "", "sensitive child failure"), "seed CLI thất bại"),
+        (subprocess.TimeoutExpired(["python"], 10), "seed CLI quá thời hạn"),
+        (subprocess.CompletedProcess(["python"], 0, "not-json", ""), "store CLI trả kết quả không hợp lệ"),
+    ],
+)
+def test_stix_e2e_seed_failure_cleans_owned_temp_without_leaking_child_output(
+    monkeypatch: pytest.MonkeyPatch,
+    failure: subprocess.CompletedProcess[str] | subprocess.TimeoutExpired,
+    expected_message: str,
+) -> None:
+    calls = 0
+
+    def fail_seed(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        if isinstance(failure, subprocess.TimeoutExpired):
+            raise failure
+        if failure.returncode == 0 and calls == 1:
+            return subprocess.CompletedProcess(["python"], 0, "", "")
+        return failure
+
+    monkeypatch.setattr(subprocess, "run", fail_seed)
+    run = LocalRun("stix-e2e", duration_seconds=120, start_ui=False)
+
+    with pytest.raises(RuntimeError, match=expected_message) as captured:
+        run.start()
+
+    assert "sensitive child failure" not in str(captured.value)
+    assert run._closed
+    assert run._temporary is None
+    assert run._api_thread is None
+    assert run._gateway_process is None
+    assert not run.temp_root.exists()
 
 
 def test_decision_refresh_fault_starts_from_saved_selection_snapshot() -> None:

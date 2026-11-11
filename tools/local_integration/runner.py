@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import json
 import os
 import socket
 import subprocess
@@ -42,6 +43,7 @@ SELECTION_SCENARIOS = frozenset(
         "selection-decision-refresh-503",
     }
 )
+STIX_E2E_SCENARIOS = frozenset({"stix-e2e"})
 SCENARIOS = (
     frozenset(
         {
@@ -55,7 +57,10 @@ SCENARIOS = (
         }
     )
     | SELECTION_SCENARIOS
+    | STIX_E2E_SCENARIOS
 )
+E2E_SOURCE_BYTES = "Cảnh báo thử nghiệm 😀 ghi nhận evil-one.example và evil-two.example.\n".encode()
+E2E_CREATOR_SUBJECT = "e2e-author-sub"
 
 
 def _free_port() -> int:
@@ -131,6 +136,10 @@ class LocalRun:
         self.url = f"http://127.0.0.1:{self.gateway_port}"
         self.temp_root = Path(tempfile.gettempdir()) / "w05-not-started"
         self.db_path = self.temp_root / "drafts.sqlite"
+        self.source_path = self.temp_root / "stix-e2e-input.txt"
+        self.draft_json_path = self.temp_root / "stix-e2e-draft.json"
+        self.exporter_config_path = self.temp_root / "exporter-config.json"
+        self.bundle_path = self.temp_root / "approved-bundle.json"
         self.draft_ids: tuple[int, ...] = ()
         self.selection_draft_id: int | None = None
         self._temporary: tempfile.TemporaryDirectory[str] | None = None
@@ -185,6 +194,9 @@ class LocalRun:
         return token, AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
 
     def _save_fixtures(self) -> None:
+        if self.scenario in STIX_E2E_SCENARIOS:
+            self._save_stix_e2e_fixture()
+            return
         creators = ("author-sub", "author-sub", "analyst-sub", "other-author")
         ids = []
         for index, creator in enumerate(creators, start=1):
@@ -214,6 +226,79 @@ class LocalRun:
                 )
         self.draft_ids = tuple(ids)
 
+    def _run_seed_cli(self, command: list[str]) -> subprocess.CompletedProcess[str]:
+        try:
+            result = subprocess.run(
+                command,
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+                timeout=10,
+                shell=False,
+            )
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("seed CLI quá thời hạn") from None
+        except OSError:
+            raise RuntimeError("không khởi chạy được seed CLI") from None
+        if result.returncode != 0:
+            raise RuntimeError("seed CLI thất bại")
+        return result
+
+    def _save_stix_e2e_fixture(self) -> None:
+        self.source_path.write_bytes(E2E_SOURCE_BYTES)
+        config_source = ROOT / "extractor" / "draft" / "examples" / "stix" / "exporter-config.example.json"
+        self.exporter_config_path.write_bytes(config_source.read_bytes())
+        self._run_seed_cli(
+            [
+                sys.executable,
+                "-X",
+                "utf8",
+                "-B",
+                str(ROOT / "extractor" / "draft" / "run.py"),
+                "--input",
+                str(self.source_path),
+                "--output",
+                str(self.draft_json_path),
+                "--language",
+                "vi",
+                "--tlp",
+                "TLP:GREEN",
+            ]
+        )
+        saved = self._run_seed_cli(
+            [
+                sys.executable,
+                "-X",
+                "utf8",
+                "-B",
+                str(ROOT / "extractor" / "draft" / "store.py"),
+                "save",
+                "--db",
+                str(self.db_path),
+                "--input",
+                str(self.draft_json_path),
+                "--created-by-subject",
+                E2E_CREATOR_SUBJECT,
+            ]
+        )
+        try:
+            value = json.loads(saved.stdout)
+        except (TypeError, json.JSONDecodeError):
+            raise RuntimeError("store CLI trả kết quả không hợp lệ") from None
+        if (
+            not isinstance(value, dict)
+            or set(value) != {"id", "status"}
+            or isinstance(value["id"], bool)
+            or not isinstance(value["id"], int)
+            or value["id"] < 1
+            or value["status"] != "pending"
+        ):
+            raise RuntimeError("store CLI trả kết quả không hợp lệ")
+        self.selection_draft_id = value["id"]
+        self.draft_ids = (value["id"],)
+
     def start(self) -> LocalRun:
         with self._lock:
             if self._lifecycle != "new":
@@ -224,6 +309,10 @@ class LocalRun:
             self._temporary = tempfile.TemporaryDirectory(prefix="w05-local-")
             self.temp_root = Path(self._temporary.name)
             self.db_path = self.temp_root / "drafts.sqlite"
+            self.source_path = self.temp_root / "stix-e2e-input.txt"
+            self.draft_json_path = self.temp_root / "stix-e2e-draft.json"
+            self.exporter_config_path = self.temp_root / "exporter-config.json"
+            self.bundle_path = self.temp_root / "approved-bundle.json"
             roles = {
                 "admin-sub": frozenset({"admin"}),
                 "analyst-sub": frozenset({"analyst"}),
