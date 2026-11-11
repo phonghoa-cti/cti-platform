@@ -22,7 +22,7 @@ MAX_ARRAY = 512
 MAX_STRING = 8_192
 MAX_DOCUMENTS = 256
 MAX_INT = 9_223_372_036_854_775_807
-CONFIG_ORDER = {"C1": 0, "C2": 1, "C3": 2}
+CONFIG_ORDER = {"C1": 0, "C2": 1, "C3": 2, "C4": 3}
 IOC_TYPES = frozenset(("ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256"))
 MODES = ("model_completed", "regex_fallback")
 QUOTE_STATUSES = ("matched", "missing", "not_found", "ambiguous")
@@ -38,6 +38,13 @@ LIMITATIONS_10 = [
 ]
 LIMITATIONS_11 = LIMITATIONS_10 + [
     "TTP audit reports source, quote, and catalog consistency only; semantic TTP and C4 remain unverified."
+]
+LIMITATIONS_12 = [
+    "Synthetic fixtures and fake_offline provider only; no real model quality claim.",
+    "C4 adapter merges model candidates with regex extraction before grounding; scores are not model-only.",
+    "Semantic TTP, malware, and actor items are not evaluated.",
+    "Retrieval completion and context transmission do not prove model knowledge use or quality.",
+    "TTP audit reports source, quote, and catalog consistency only; semantic TTP remains unverified.",
 ]
 SCORE_KEYS = frozenset(("tp", "fp", "fn", "precision", "recall", "f1"))
 C1_ROOT_KEYS = frozenset(
@@ -92,6 +99,23 @@ C23_COMMON_DOCUMENT_KEYS = frozenset(
         "score",
     )
 )
+C4_ROOT_KEYS = C23_ROOT_10_KEYS | {"query_manifest_sha256", "ttp_audit"}
+C4_DOCUMENT_KEYS = C23_COMMON_DOCUMENT_KEYS | {"grounding_audit", "attack_context", "ttp_audit"}
+C4_CONTEXT_KEYS = frozenset(
+    (
+        "requested",
+        "retrieval_completed",
+        "provider_context_sent",
+        "c4_adapter_completed",
+        "schema_version",
+        "sha256",
+        "byte_length",
+        "top_k",
+        "budget_bytes",
+        "snapshot",
+    )
+)
+C4_SNAPSHOT_KEYS = frozenset(("version", "sha256", "kind", "source_url", "release_tag", "commit"))
 AUDIT_ITEM_KEYS = frozenset(
     (
         "item_index",
@@ -502,6 +526,113 @@ def _validate_c23(root: dict[str, Any]) -> None:
         _validate_ttp_top(root["ttp_audit"], technique_items, quote_counts, catalog_counts)
 
 
+def _validate_c4_context(value: object, mode: str, catalog: dict[str, Any]) -> None:
+    context = _exact_keys(value, C4_CONTEXT_KEYS)
+    for key in ("requested", "retrieval_completed", "provider_context_sent"):
+        if _boolean(context[key]) is not True:
+            raise InvalidInput
+    if _boolean(context["c4_adapter_completed"]) != (mode == "model_completed"):
+        raise InvalidInput
+    if context["schema_version"] != "1.0":
+        raise InvalidInput
+    _hash(context["sha256"])
+    if (
+        not 1 <= _integer(context["byte_length"], maximum=4096) <= 4096
+        or _integer(context["top_k"], maximum=10) != 5
+        or _integer(context["budget_bytes"], maximum=8192) != 4096
+    ):
+        raise InvalidInput
+    snapshot = _exact_keys(context["snapshot"], C4_SNAPSHOT_KEYS)
+    for key in C4_SNAPSHOT_KEYS:
+        if snapshot[key] != catalog[key]:
+            raise InvalidInput
+
+
+def _validate_c4_document(
+    value: object, ids: set[str], catalog: dict[str, Any]
+) -> tuple[str, list[tuple[str, str]]]:
+    item = _exact_keys(value, C4_DOCUMENT_KEYS)
+    identifier = _string(item["id"], nonempty=True)
+    if identifier in ids or item["config"] != "C4":
+        raise InvalidInput
+    ids.add(identifier)
+    if item["language"] not in ("vi", "en") or item["tlp"] not in (
+        "TLP:CLEAR",
+        "TLP:GREEN",
+        "TLP:AMBER",
+        "TLP:AMBER+STRICT",
+        "TLP:RED",
+    ):
+        raise InvalidInput
+    if item["adapter_schema_version"] != "1.0":
+        raise InvalidInput
+    _validate_document_provider(item["provider"])
+    _metadata_file(item["source"])
+    _metadata_file(item["fixture"])
+    attempts = _integer(item["attempts"], maximum=2)
+    mode = item["result_mode"]
+    errors = item["error_codes"]
+    if mode not in MODES or type(errors) is not list or any(type(code) is not str for code in errors):
+        raise InvalidInput
+    completed = mode == "model_completed"
+    if (completed and (attempts not in (1, 2) or errors)) or (
+        not completed and (attempts != 2 or len(errors) != 2)
+    ):
+        raise InvalidInput
+    if _boolean(item["model_items_used"]) is not completed:
+        raise InvalidInput
+    if _boolean(item["operational_draft_eligible"]) is not True:
+        raise InvalidInput
+    expected_basis = "adapter_grounded_model_plus_regex" if completed else "regex_fallback"
+    if item["prediction_basis"] != expected_basis:
+        raise InvalidInput
+    _prediction(item["prediction"])
+    _score(item["score"])
+    if type(item["grounding_audit"]) is not list or type(item["ttp_audit"]) is not list:
+        raise InvalidInput
+    if not completed and item["ttp_audit"]:
+        raise InvalidInput
+    _validate_c4_context(item["attack_context"], mode, catalog)
+    return mode, [_validate_audit_item(audit, "C4") for audit in item["ttp_audit"]]
+
+
+def _validate_c4(root: dict[str, Any]) -> None:
+    _exact_keys(root, frozenset(C4_ROOT_KEYS))
+    if root["schema_version"] != "1.2" or root["config"] != "C4" or root["purpose"] != "synthetic-smoke":
+        raise InvalidInput
+    _hash(root["dataset_sha256"])
+    _hash(root["fixture_manifest_sha256"])
+    _hash(root["query_manifest_sha256"])
+    _validate_provider_evaluator(root)
+    count = _integer(root["document_count"], maximum=MAX_DOCUMENTS)
+    if (
+        not 1 <= count <= MAX_DOCUMENTS
+        or type(root["documents"]) is not list
+        or len(root["documents"]) != count
+    ):
+        raise InvalidInput
+    catalog = _validate_catalog(root["ttp_audit"].get("catalog") if type(root["ttp_audit"]) is dict else None)
+    modes: dict[str, list[dict[str, Any]]] = {mode: [] for mode in MODES}
+    quote_counts = {status: 0 for status in QUOTE_STATUSES}
+    catalog_counts = {status: 0 for status in CATALOG_STATUSES}
+    ids: set[str] = set()
+    technique_items = 0
+    for document in root["documents"]:
+        mode, audits = _validate_c4_document(document, ids, catalog)
+        modes[mode].append(document)
+        for quote, catalog_status in audits:
+            quote_counts[quote] += 1
+            catalog_counts[catalog_status] += 1
+            technique_items += 1
+    if _score_counts(root["micro_all"]) != _sum_scores(root["documents"]):
+        raise InvalidInput
+    _validate_modes(root["micro_by_result_mode"], modes)
+    _validate_by_type(root["by_type"])
+    _validate_ttp_top(root["ttp_audit"], technique_items, quote_counts, catalog_counts)
+    if root["limitations"] != LIMITATIONS_12:
+        raise InvalidInput
+
+
 def _validate_cohort(artifacts: list[LoadedArtifact]) -> list[LoadedArtifact]:
     if not 1 <= len(artifacts) <= 3:
         raise InvalidInput
@@ -513,12 +644,40 @@ def _validate_cohort(artifacts: list[LoadedArtifact]) -> list[LoadedArtifact]:
         seen.add(config)
         if config == "C1":
             _validate_c1(artifact.value)
+        elif config == "C4":
+            _validate_c4(artifact.value)
         else:
             _validate_c23(artifact.value)
     ordered = sorted(artifacts, key=lambda artifact: CONFIG_ORDER.get(artifact.value.get("config"), 99))
     if any(item.value.get("config") not in CONFIG_ORDER for item in ordered):
         raise InvalidInput
     schemas = {item.value["schema_version"] for item in ordered}
+    if "C4" in seen:
+        if seen not in ({"C4"}, {"C3", "C4"}):
+            raise InvalidInput
+        if seen == {"C3", "C4"} and ordered[0].value["schema_version"] != "1.1":
+            raise InvalidInput
+        first = ordered[0].value
+        for item in ordered[1:]:
+            value = item.value
+            for key in ("purpose", "dataset_sha256", "document_count"):
+                if value[key] != first[key]:
+                    raise InvalidInput
+        if seen == {"C3", "C4"}:
+            c3, c4 = ordered[0].value, ordered[1].value
+            for key in ("fixture_manifest_sha256", "provider_policy", "mock_only", "evaluator"):
+                if c3[key] != c4[key]:
+                    raise InvalidInput
+            if c3["ttp_audit"]["catalog"] != c4["ttp_audit"]["catalog"]:
+                raise InvalidInput
+            c3_documents = {document["id"]: document for document in c3["documents"]}
+            for document in c4["documents"]:
+                peer = c3_documents.get(document["id"])
+                if peer is None or any(
+                    peer[key] != document[key] for key in ("language", "tlp", "source", "fixture")
+                ):
+                    raise InvalidInput
+        return ordered
     if len(schemas) != 1 or ("C1" in seen and schemas != {"1.0"}):
         raise InvalidInput
     first = ordered[0].value
@@ -560,15 +719,29 @@ def _render_provenance(artifacts: list[LoadedArtifact], c23: list[dict[str, Any]
     lines.extend(("", "- C1: evaluator/provider/fixture không có trong schema C1."))
     if c23:
         value = c23[0]
-        lines.append(
-            f"- C2/C3 fixture manifest: `{value['fixture_manifest_sha256']}`; evaluator "
-            f"`{value['evaluator']['git_ref']}` / Python `{value['evaluator']['python']}`; "
-            "provider `fake_offline`, egress `false`."
-        )
+        if value["config"] == "C4":
+            lines.append(
+                f"- C4 fixture manifest: `{value['fixture_manifest_sha256']}`; query manifest: "
+                f"`{value['query_manifest_sha256']}`; evaluator `{value['evaluator']['git_ref']}` / "
+                f"Python `{value['evaluator']['python']}`; provider `fake_offline`, egress `false`."
+            )
+        else:
+            lines.append(
+                f"- C2/C3 fixture manifest: `{value['fixture_manifest_sha256']}`; evaluator "
+                f"`{value['evaluator']['git_ref']}` / Python `{value['evaluator']['python']}`; "
+                "provider `fake_offline`, egress `false`."
+            )
         if value["schema_version"] == "1.1":
             catalog = value["ttp_audit"]["catalog"]
             lines.append(
                 f"- ATT&CK catalog: `{catalog['kind']}` / `{catalog['version']}` / `{catalog['sha256']}`."
+            )
+        if any(item.value["config"] == "C4" for item in artifacts):
+            c4 = next(item.value for item in artifacts if item.value["config"] == "C4")
+            catalog = c4["ttp_audit"]["catalog"]
+            lines.append(
+                f"- C4 query manifest: `{c4['query_manifest_sha256']}`; ATT&CK catalog: "
+                f"`{catalog['kind']}` / `{catalog['version']}` / `{catalog['sha256']}`."
             )
     return lines
 
@@ -590,6 +763,8 @@ def _render_aggregate(artifacts: list[LoadedArtifact]) -> list[str]:
             )
         )
     lines.extend(("", "C3: grounded model candidates + regex; not model-only."))
+    if any(item.value["config"] == "C4" for item in artifacts):
+        lines.append("C4: grounded model candidates + regex; not model-only.")
     return lines
 
 
@@ -637,7 +812,7 @@ def _render_by_type(artifacts: list[LoadedArtifact]) -> list[str]:
 
 
 def _render_ttp(c23: list[dict[str, Any]]) -> list[str]:
-    if not c23 or c23[0]["schema_version"] != "1.1":
+    if not c23 or c23[0]["schema_version"] not in ("1.1", "1.2"):
         return []
     lines = [
         "## TTP consistency counts",
@@ -662,7 +837,8 @@ def _render_ttp(c23: list[dict[str, Any]]) -> list[str]:
 
 
 def _render(artifacts: list[LoadedArtifact]) -> bytes:
-    c23 = [item.value for item in artifacts if item.value["config"] in ("C2", "C3")]
+    c23 = [item.value for item in artifacts if item.value["config"] in ("C2", "C3", "C4")]
+    has_c4 = any(item.value["config"] == "C4" for item in artifacts)
     lines = [
         "# Báo cáo đánh giá X01",
         "",
@@ -691,6 +867,11 @@ def _render(artifacts: list[LoadedArtifact]) -> bytes:
             "Định dạng: `phonghoa-x01-eval-report/1`.",
         ]
     )
+    if has_c4:
+        lines[-7:-7] = [
+            "- C4 retrieval/context transmission không chứng minh model sử dụng tri thức hay chất lượng.",
+            "- C4 TTP audit chỉ kiểm source/quote/catalog; semantic TTP vẫn chưa xác minh.",
+        ]
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 

@@ -10,8 +10,9 @@ import platform
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 for source_dir in (REPO_ROOT / "core", REPO_ROOT / "extractor"):
@@ -26,8 +27,9 @@ from phonghoa_extractor.attack_catalog import (  # noqa: E402
     SnapshotPin,
     load_catalog,
 )
+from phonghoa_extractor.attack_retrieval import AttackRetrievalError, _validate_query  # noqa: E402
 from phonghoa_extractor.evaluate import Score, micro_average, score_iocs  # noqa: E402
-from phonghoa_extractor.llm_adapter import AdapterError, run_extraction  # noqa: E402
+from phonghoa_extractor.llm_adapter import AdapterError, run_c4_extraction, run_extraction  # noqa: E402
 from phonghoa_extractor.llm_fixture import load_scripted_provider  # noqa: E402
 from phonghoa_extractor.ttp_audit import (  # noqa: E402
     TechniqueAudit,
@@ -36,6 +38,15 @@ from phonghoa_extractor.ttp_audit import (  # noqa: E402
 )
 
 PIN_MAX_BYTES = 16 * 1024
+QUERY_MANIFEST_MAX_BYTES = 16 * 1024
+REPORT_MAX_BYTES = 1024 * 1024
+C4_LIMITATIONS = [
+    "Synthetic fixtures and fake_offline provider only; no real model quality claim.",
+    "C4 adapter merges model candidates with regex extraction before grounding; scores are not model-only.",
+    "Semantic TTP, malware, and actor items are not evaluated.",
+    "Retrieval completion and context transmission do not prove model knowledge use or quality.",
+    "TTP audit reports source, quote, and catalog consistency only; semantic TTP remains unverified.",
+]
 PIN_FIELDS = {
     "kind",
     "version",
@@ -55,6 +66,14 @@ class _InvalidPinJson(ValueError):
     pass
 
 
+@dataclass(frozen=True)
+class C4QueryManifest:
+    schema_version: Literal["1.0"]
+    query_policy: Literal["explicit-per-document-v1"]
+    raw_sha256: str
+    queries: tuple[tuple[str, str], ...]
+
+
 def _pin_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
     result: dict[str, object] = {}
     for key, value in pairs:
@@ -62,6 +81,57 @@ def _pin_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
             raise _InvalidPinJson
         result[key] = value
     return result
+
+
+def _manifest_error() -> DatasetError:
+    return DatasetError("query manifest không hợp lệ")
+
+
+def _validate_query_entry(document_id: object, query: object) -> tuple[str, str]:
+    if type(document_id) is not str or not 1 <= len(document_id) <= 128 or "\x00" in document_id:
+        raise _manifest_error()
+    try:
+        document_id.encode("utf-8", errors="strict")
+        validated_query, _ = _validate_query(query)
+    except (UnicodeError, AttackRetrievalError) as exc:
+        raise _manifest_error() from exc
+    return document_id, validated_query
+
+
+def load_c4_query_manifest(path: Path) -> C4QueryManifest:
+    """Đọc manifest query bất biến, giữ digest của bytes đầu vào."""
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(QUERY_MANIFEST_MAX_BYTES + 1)
+    except (OSError, ValueError) as exc:
+        raise _manifest_error() from exc
+    if len(raw) > QUERY_MANIFEST_MAX_BYTES:
+        raise _manifest_error()
+    try:
+        text = raw.decode("utf-8", errors="strict")
+        if text.startswith("\ufeff"):
+            raise _InvalidPinJson
+        value = json.loads(
+            text,
+            object_pairs_hook=_pin_pairs,
+            parse_constant=lambda _value: (_ for _ in ()).throw(_InvalidPinJson()),
+        )
+    except (UnicodeError, json.JSONDecodeError, _InvalidPinJson, RecursionError, ValueError) as exc:
+        raise _manifest_error() from exc
+    if type(value) is not dict or set(value) != {"schema_version", "query_policy", "queries"}:
+        raise _manifest_error()
+    if value["schema_version"] != "1.0" or value["query_policy"] != "explicit-per-document-v1":
+        raise _manifest_error()
+    queries = value["queries"]
+    if type(queries) is not dict or not queries or len(queries) > 256:
+        raise _manifest_error()
+    entries = tuple(_validate_query_entry(key, query) for key, query in queries.items())
+    return C4QueryManifest(
+        schema_version="1.0",
+        query_policy="explicit-per-document-v1",
+        raw_sha256=hashlib.sha256(raw).hexdigest(),
+        queries=entries,
+    )
 
 
 def _load_snapshot_pin(path: Path) -> SnapshotPin:
@@ -494,6 +564,263 @@ def evaluate_llm_dataset(
     return result
 
 
+def _validate_c4_manifest_dto(value: object) -> dict[str, str]:
+    if type(value) is not C4QueryManifest:
+        raise DatasetError("query manifest không hợp lệ")
+    if value.schema_version != "1.0" or value.query_policy != "explicit-per-document-v1":
+        raise DatasetError("query manifest không hợp lệ")
+    if (
+        type(value.raw_sha256) is not str
+        or len(value.raw_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in value.raw_sha256)
+        or type(value.queries) is not tuple
+        or not value.queries
+        or len(value.queries) > 256
+    ):
+        raise DatasetError("query manifest không hợp lệ")
+    result: dict[str, str] = {}
+    for pair in value.queries:
+        if type(pair) is not tuple or len(pair) != 2:
+            raise DatasetError("query manifest không hợp lệ")
+        document_id, query = _validate_query_entry(pair[0], pair[1])
+        if document_id in result:
+            raise DatasetError("query manifest không hợp lệ")
+        result[document_id] = query
+    return result
+
+
+def _preflight_c4_documents(
+    dataset: Path, responses_dir: Path, queries: dict[str, str]
+) -> tuple[list[tuple[Path, str, dict[str, Any], list[dict], list[Path], Any]], list[Path]]:
+    text_paths = _discover_text_paths(dataset)
+    if not 1 <= len(text_paths) <= 256 or {path.stem for path in text_paths} != set(queries):
+        raise DatasetError("query manifest IDs không khớp dataset")
+    fixture_paths = sorted(responses_dir.glob("*.json"))
+    if {path.stem for path in fixture_paths} != set(queries):
+        raise DatasetError("fixture IDs không khớp dataset")
+    inputs = []
+    for text_path in text_paths:
+        text, metadata, gold, input_paths = _read_document_inputs(dataset, text_path)
+        try:
+            text_bytes = text.encode("utf-8", errors="strict")
+        except UnicodeError as exc:
+            raise DatasetError("báo cáo không hợp lệ") from exc
+        if len(text) > REPORT_MAX_BYTES or len(text_bytes) > REPORT_MAX_BYTES:
+            raise DatasetError("báo cáo không hợp lệ")
+        inputs.append((text_path, text, metadata, gold, input_paths))
+    providers = {path.stem: load_scripted_provider(path) for path in fixture_paths}
+    prepared = [(*values, providers[values[0].stem]) for values in inputs]
+    return prepared, fixture_paths
+
+
+def _c4_document(
+    *,
+    dataset: Path,
+    responses_dir: Path,
+    text_path: Path,
+    text: str,
+    metadata: dict[str, Any],
+    gold: list[dict],
+    provider: Any,
+    query: str,
+    tlp: str,
+    attack_catalog: AttackCatalog,
+) -> tuple[dict[str, Any], dict[str, Score], tuple[TechniqueAudit, ...]]:
+    adapter_result = run_c4_extraction(
+        text=text,
+        language=metadata["language"],
+        tlp=tlp,
+        provider=provider,
+        catalog=attack_catalog,
+        attack_query=query,
+        top_k=5,
+        context_budget_bytes=4096,
+    )
+    audit = adapter_result["iocs"]
+    predicted = [item["value"] for item in audit if item["keep"]]
+    score = score_iocs(predicted, gold)
+    technique_audit = audit_techniques(
+        adapter_result=adapter_result,
+        source_text=text,
+        catalog=attack_catalog,
+    )
+    fixture_path = responses_dir / f"{text_path.stem}.json"
+    document = {
+        "id": text_path.stem,
+        "config": "C4",
+        "language": metadata["language"],
+        "tlp": adapter_result["tlp"],
+        "source": {
+            "path": text_path.relative_to(dataset).as_posix(),
+            "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        },
+        "fixture": {
+            "path": fixture_path.relative_to(responses_dir).as_posix(),
+            "sha256": hashlib.sha256(fixture_path.read_bytes()).hexdigest(),
+        },
+        "adapter_schema_version": adapter_result["schema_version"],
+        "provider": adapter_result["provider"],
+        "attempts": adapter_result["attempts"],
+        "result_mode": adapter_result["result_mode"],
+        "error_codes": adapter_result["error_codes"],
+        "model_items_used": adapter_result["model_items_used"],
+        "operational_draft_eligible": adapter_result["operational_draft_eligible"],
+        "prediction_basis": (
+            "adapter_grounded_model_plus_regex" if adapter_result["model_items_used"] else "regex_fallback"
+        ),
+        "prediction": {"values": predicted},
+        "score": _score_dict(score),
+        "grounding_audit": audit,
+        "attack_context": adapter_result["attack_context"],
+        "ttp_audit": [_serialize_technique_audit(item) for item in technique_audit],
+    }
+    return document, _score_values_by_type(predicted, gold), technique_audit
+
+
+def evaluate_c4_dataset(
+    dataset: Path,
+    responses_dir: Path,
+    *,
+    tlp: str,
+    attack_catalog: AttackCatalog,
+    query_manifest: C4QueryManifest,
+) -> dict[str, Any]:
+    """Chạy C4 offline sau khi toàn bộ input đã qua preflight."""
+    if type(attack_catalog) is not AttackCatalog:
+        raise DatasetError("attack catalog không hợp lệ")
+    if type(tlp) is not str or tlp not in {
+        "TLP:CLEAR",
+        "TLP:GREEN",
+        "TLP:AMBER",
+        "TLP:AMBER+STRICT",
+        "TLP:RED",
+    }:
+        raise DatasetError("TLP không hợp lệ")
+    queries = _validate_c4_manifest_dto(query_manifest)
+    prepared, fixture_paths = _preflight_c4_documents(dataset, responses_dir, queries)
+    documents: list[dict[str, Any]] = []
+    dataset_paths: list[Path] = []
+    scores_by_mode: dict[str, list[Score]] = {"model_completed": [], "regex_fallback": []}
+    scores_by_type: dict[str, list[Score]] = {}
+    ttp_counts = _empty_ttp_counts()
+    for text_path, text, metadata, gold, input_paths, provider in prepared:
+        document, type_scores, technique_audit = _c4_document(
+            dataset=dataset,
+            responses_dir=responses_dir,
+            text_path=text_path,
+            text=text,
+            metadata=metadata,
+            gold=gold,
+            provider=provider,
+            query=queries[text_path.stem],
+            tlp=tlp,
+            attack_catalog=attack_catalog,
+        )
+        dataset_paths.extend(input_paths)
+        documents.append(document)
+        scores_by_mode[document["result_mode"]].append(_score_from_dict(document["score"]))
+        for ioc_type, type_score in type_scores.items():
+            scores_by_type.setdefault(ioc_type, []).append(type_score)
+        _add_ttp_counts(ttp_counts, technique_audit)
+    all_scores = [_score_from_dict(document["score"]) for document in documents]
+    return {
+        "schema_version": "1.2",
+        "config": "C4",
+        "purpose": "synthetic-smoke",
+        "dataset_sha256": _dataset_hash(dataset, dataset_paths),
+        "fixture_manifest_sha256": _dataset_hash(responses_dir, fixture_paths),
+        "query_manifest_sha256": query_manifest.raw_sha256,
+        "provider_policy": {"destination": "fake_offline", "egress": False},
+        "mock_only": True,
+        "evaluator": {"git_ref": _git_ref(), "python": platform.python_version()},
+        "document_count": len(documents),
+        "documents": documents,
+        "micro_all": _score_dict(micro_average(all_scores)),
+        "micro_by_result_mode": {
+            mode: _not_available_or_micro(scores_by_mode[mode])
+            for mode in ("model_completed", "regex_fallback")
+        },
+        "by_type": {
+            ioc_type: _score_dict(micro_average(scores))
+            for ioc_type, scores in sorted(scores_by_type.items())
+        },
+        "ttp_audit": {
+            "enabled": True,
+            "catalog": _catalog_projection(attack_catalog),
+            "metric_note": "counts only; not TTP precision, recall, F1, or detection rate",
+            "counts": ttp_counts,
+        },
+        "limitations": list(C4_LIMITATIONS),
+    }
+
+
+def _check_c4_bounds(value: Any, depth: int = 1) -> None:
+    if depth > 64:
+        raise DatasetError("C4 artifact vượt giới hạn")
+    if value is None or type(value) in (bool, int, float):
+        return
+    if type(value) is str:
+        if len(value) > 8192:
+            raise DatasetError("C4 artifact vượt giới hạn")
+        return
+    if type(value) is list:
+        if len(value) > 512:
+            raise DatasetError("C4 artifact vượt giới hạn")
+        for item in value:
+            _check_c4_bounds(item, depth + 1)
+        return
+    if type(value) is dict:
+        if len(value) > 64 or any(type(key) is not str for key in value):
+            raise DatasetError("C4 artifact vượt giới hạn")
+        for item in value.values():
+            _check_c4_bounds(item, depth + 1)
+        return
+    raise DatasetError("C4 artifact không hợp lệ")
+
+
+def _c4_json_bytes(value: dict[str, Any]) -> bytes:
+    _check_c4_bounds(value)
+    from eval.report import InvalidInput as ReportInvalidInput
+    from eval.report import _validate_c4
+
+    try:
+        _validate_c4(value)
+    except ReportInvalidInput as exc:
+        raise DatasetError("C4 artifact không hợp lệ") from exc
+    try:
+        raw = (
+            json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n"
+        ).encode("utf-8")
+    except (TypeError, ValueError, UnicodeError) as exc:
+        raise DatasetError("C4 artifact không hợp lệ") from exc
+    if len(raw) > 1_048_576:
+        raise DatasetError("C4 artifact vượt giới hạn")
+    return raw
+
+
+def _write_c4_json_no_clobber(path: Path, value: dict[str, Any]) -> None:
+    raw = _c4_json_bytes(value)
+    if path.exists():
+        raise DatasetError("output đã tồn tại")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "wb", dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False
+        ) as handle:
+            temp_path = Path(handle.name)
+            handle.write(raw)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.link(temp_path, path)
+        except FileExistsError as exc:
+            raise DatasetError("output đã tồn tại") from exc
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+
 def _ensure_output_safe(output: Path, dataset: Path, responses_dir: Path, inputs: list[Path]) -> None:
     output_resolved = output.resolve()
     for root in (dataset.resolve(), responses_dir.resolve()):
@@ -532,6 +859,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--ttp-audit", action="store_true")
     parser.add_argument("--attack-snapshot", type=Path)
     parser.add_argument("--attack-pin", type=Path)
+    parser.add_argument("--query-manifest", type=Path)
     return parser.parse_args()
 
 
@@ -539,20 +867,34 @@ def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
     args = _parse_args()
-    if args.config == "C4":
-        print("Lỗi: cấu hình C4 chưa được hỗ trợ", file=sys.stderr)
-        return 2
     audit_flags = (args.ttp_audit, args.attack_snapshot is not None, args.attack_pin is not None)
     audit_requested = any(audit_flags)
     audit_complete = all(audit_flags)
-    if audit_requested and not audit_complete:
+    if args.config != "C4" and audit_requested and not audit_complete:
         print("Lỗi: ttp-audit cần attack-snapshot và attack-pin", file=sys.stderr)
         return 2
-    if args.config == "C1" and (args.responses_dir is not None or args.tlp is not None or audit_requested):
+    if args.config == "C1" and (
+        args.responses_dir is not None
+        or args.tlp is not None
+        or audit_requested
+        or args.query_manifest is not None
+    ):
         print("Lỗi: C1 không nhận responses-dir/tlp/ttp-audit", file=sys.stderr)
         return 2
-    if args.config in {"C2", "C3"} and (args.responses_dir is None or args.tlp is None):
+    if args.config in {"C2", "C3"} and (
+        args.responses_dir is None or args.tlp is None or args.query_manifest is not None
+    ):
         print("Lỗi: C2/C3 cần responses-dir và tlp", file=sys.stderr)
+        return 2
+    if args.config == "C4" and (
+        args.responses_dir is None
+        or args.tlp is None
+        or args.attack_snapshot is None
+        or args.attack_pin is None
+        or args.query_manifest is None
+        or args.ttp_audit
+    ):
+        print("Lỗi: C4 cần responses-dir/tlp/attack-snapshot/attack-pin/query-manifest", file=sys.stderr)
         return 2
     if args.config == "C1":
         try:
@@ -571,28 +913,55 @@ def main() -> int:
     try:
         dataset = args.dataset.resolve()
         responses_dir = args.responses_dir.resolve()
-        input_paths = [
+        input_paths: list[Path] = [
             *dataset.rglob("*"),
             *responses_dir.rglob("*"),
         ]
-        if audit_complete:
+        if args.config == "C4":
+            input_paths.extend((args.attack_snapshot, args.attack_pin, args.query_manifest))
+        elif audit_complete:
             input_paths.extend((args.attack_snapshot, args.attack_pin))
         _ensure_output_safe(
             args.output, dataset, responses_dir, [path for path in input_paths if path.is_file()]
         )
+        if args.config == "C4" and args.output.exists():
+            raise DatasetError("output đã tồn tại")
         attack_catalog = None
-        if audit_complete:
+        query_manifest = None
+        if args.config == "C4":
+            query_manifest = load_c4_query_manifest(args.query_manifest)
             pin = _load_snapshot_pin(args.attack_pin)
             attack_catalog = load_catalog(args.attack_snapshot, pin)
-        result = evaluate_llm_dataset(
-            dataset,
-            responses_dir,
-            config=args.config,
-            tlp=args.tlp,
-            attack_catalog=attack_catalog,
-        )
-        _write_json_atomic(args.output, result)
-    except (AdapterError, AttackCatalogError, DatasetError, OSError, TtpAuditError, UnicodeError):
+        elif audit_complete:
+            pin = _load_snapshot_pin(args.attack_pin)
+            attack_catalog = load_catalog(args.attack_snapshot, pin)
+        if args.config == "C4":
+            result = evaluate_c4_dataset(
+                dataset,
+                responses_dir,
+                tlp=args.tlp,
+                attack_catalog=attack_catalog,
+                query_manifest=query_manifest,
+            )
+            _write_c4_json_no_clobber(args.output, result)
+        else:
+            result = evaluate_llm_dataset(
+                dataset,
+                responses_dir,
+                config=args.config,
+                tlp=args.tlp,
+                attack_catalog=attack_catalog,
+            )
+            _write_json_atomic(args.output, result)
+    except (
+        AdapterError,
+        AttackCatalogError,
+        AttackRetrievalError,
+        DatasetError,
+        OSError,
+        TtpAuditError,
+        UnicodeError,
+    ):
         print("Lỗi: offline_eval_failed", file=sys.stderr)
         return 1
     print(

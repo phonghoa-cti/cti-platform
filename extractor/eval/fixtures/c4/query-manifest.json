@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "query_policy": "explicit-per-document-v1",
+  "queries": {
+    "en-02": "malware payload download technique",
+    "en-04": "benign infrastructure technique",
+    "en-06": "malicious attachment hash technique",
+    "vn-01": "tên miền điều khiển kỹ thuật tấn công",
+    "vn-03": "địa chỉ mạng kỹ thuật tấn công",
+    "vn-05": "email điều khiển kỹ thuật tấn công"
+  }
+}

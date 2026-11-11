@@ -56,6 +56,7 @@ def _run_cli(
     ttp_audit: bool = False,
     attack_snapshot: Path | None = None,
     attack_pin: Path | None = None,
+    query_manifest: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     command = [
         sys.executable,
@@ -77,6 +78,8 @@ def _run_cli(
         command.extend(["--attack-snapshot", str(attack_snapshot)])
     if attack_pin is not None:
         command.extend(["--attack-pin", str(attack_pin)])
+    if query_manifest is not None:
+        command.extend(["--query-manifest", str(query_manifest)])
     return subprocess.run(
         command,
         cwd=REPO_ROOT,
@@ -84,6 +87,19 @@ def _run_cli(
         text=True,
         encoding="utf-8",
         check=False,
+    )
+
+
+def _write_query_manifest(path: Path, queries: dict[str, str]) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "query_policy": "explicit-per-document-v1",
+                "queries": queries,
+            }
+        ),
+        encoding="utf-8",
     )
 
 
@@ -998,3 +1014,112 @@ def test_evaluator_rejects_wrong_catalog_type_before_loading_provider(
         )
 
     assert provider_loaded is False
+
+
+def test_c4_cli_requires_complete_flags_and_publishes_no_clobber_artifact(tmp_path: Path) -> None:
+    dataset = tmp_path / "dataset"
+    _write_document(dataset, "case-01", "Phishing uses evil.example.", [])
+    responses = tmp_path / "responses"
+    _write_fixture(
+        responses,
+        "case-01",
+        [
+            _completed_payload(
+                {
+                    "iocs": [_ioc("evil.example", "evil.example")],
+                    "techniques": [{"id": "T1000", "evidence": "Phishing"}],
+                    "malware": [],
+                    "actors": [],
+                }
+            )
+        ],
+    )
+    snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    pin = tmp_path / "pin.json"
+    _write_synthetic_pin(snapshot, pin)
+    manifest = tmp_path / "queries.json"
+    _write_query_manifest(manifest, {"case-01": "phishing technique"})
+    output = tmp_path / "result.json"
+
+    completed = _run_cli(
+        dataset,
+        output,
+        "C4",
+        responses_dir=responses,
+        tlp="TLP:RED",
+        attack_snapshot=snapshot,
+        attack_pin=pin,
+        query_manifest=manifest,
+    )
+    assert completed.returncode == 0, completed.stderr
+    original = output.read_bytes()
+    repeated = _run_cli(
+        dataset,
+        output,
+        "C4",
+        responses_dir=responses,
+        tlp="TLP:RED",
+        attack_snapshot=snapshot,
+        attack_pin=pin,
+        query_manifest=manifest,
+    )
+
+    assert json.loads(original)["schema_version"] == "1.2"
+    assert repeated.returncode == 1
+    assert repeated.stderr == "Lỗi: offline_eval_failed\n"
+    assert output.read_bytes() == original
+
+
+def test_c4_flag_combinations_are_usage_errors_and_old_configs_reject_manifest(tmp_path: Path) -> None:
+    dataset = tmp_path / "dataset"
+    _write_document(dataset, "case-01", "Phishing uses evil.example.", [])
+    manifest = tmp_path / "queries.json"
+    _write_query_manifest(manifest, {"case-01": "phishing technique"})
+
+    incomplete = _run_cli(dataset, tmp_path / "c4.json", "C4", query_manifest=manifest)
+    old_config = _run_cli(dataset, tmp_path / "c1.json", "C1", query_manifest=manifest)
+
+    assert incomplete.returncode == 2
+    assert old_config.returncode == 2
+    assert not (tmp_path / "c4.json").exists()
+    assert not (tmp_path / "c1.json").exists()
+
+
+def test_c4_rejects_ttp_audit_flag_and_output_alias_to_manifest(tmp_path: Path) -> None:
+    dataset = tmp_path / "dataset"
+    _write_document(dataset, "case-01", "Phishing uses evil.example.", [])
+    responses = tmp_path / "responses"
+    _write_fixture(responses, "case-01", [_completed([])])
+    snapshot = REPO_ROOT / "extractor" / "attack" / "fixtures" / "synthetic-catalog.json"
+    pin = tmp_path / "pin.json"
+    _write_synthetic_pin(snapshot, pin)
+    manifest = tmp_path / "queries.json"
+    _write_query_manifest(manifest, {"case-01": "phishing technique"})
+    original = manifest.read_bytes()
+
+    rejected_flag = _run_cli(
+        dataset,
+        tmp_path / "flag.json",
+        "C4",
+        responses_dir=responses,
+        tlp="TLP:CLEAR",
+        ttp_audit=True,
+        attack_snapshot=snapshot,
+        attack_pin=pin,
+        query_manifest=manifest,
+    )
+    rejected_alias = _run_cli(
+        dataset,
+        manifest,
+        "C4",
+        responses_dir=responses,
+        tlp="TLP:CLEAR",
+        attack_snapshot=snapshot,
+        attack_pin=pin,
+        query_manifest=manifest,
+    )
+
+    assert rejected_flag.returncode == 2
+    assert rejected_alias.returncode == 1
+    assert rejected_alias.stderr == "Lỗi: offline_eval_failed\n"
+    assert manifest.read_bytes() == original

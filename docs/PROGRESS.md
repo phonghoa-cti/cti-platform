@@ -76,6 +76,9 @@ Cập nhật lần cuối: 11/11/2026
 - X01 adapter C4 context ngoại tuyến: wrapper kiểm báo cáo/TLP, gọi retriever lexical đúng một lần rồi gửi nguyên
   context có hash/provenance trong request bất biến cho provider giả lập; retry/fallback dùng lại C3 và public audit
   chỉ lấy evidence từ báo cáo gốc. Đây là kiểm hợp đồng bằng dữ liệu tổng hợp, chưa phải chất lượng model/RAG.
+- X01 evaluator/reporter C4 ngoại tuyến: query manifest explicit, preflight toàn dataset trước generate, artifact
+  schema 1.2 no-clobber và reporter nhận C4 đơn hoặc C3-audit+C4 cùng provenance. Demo vẫn dùng response
+  fake_offline tổng hợp; không phải benchmark model/RAG/TTP semantic hoặc corpus thật.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -96,4 +99,5 @@ Cập nhật lần cuối: 11/11/2026
 - Retrieval lexical chưa được nối trước generation, chưa đo semantic/multilingual recall trên corpus hai người
   gán nhãn và chưa gọi model thật; ranking score chỉ là token overlap, không phải confidence hay semantic truth.
 - C4 mới chỉ nối request với provider giả lập và query do caller truyền; chưa đo chống prompt injection, model thật,
-  semantic/multilingual TTP, corpus hai người gán nhãn, evaluator/reporter, OpenCTI, lab hoặc production.
+  semantic/multilingual TTP, corpus hai người gán nhãn, OpenCTI, lab hoặc production. Evaluator/reporter chỉ kiểm
+  contract deterministic trên fixture tổng hợp, không nâng mức bằng chứng chất lượng.

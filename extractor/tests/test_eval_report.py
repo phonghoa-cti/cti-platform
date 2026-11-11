@@ -23,6 +23,13 @@ LIMITATIONS_10 = [
 LIMITATIONS_11 = LIMITATIONS_10 + [
     "TTP audit reports source, quote, and catalog consistency only; semantic TTP and C4 remain unverified."
 ]
+LIMITATIONS_12 = [
+    "Synthetic fixtures and fake_offline provider only; no real model quality claim.",
+    "C4 adapter merges model candidates with regex extraction before grounding; scores are not model-only.",
+    "Semantic TTP, malware, and actor items are not evaluated.",
+    "Retrieval completion and context transmission do not prove model knowledge use or quality.",
+    "TTP audit reports source, quote, and catalog consistency only; semantic TTP remains unverified.",
+]
 TTP_COUNT_PATHS = [
     ("technique_items",),
     *(("quote_status", status) for status in ("matched", "missing", "not_found", "ambiguous")),
@@ -147,6 +154,40 @@ def c23_artifact(config: str, *, schema: str = "1.0", fallback: bool = False) ->
                 "catalog_status": {"active": 1, "inactive": 0, "unknown": 0, "not_checked": 0},
             },
         }
+    return result
+
+
+def c4_artifact(*, fallback: bool = False) -> dict[str, object]:
+    result = c23_artifact("C3", schema="1.1", fallback=fallback)
+    result["schema_version"] = "1.2"
+    result["config"] = "C4"
+    result["query_manifest_sha256"] = "c" * 64
+    result["limitations"] = list(LIMITATIONS_12)
+    document = result["documents"][0]  # type: ignore[index]
+    document["config"] = "C4"
+    document["operational_draft_eligible"] = True
+    document["prediction_basis"] = "regex_fallback" if fallback else "adapter_grounded_model_plus_regex"
+    document["attack_context"] = {
+        "requested": True,
+        "retrieval_completed": True,
+        "provider_context_sent": True,
+        "c4_adapter_completed": not fallback,
+        "schema_version": "1.0",
+        "sha256": "d" * 64,
+        "byte_length": 512,
+        "top_k": 5,
+        "budget_bytes": 4096,
+        "snapshot": {
+            "version": "synthetic-1",
+            "sha256": LOWER_HASH,
+            "kind": "synthetic",
+            "source_url": None,
+            "release_tag": None,
+            "commit": None,
+        },
+    }
+    for item in document["ttp_audit"]:
+        item["config"] = "C4"
     return result
 
 
@@ -550,3 +591,75 @@ def test_cleanup_failure_after_commit_keeps_published_output(tmp_path: Path, mon
     assert output.read_bytes() == b"committed"
     for temp in tmp_path.glob(".*.tmp"):
         real_unlink(temp)
+
+
+def test_renders_c4_only_with_query_catalog_and_non_quality_disclaimers(tmp_path: Path) -> None:
+    result, output, _ = run_report(tmp_path, [c4_artifact()])
+
+    assert result.returncode == 0, result.stderr
+    report = output.read_text(encoding="utf-8")
+    assert "`" + "c" * 64 + "`" in report
+    assert "`synthetic` / `synthetic-1`" in report
+    assert "không phải chất lượng model" in report
+    assert "không chứng minh model sử dụng tri thức" in report
+    assert "QUERY_SECRET" not in report
+
+
+def test_renders_c3_audit_and_c4_cohort_with_matching_per_document_provenance(tmp_path: Path) -> None:
+    result, output, _ = run_report(tmp_path, [c4_artifact(), c23_artifact("C3", schema="1.1")])
+
+    assert result.returncode == 0, result.stderr
+    report = output.read_text(encoding="utf-8")
+    assert report.index("| C3 |") < report.index("| C4 |")
+    assert "TTP consistency counts" in report
+
+
+@pytest.mark.parametrize(
+    "artifacts",
+    [
+        [c1_artifact(), c4_artifact()],
+        [c23_artifact("C2", schema="1.1"), c4_artifact()],
+        [c23_artifact("C3"), c4_artifact()],
+    ],
+)
+def test_rejects_forbidden_c4_schema_mixes(tmp_path: Path, artifacts: list[dict[str, object]]) -> None:
+    result, output, _ = run_report(tmp_path, artifacts)
+
+    assert result.returncode == 2
+    assert result.stderr == "Lỗi: eval_report_invalid_input\n"
+    assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda a: a["documents"][0]["attack_context"].update(top_k=True),
+        lambda a: a["documents"][0]["attack_context"].update(byte_length=0),
+        lambda a: a["documents"][0].update(adapter_schema_version="1.1"),
+        lambda a: a.update(query_manifest_sha256="A" * 64),
+        lambda a: a.update(document_count=0),
+    ],
+)
+def test_rejects_invalid_c4_context_types_and_projection(tmp_path: Path, mutate) -> None:
+    artifact = c4_artifact()
+    mutate(artifact)
+    result, output, _ = run_report(tmp_path, [artifact])
+
+    assert result.returncode == 2
+    assert result.stderr == "Lỗi: eval_report_invalid_input\n"
+    assert not output.exists()
+
+
+def test_rejects_c3_c4_catalog_or_per_id_metadata_mismatch(tmp_path: Path) -> None:
+    for mutate in (
+        lambda a: a["ttp_audit"]["catalog"].update(version="synthetic-2"),
+        lambda a: a["documents"][0]["source"].update(sha256="e" * 64),
+        lambda a: a["documents"][0].update(tlp="TLP:GREEN"),
+    ):
+        c3, c4 = c23_artifact("C3", schema="1.1"), c4_artifact()
+        mutate(c4)
+        case = tmp_path / str(len(list(tmp_path.iterdir())))
+        case.mkdir()
+        result, output, _ = run_report(case, [c3, c4])
+        assert result.returncode == 2
+        assert not output.exists()
