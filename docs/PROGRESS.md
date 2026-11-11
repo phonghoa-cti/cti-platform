@@ -65,6 +65,10 @@ Cập nhật lần cuối: 11/11/2026
   catalog ATT&CK đã pin; mặc định schema 1.0, prediction/score IOC và retry/fallback giữ nguyên. Pin được đọc
   UTF-8 strict có bound 16 KiB, catalog chỉ nạp một lần và output atomic không được alias dataset/fixture/
   snapshot/pin. Đây vẫn là smoke bằng provider giả lập, không phải đánh giá ngữ nghĩa TTP hoặc chất lượng model.
+- X01 reporter ngoại tuyến: CLI stdlib đọc cohort C1/C2/C3 schema 1.0 hoặc C2/C3 schema 1.1, kiểm projection,
+  aggregate/mode/TTP consistency rồi dựng Markdown bất biến có hash từng input và nhãn synthetic. Publish mặc
+  định no-clobber, chỉ overwrite khi có cờ và từ chối alias input; reporter không chấm lại prediction hoặc gọi
+  model/mạng/catalog/DB. Đây là bảng smoke tổng hợp, không phải kết quả model/corpus thật.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -80,3 +84,5 @@ Cập nhật lần cuối: 11/11/2026
   model/provider thật, corpus/gold/F1 và C4/RAG vẫn chưa xác minh.
 - Artifact evaluator schema 1.1 mới chỉ được kiểm ngoại tuyến với snapshot synthetic; semantic truth TTP,
   corpus hai người gán nhãn, model/provider thật, C4/RAG, lab và production vẫn chưa xác minh.
+- Reporter chưa được dùng với corpus thật hoặc artifact model thật; semantic TTP, C4/RAG, khả năng chống power
+  loss/hostile directory mutation, W05, OpenCTI, lab và production vẫn chưa xác minh.

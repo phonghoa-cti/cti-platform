@@ -63,6 +63,28 @@ không chọn asset mặc định. C1/C4 từ chối các cờ audit, còn C2/C3
   Nó không gọi provider thêm, không thay prediction/score IOC và mọi technique vẫn `semantic_status=unverified`,
   `operational_draft_eligible=false`.
 
+## Dựng báo cáo Markdown ngoại tuyến
+
+Reporter đọc từ một đến ba artifact tương thích C1/C2/C3 và dựng bảng Markdown byte-deterministic:
+
+```powershell
+python extractor/eval/report.py `
+  --input x01-c1-smoke-result.json `
+  --input x01-c2-smoke-result.json `
+  --input x01-c3-smoke-result.json `
+  --output x01-eval-report.md
+```
+
+Reporter kiểm exact projection, cohort, aggregate/mode metrics và consistency counts của TTP schema 1.1 trước
+khi ghi. Nó không chấm lại prediction, không đọc catalog, không gọi model/mạng/DB và không render IOC, quote,
+đường dẫn hoặc URL từ input. Báo cáo luôn mang nhãn `SYNTHETIC SMOKE`; C3 được mô tả là model candidates
+trộn regex rồi grounding, không phải metric model-only.
+
+Mặc định output đang tồn tại bị từ chối và được giữ nguyên. `--overwrite` mới cho phép thay thế; output không
+được alias input qua tên, symlink hoặc hardlink. Commit point là lúc link/replace thành công: lỗi trước đó không
+được publish; lỗi dọn temp sau đó được báo là I/O nhưng output đã publish vẫn được giữ. Reporter không tuyên bố
+chống power loss hoặc thay đổi thư mục đồng thời bởi tiến trình hostile.
+
 Output C2/C3 chỉ được ghi atomic sau khi toàn bộ dataset/fixture xử lý thành công. Đường output nằm trong hoặc
 alias/hardlink/symlink tới dataset/fixture bị từ chối; output cũ được giữ khi refusal, incomplete, fixture lỗi
 hoặc provider không an toàn.
