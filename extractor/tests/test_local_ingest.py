@@ -475,3 +475,62 @@ def test_regular_ancestors_remain_supported(tmp_path: Path) -> None:
     source = parent / "input.txt"
     source.write_text("192.0.2.1", encoding="utf-8")
     assert ingest_local_file(source).canonical_text == "192.0.2.1"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [Path("input.txt"), Path("one") / ".." / "input.txt", Path(r"\one\input.txt")],
+)
+def test_cwd_dependent_input_under_unc_is_rejected_before_stat_or_read(
+    monkeypatch: pytest.MonkeyPatch, source: Path
+) -> None:
+    stat_calls: list[Path] = []
+    read_calls: list[Path] = []
+
+    def unexpected_lstat(path: Path, *_args, **_kwargs):
+        stat_calls.append(path)
+        raise AssertionError("lstat must not run for an input under a UNC cwd")
+
+    monkeypatch.setattr(Path, "cwd", classmethod(lambda _cls: Path(r"\\server\share")))
+    monkeypatch.setattr(Path, "lstat", unexpected_lstat)
+    monkeypatch.setattr(
+        local_ingest,
+        "_read_capped",
+        lambda path, _cap: read_calls.append(path),
+    )
+
+    assert_error("input_not_regular", ingest_local_file, source)
+    assert stat_calls == []
+    assert read_calls == []
+
+
+def test_absolute_local_input_does_not_consult_unc_cwd(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    source = tmp_path / "input.txt"
+    source.write_text("192.0.2.1", encoding="utf-8")
+
+    def unexpected_cwd(_cls):
+        raise AssertionError("absolute local input must not consult cwd")
+
+    monkeypatch.setattr(Path, "cwd", classmethod(unexpected_cwd))
+    assert ingest_local_file(source).canonical_text == "192.0.2.1"
+
+
+def test_explicit_unc_input_is_rejected_before_stat(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unexpected_lstat(_path: Path, *_args, **_kwargs):
+        raise AssertionError("explicit UNC input must be rejected before lstat")
+
+    monkeypatch.setattr(Path, "lstat", unexpected_lstat)
+    assert_error(
+        "input_not_regular",
+        ingest_local_file,
+        Path(r"\\server\share\input.txt"),
+    )
+
+
+def test_relative_local_input_remains_supported(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    source = tmp_path / "input.txt"
+    source.write_text("192.0.2.1", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    assert ingest_local_file(Path("input.txt")).canonical_text == "192.0.2.1"

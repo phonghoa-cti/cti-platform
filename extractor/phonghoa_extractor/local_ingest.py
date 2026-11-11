@@ -108,7 +108,7 @@ def _validate_input(path: Path) -> str:
 
 
 def _validate_regular_local(path: Path) -> None:
-    if str(path).startswith(("\\\\", "//")):
+    if _has_unc_prefix(path):
         raise LocalIngestError("input_not_regular")
     _validate_ancestor_chain(path)
     try:
@@ -132,6 +132,8 @@ def _validate_ancestor_chain(path: Path) -> None:
         parts = path.parts[1:-1]
     else:
         current = Path.cwd()
+        if _has_unc_prefix(current):
+            raise LocalIngestError("input_not_regular")
         for ancestor in (current, *current.parents):
             _validate_directory_node(ancestor)
         parts = path.parts[:-1]
@@ -140,6 +142,10 @@ def _validate_ancestor_chain(path: Path) -> None:
             continue
         current = current.parent if part == ".." else current / part
         _validate_directory_node(current)
+
+
+def _has_unc_prefix(path: Path) -> bool:
+    return str(path).startswith(("\\\\", "//"))
 
 
 def _validate_directory_node(path: Path) -> None:
