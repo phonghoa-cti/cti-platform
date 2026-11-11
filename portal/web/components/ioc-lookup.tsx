@@ -50,6 +50,7 @@ export function IocLookup({ dataSource = sampleLookupSource }: { dataSource?: Lo
   const [loading, setLoading] = useState(false);
   const [copyState, setCopyState] = useState<"success" | "error" | null>(null);
   const requestRef = useRef(0);
+  const copyRef = useRef(0);
   const resultRef = useRef<HTMLElement | null>(null);
   const messages = locale === "vi" ? vi.w02 : en.w02;
 
@@ -57,9 +58,14 @@ export function IocLookup({ dataSource = sampleLookupSource }: { dataSource?: Lo
     if (response?.state === "result") resultRef.current?.focus();
   }, [response]);
 
+  useEffect(() => () => {
+    copyRef.current += 1;
+  }, []);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const request = ++requestRef.current;
+    copyRef.current += 1;
     setLoading(true);
     setResponse(null);
     setCopyState(null);
@@ -75,13 +81,16 @@ export function IocLookup({ dataSource = sampleLookupSource }: { dataSource?: Lo
 
   const copy = async () => {
     if (response?.state !== "result") return;
+    const request = requestRef.current;
+    const copyAttempt = ++copyRef.current;
+    const originalValue = response.ioc.value;
     setCopyState(null);
     try {
       if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
-      await navigator.clipboard.writeText(response.ioc.value);
-      setCopyState("success");
+      await navigator.clipboard.writeText(originalValue);
+      if (request === requestRef.current && copyAttempt === copyRef.current) setCopyState("success");
     } catch {
-      setCopyState("error");
+      if (request === requestRef.current && copyAttempt === copyRef.current) setCopyState("error");
     }
   };
 

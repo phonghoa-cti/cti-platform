@@ -56,6 +56,6 @@ const fixtures: Readonly<Record<string, LookupResult>> = {
 export const sampleLookupSource: LookupDataSource = {
   async lookup(value) {
     if (value.length === 0 || value.trim().length === 0) return { state: "invalid" };
-    return fixtures[value] ?? { state: "not-found" };
+    return Object.hasOwn(fixtures, value) ? fixtures[value] : { state: "not-found" };
   },
 };

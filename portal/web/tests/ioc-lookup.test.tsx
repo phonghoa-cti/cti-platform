@@ -138,6 +138,60 @@ describe("IOC lookup interaction", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Đã sao chép giá trị gốc");
   });
 
+  it.each(["resolve", "reject"] as const)(
+    "does not show a stale copy %s after a newer lookup is displayed",
+    async (completion) => {
+      const copyPending = deferred<void>();
+      const writeText = vi.fn().mockReturnValue(copyPending.promise);
+      const lookup = vi.fn()
+        .mockResolvedValueOnce(found)
+        .mockResolvedValueOnce({
+          ...found,
+          input: "b.example",
+          ioc: { ...found.ioc, value: "b.example", display: "b[.]example" },
+        });
+      const user = await submit(found.input, source(lookup));
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+      await user.click(await screen.findByRole("button", { name: "Sao chép giá trị gốc" }));
+
+      const input = screen.getByRole("textbox", { name: "IOC cần tra cứu" });
+      await user.clear(input);
+      await user.type(input, "b.example");
+      await user.click(screen.getByRole("button", { name: "Tra cứu" }));
+      expect(await screen.findByText("b[.]example")).toBeInTheDocument();
+
+      if (completion === "resolve") copyPending.resolve();
+      else copyPending.reject(new Error("denied"));
+
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(found.ioc.value));
+      await waitFor(() => {
+        expect(screen.queryByRole("status")).not.toBeInTheDocument();
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      });
+    },
+  );
+
+  it("lets only the latest copy attempt for one result report completion", async () => {
+    const firstCopy = deferred<void>();
+    const secondCopy = deferred<void>();
+    const writeText = vi.fn()
+      .mockReturnValueOnce(firstCopy.promise)
+      .mockReturnValueOnce(secondCopy.promise);
+    const user = await submit(found.input, source(vi.fn().mockResolvedValue(found)));
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    const copy = await screen.findByRole("button", { name: "Sao chép giá trị gốc" });
+
+    await user.click(copy);
+    await user.click(copy);
+    secondCopy.resolve();
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã sao chép giá trị gốc");
+
+    firstCopy.reject(new Error("late denial"));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("status")).toHaveTextContent("Đã sao chép giá trị gốc");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it.each(["missing", "rejected"] as const)("reports copy failure when clipboard is %s", async (mode) => {
     const user = await submit(found.input, source(vi.fn().mockResolvedValue(found)));
     const copy = await screen.findByRole("button", { name: "Sao chép giá trị gốc" });
@@ -171,5 +225,21 @@ describe("offline sample data source", () => {
     expect(unknown).toEqual({ state: "not-found" });
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+
+  it.each(["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"])(
+    "treats inherited object key %s as unmatched",
+    async (value) => {
+      expect(await sampleLookupSource.lookup(value)).toEqual({ state: "not-found" });
+    },
+  );
+
+  it("keeps a declared fixture exact-match while rejecting an ordinary unmatched value", async () => {
+    expect(await sampleLookupSource.lookup("allowlisted.example")).toMatchObject({
+      state: "result",
+      input: "allowlisted.example",
+      allowlisted: true,
+    });
+    expect(await sampleLookupSource.lookup("Allowlisted.example")).toEqual({ state: "not-found" });
   });
 });
