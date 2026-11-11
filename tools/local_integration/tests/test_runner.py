@@ -132,6 +132,43 @@ def test_w04_technology_scenarios_opt_in_both_stores_on_one_database(scenario: s
         assert run.technology_store.path == run.db_path
 
 
+@pytest.mark.parametrize(
+    ("scenario", "status", "view"),
+    [
+        ("w03-it", 200, "detail"),
+        ("w03-analyst", 200, "detail"),
+        ("w03-admin", 200, "detail"),
+        ("w03-multi-role", 200, "detail"),
+        ("w03-leader", 200, "summary"),
+        ("w03-missing-token", 401, None),
+        ("w03-forbidden", 403, None),
+        ("w03-unavailable", 503, None),
+    ],
+)
+def test_w03_scenarios_opt_in_cves_and_technology_on_one_database(
+    scenario: str, status: int, view: str | None
+) -> None:
+    with LocalRun(scenario, duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/cves", params={"limit": 5}, timeout=2)
+        assert response.status_code == status
+        assert response.headers["cache-control"] == "no-store"
+        assert response.headers["vary"] == "Cf-Access-Jwt-Assertion"
+        assert run.technology_store is not None
+        assert run.technology_store.path == run.db_path
+        if status == 200:
+            body = response.json()
+            assert body["view"] == view
+            assert body["source"]["kind"] == "synthetic"
+            assert body["summary"]["matched_cves"] >= 12
+
+
+def test_non_w03_scenario_keeps_cve_fixture_disabled() -> None:
+    with LocalRun("w04-technology-it", duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/cves", timeout=2)
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "cves_unavailable"
+
+
 def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixtures() -> None:
     with LocalRun("selection-admin", duration_seconds=20, start_ui=False) as selection_run:
         response = httpx.get(

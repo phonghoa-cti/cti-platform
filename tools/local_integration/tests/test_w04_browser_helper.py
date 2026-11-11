@@ -4,7 +4,11 @@ import json
 import sqlite3
 from pathlib import Path
 
-from tools.local_integration.w04_browser_helper import request_stop, snapshot_assets_database
+from tools.local_integration.w04_browser_helper import (
+    ALLOWED_SCENARIOS,
+    request_stop,
+    snapshot_assets_database,
+)
 
 
 def test_snapshot_assets_database_copies_db_and_writes_sanitized_counts(tmp_path: Path) -> None:
@@ -67,3 +71,20 @@ def test_request_stop_only_writes_marker_for_running_owned_state(tmp_path: Path)
 
     assert marker == Path(f"{state_path}.stop")
     assert json.loads(marker.read_text(encoding="utf-8")) == {"run_id": "owned-run"}
+
+
+def test_browser_helper_accepts_only_bounded_w03_browser_scenarios() -> None:
+    assert {"w03-it", "w03-leader", "w03-snapshot-change", "w03-refresh-503"}.issubset(ALLOWED_SCENARIOS)
+
+
+def test_snapshot_assets_database_supports_distinct_initial_and_final_artifacts(tmp_path: Path) -> None:
+    db_path = tmp_path / "shared.sqlite"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("CREATE TABLE drafts(id INTEGER PRIMARY KEY)")
+
+    snapshot_assets_database(db_path, tmp_path / "evidence", label="initial")
+    snapshot_assets_database(db_path, tmp_path / "evidence")
+
+    assert (tmp_path / "evidence" / "assets-initial.sqlite").is_file()
+    assert (tmp_path / "evidence" / "db-summary-initial.json").is_file()
+    assert (tmp_path / "evidence" / "assets-before-cleanup.sqlite").is_file()

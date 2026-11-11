@@ -24,6 +24,10 @@ ALLOWED_SCENARIOS = (
     "w04-technology-forbidden",
     "w04-technology-refresh-503",
     "w04-technology-unknown-outcome",
+    "w03-it",
+    "w03-leader",
+    "w03-snapshot-change",
+    "w03-refresh-503",
 )
 
 
@@ -35,7 +39,9 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
-def snapshot_assets_database(db_path: Path, evidence_dir: Path) -> dict[str, int]:
+def snapshot_assets_database(
+    db_path: Path, evidence_dir: Path, *, label: str | None = None
+) -> dict[str, int]:
     evidence_dir.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
 
@@ -54,7 +60,8 @@ def snapshot_assets_database(db_path: Path, evidence_dir: Path) -> dict[str, int
         active_technologies = count("technology_assets", "WHERE deleted_at IS NULL")
         technology_audit_rows = count("technology_asset_audit")
         draft_rows = count("drafts")
-        destination = sqlite3.connect(evidence_dir / "assets-before-cleanup.sqlite")
+        database_name = "assets-before-cleanup.sqlite" if label is None else f"assets-{label}.sqlite"
+        destination = sqlite3.connect(evidence_dir / database_name)
         try:
             connection.backup(destination)
         finally:
@@ -68,7 +75,8 @@ def snapshot_assets_database(db_path: Path, evidence_dir: Path) -> dict[str, int
         "technology_audit_rows": technology_audit_rows,
         "technology_rows": technology_rows,
     }
-    _write_json(evidence_dir / "db-summary.json", summary)
+    summary_name = "db-summary.json" if label is None else f"db-summary-{label}.json"
+    _write_json(evidence_dir / summary_name, summary)
     return summary
 
 
@@ -119,6 +127,7 @@ def start_session(scenario: str, duration: int, evidence_dir: Path, state_path: 
     final: dict[str, Any]
     try:
         with run:
+            snapshot_assets_database(run.db_path, evidence_dir, label="initial")
             running = {
                 "expires_at": (started + timedelta(seconds=duration)).isoformat(),
                 "gateway_port": run.gateway_port,

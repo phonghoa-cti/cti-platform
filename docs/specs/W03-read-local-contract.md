@@ -46,8 +46,14 @@ hoặc thứ tự key khác bị từ chối dù base64url vẫn hợp lệ:
 technology snapshot theo ID. Cursor không chứa asset thô. Context sai trả 422 trước dependency; snapshot đổi
 sau khi đọc dependency trả 409. `after` phải tồn tại trong tập filter và rank được tính lại từ dữ liệu.
 
-## Mức kiểm chứng
+## Tích hợp và mức kiểm chứng
 
-Pytest cục bộ dùng JWT/SQLite/fixture tổng hợp kiểm quyền, strict schema, matching/rank, paging/cursor, byte cap
-và SQL bất biến. Wire fixtures `w03-wire-*.json` là response lấy từ API test thật. Chưa kiểm gateway, frontend,
-browser, feed/CISA/OpenCTI, Cloudflare/JWKS/HTTPS thật, lab hoặc production.
+Harness W03 inject `FixtureCveReadPort` và `TechnologyStore` vào app thật trên cùng SQLite W04;
+schema/seed chỉ chạy trong setup trước listener. Gateway allowlist đúng `GET /api/cves`; mutation
+hoặc route gần đúng bị chặn. Fixture 16 CVE tổng hợp có provenance và `dataset_id` tính từ bytes.
+
+Ma trận loopback kiểm detail/summary, quyền, rank/filter/paging, cursor 409 sau W04 update thật,
+503→200, response gần/vượt cap và SQL bất biến cho W03 GET. Wire detail/summary/empty/error/409
+từ API thật được đưa qua parser frontend. Browser desktop dùng stack build thật và helper bounded;
+trace/DB phân biệt GET W03 với mutation W04 có kiểm soát. Feed/CISA/OpenCTI, Cloudflare/JWKS/HTTPS,
+mobile 360 px, lab và production không thuộc bằng chứng này.

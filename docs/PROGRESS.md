@@ -168,6 +168,12 @@ Cập nhật lần cuối: 11/11/2026
   7/49 rồi GREEN 51/51, probe QA độc lập 3/3 và toàn bộ portal 356/356; typecheck/lint/build đều đạt sau khi chạy
   độc lập. API/gateway/browser/feed/OpenCTI/lab/production vẫn chưa được kiểm trong rework này.
 
+- W03 tích hợp cục bộ: gateway chỉ mở `GET /api/cves`; runner inject fixture 16 CVE tổng hợp
+  và TechnologyStore cùng SQLite W04. HTTP/wire kiểm detail/summary/quyền/paging/rank, W04 update làm
+  cursor 409, tải lại 200, 503→200, response gần/vượt cap và SQL bất biến. Browser desktop 1280×720
+  kiểm detail 0/null, filter, paging 409, leader summary không gọi Technology API và retry thủ công;
+  mobile 360 px, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab và production chưa kiểm.
+
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
 - Capability upload/review/approve, work ID, trạng thái draft trước/sau và quyền thực tế chưa kiểm trên lab

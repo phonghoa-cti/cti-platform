@@ -217,6 +217,26 @@ test("gateway proxies exact technology routes, rejects traversal, and streams a 
   }
 });
 
+test("gateway proxies only GET on the exact CVE route and preserves its query string", async () => {
+  const seen = [];
+  const api = await listen((request, response) => {
+    seen.push({ method: request.method, path: request.url, token: request.headers["cf-access-jwt-assertion"] });
+    response.writeHead(200, { "Content-Type": "application/json" }); response.end("{}");
+  });
+  const ui = await listen((_request, response) => response.end("ui"));
+  const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: "gateway-token" });
+  try {
+    assert.equal((await request(gateway.address().port, "/api/cves?kev=true&limit=25")).status, 200);
+    for (const [method, path] of [
+      ["POST", "/api/cves"], ["PUT", "/api/cves"], ["PATCH", "/api/cves"], ["DELETE", "/api/cves"],
+      ["GET", "/api/cves/1"], ["GET", "/api/cve"], ["GET", "/api/cves%2f1"],
+    ]) assert.equal((await request(gateway.address().port, path, { method })).status, 404, `${method} ${path}`);
+    assert.deepEqual(seen, [{ method: "GET", path: "/api/cves?kev=true&limit=25", token: "gateway-token" }]);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+  }
+});
+
 test("asset refresh fault fires once after a successful mutation then recovers", async () => {
   const seen = [];
   const api = await listen((req, res) => {

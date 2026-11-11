@@ -9,6 +9,7 @@ const V1_API_PATH = /^\/api\/v1\/drafts(?:\/[1-9][0-9]*(?:\/(?:selection|decisio
 const IOC_API_PATH = "/api/ioc";
 const ASSET_API_PATH = /^\/api\/assets(?:\/[1-9][0-9]*)?$/;
 const TECHNOLOGY_API_PATH = /^\/api\/assets\/technologies(?:\/[1-9][0-9]*)?$/;
+const CVE_API_PATH = "/api/cves";
 
 function dynamicHopHeaders(headers) {
   const names = new Set(HOP_BY_HOP);
@@ -70,7 +71,7 @@ function readBody(request, limit) {
   });
 }
 
-export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false, failAssetRefreshOnce = false, failAssetMutationResponseOnce = false, failTechnologyRefreshCount = 0, failTechnologyMutationResponseOnce = false, tracePath = null }) {
+export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false, failAssetRefreshOnce = false, failAssetMutationResponseOnce = false, failTechnologyRefreshCount = 0, failTechnologyMutationResponseOnce = false, failCveGetOnce = false, tracePath = null }) {
   for (const value of [apiPort, uiPort]) {
     if (!Number.isInteger(value) || value < 1 || value > 65535) throw new TypeError("upstream port không hợp lệ");
   }
@@ -82,6 +83,7 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
   let assetMutationFaultUsed = false;
   let technologyRefreshFailuresRemaining = 0;
   let technologyMutationFaultUsed = false;
+  let cveGetFailurePending = failCveGetOnce;
   let requestCounter = 0;
   const server = http.createServer(async (request, response) => {
     const ownPort = server.address()?.port;
@@ -103,8 +105,15 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     const isV1 = V1_API_PATH.test(url.pathname);
     const isAsset = ASSET_API_PATH.test(url.pathname);
     const isTechnology = TECHNOLOGY_API_PATH.test(url.pathname);
-    if (isApi && !isV1 && !isAsset && !isTechnology && url.pathname !== IOC_API_PATH && !LEGACY_API_PATH.test(url.pathname)) {
+    const isCve = url.pathname === CVE_API_PATH;
+    if (isCve && request.method !== "GET") return safeError(response, 404, "not_found");
+    if (isApi && !isV1 && !isAsset && !isTechnology && !isCve && url.pathname !== IOC_API_PATH && !LEGACY_API_PATH.test(url.pathname)) {
       return safeError(response, 404, "not_found");
+    }
+    if (isCve && cveGetFailurePending) {
+      cveGetFailurePending = false;
+      trace(503);
+      return safeError(response, 503, "synthetic_refresh_failure");
     }
     if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") {
       trace(503);
@@ -203,6 +212,7 @@ async function main() {
     failAssetMutationResponseOnce: process.env.W04_FAIL_ASSET_MUTATION_RESPONSE_ONCE === "1",
     failTechnologyRefreshCount: process.env.W04_FAIL_TECHNOLOGY_REFRESH_TWICE === "1" ? 2 : 0,
     failTechnologyMutationResponseOnce: process.env.W04_FAIL_TECHNOLOGY_MUTATION_RESPONSE_ONCE === "1",
+    failCveGetOnce: process.env.W03_FAIL_CVE_GET_ONCE === "1",
     tracePath: process.env.W04_TRACE_PATH ?? null,
   });
   const stop = () => server.close(() => process.exit(0));

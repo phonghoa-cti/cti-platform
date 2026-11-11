@@ -35,8 +35,10 @@ from portal_api.app import create_app
 from portal_api.assets import AssetStore
 from portal_api.auth import AccessJwtVerifier
 from portal_api.technologies import TechnologyStore
+from portal_api.cves import FixtureCveReadPort
 from tools.local_integration.local_settings import make_local_settings
 from tools.local_integration.w02_fixture import build_w02_fixture
+from tools.local_integration.w03_fixture import build_w03_fixture
 from tools.local_integration.w04_fixture import build_w04_fixture, build_w04_technology_fixture
 
 SELECTION_SCENARIOS = frozenset(
@@ -82,6 +84,20 @@ W04_TECHNOLOGY_SCENARIOS = frozenset(
         "w04-technology-unknown-outcome",
     }
 )
+W03_SCENARIOS = frozenset(
+    {
+        "w03-it",
+        "w03-analyst",
+        "w03-admin",
+        "w03-multi-role",
+        "w03-leader",
+        "w03-missing-token",
+        "w03-forbidden",
+        "w03-unavailable",
+        "w03-snapshot-change",
+        "w03-refresh-503",
+    }
+)
 SCENARIOS = (
     frozenset(
         {
@@ -99,6 +115,7 @@ SCENARIOS = (
     | W02_SCENARIOS
     | W04_SCENARIOS
     | W04_TECHNOLOGY_SCENARIOS
+    | W03_SCENARIOS
 )
 E2E_SOURCE_BYTES = "Cảnh báo thử nghiệm 😀 ghi nhận evil-one.example và evil-two.example.\n".encode()
 E2E_CREATOR_SUBJECT = "e2e-author-sub"
@@ -209,7 +226,13 @@ class LocalRun:
             "e": _b64uint(public.e),
         }
         now = datetime.now(UTC)
-        if self.scenario in {"analyst-self", "w02-analyst", "w04-analyst", "w04-technology-analyst"}:
+        if self.scenario in {
+            "analyst-self",
+            "w02-analyst",
+            "w04-analyst",
+            "w04-technology-analyst",
+            "w03-analyst",
+        }:
             subject = "analyst-sub"
         elif self.scenario in {
             "insufficient-role",
@@ -219,13 +242,21 @@ class LocalRun:
             "w04-unknown-outcome",
             "w04-technology-it",
             "w04-technology-unknown-outcome",
+            "w03-it",
+            "w03-snapshot-change",
+            "w03-refresh-503",
         }:
             subject = "it-sub"
-        elif self.scenario in {"w02-multi-role", "w04-multi-role", "w04-technology-multi-role"}:
+        elif self.scenario in {
+            "w02-multi-role",
+            "w04-multi-role",
+            "w04-technology-multi-role",
+            "w03-multi-role",
+        }:
             subject = "multi-sub"
-        elif self.scenario == "w02-forbidden":
+        elif self.scenario in {"w02-forbidden", "w03-forbidden"}:
             subject = "viewer-sub"
-        elif self.scenario in {"w04-forbidden", "w04-technology-forbidden"}:
+        elif self.scenario in {"w04-forbidden", "w04-technology-forbidden", "w03-leader"}:
             subject = "leader-sub"
         else:
             subject = "admin-sub"
@@ -247,7 +278,13 @@ class LocalRun:
         token = (
             None
             if self.scenario
-            in {"missing-token", "w02-missing-token", "w04-missing-token", "w04-technology-missing-token"}
+            in {
+                "missing-token",
+                "w02-missing-token",
+                "w04-missing-token",
+                "w04-technology-missing-token",
+                "w03-missing-token",
+            }
             else jwt.encode(claims, signing_key, algorithm="RS256", headers={"kid": "w05-local"})
         )
         return token, AccessJwtVerifier(settings, jwks_client=LocalJwksClient(jwk))
@@ -387,6 +424,7 @@ class LocalRun:
             lookup_port = None
             asset_store = None
             technology_store = None
+            cve_port = None
             if self.scenario in W02_SCENARIOS:
                 lookup_port = build_w02_fixture(
                     fail=self.scenario == "w02-lookup-503",
@@ -399,6 +437,12 @@ class LocalRun:
                 asset_store, technology_store, lookup_port = build_w04_technology_fixture(self.db_path)
                 self.asset_store = asset_store
                 self.technology_store = technology_store
+            elif self.scenario in W03_SCENARIOS:
+                asset_store, technology_store, lookup_port, cve_port = build_w03_fixture(self.db_path)
+                self.asset_store = asset_store
+                self.technology_store = technology_store
+                if self.scenario == "w03-unavailable":
+                    cve_port = FixtureCveReadPort(self.temp_root / "missing-cves.json")
             app = create_app(
                 settings,
                 store,
@@ -406,6 +450,7 @@ class LocalRun:
                 lookup_port=lookup_port,
                 asset_store=asset_store,
                 technology_store=technology_store,
+                cve_port=cve_port,
             )
             self._api_server = uvicorn.Server(
                 uvicorn.Config(app, host="127.0.0.1", port=self.api_port, log_level="warning", lifespan="off")
@@ -459,6 +504,8 @@ class LocalRun:
                 env["W04_FAIL_TECHNOLOGY_REFRESH_TWICE"] = "1"
             if self.scenario == "w04-technology-unknown-outcome":
                 env["W04_FAIL_TECHNOLOGY_MUTATION_RESPONSE_ONCE"] = "1"
+            if self.scenario == "w03-refresh-503":
+                env["W03_FAIL_CVE_GET_ONCE"] = "1"
             if self.trace_path is not None:
                 self.trace_path.parent.mkdir(parents=True, exist_ok=True)
                 env["W04_TRACE_PATH"] = str(self.trace_path)

@@ -104,3 +104,17 @@ Helper browser dùng bốn scenario Technology tương ứng:
 Đổi scenario sang `w04-technology-forbidden`, `w04-technology-refresh-503` hoặc
 `w04-technology-unknown-outcome`. Helper không tự mở browser; phải dùng bề mặt OpenMausBot và viewport thật.
 Nếu bề mặt hoặc resize không có, ghi browser/mobile là UNVERIFIED.
+
+## W03 — CVE chỉ đọc qua gateway và SQLite W04
+
+Scenario `w03-*` bật fixture 16 CVE tổng hợp và `TechnologyStore` trên cùng SQLite; scenario cũ
+không tự bật nguồn CVE. Gateway chỉ cho `GET /api/cves`, giữ nguyên query và thay JWT phía
+server. Ma trận ghi wire API thật, SQL snapshot, trace và response gần/vượt cap 1 MiB:
+
+```powershell
+..\cti-x01-ingest-browser-prep\.venv\Scripts\python.exe -X utf8 -B -m tools.local_integration.tests.run_w03_matrix --output ..\w03-integration-evidence\http-matrix.json --evidence-dir ..\w03-integration-evidence\http
+```
+
+Browser helper cho bốn scenario bounded: `w03-it`, `w03-leader`, `w03-snapshot-change`,
+`w03-refresh-503`. Helper lưu DB ban đầu/cuối, trace đã lược và cleanup; nó không tự mở
+browser. Kết quả này chỉ chứng minh loopback/desktop cục bộ với dữ liệu tổng hợp.
