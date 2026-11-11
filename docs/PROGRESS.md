@@ -76,6 +76,10 @@ Cập nhật lần cuối: 11/11/2026
   Output deterministic, không ghi đè và publish bằng hardlink temp hoàn chỉnh trên NTFS; validator 3.3.2 đạt
   MUST/schema/ref và profile `strict except 103`. Đây chưa chứng minh import OpenCTI, mapping reviewer thật,
   network share/crash durability, lab, Cloudflare hoặc production.
+- X01 → W05 → STIX E2E ngoại tuyến: một fixture UTF-8/Unicode đi qua extractor CLI, store CLI, HTTP gateway/API
+  selection `[1]` + approve và STIX CLI trên cùng draft/DB; ma trận kiểm source/TLP/audit/provenance, export
+  read-only/idempotent/non-clobber và cleanup owned resource. Đây chỉ là CLI + HTTP synthetic cục bộ; browser
+  cùng draft, OpenCTI, Cloudflare/JWKS/HTTPS thật, chất lượng dataset/model, lab và production chưa được kiểm.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

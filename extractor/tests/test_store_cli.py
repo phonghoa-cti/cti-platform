@@ -76,7 +76,7 @@ def test_cli_save_accepts_created_by_subject_for_reviewable_draft(tmp_path: Path
     text = tmp_path / "input.txt"
     draft_json = tmp_path / "draft.json"
     db = tmp_path / "drafts.sqlite"
-    text.write_bytes("Cảnh báo thử nghiệm 😀 evil.example\n".encode("utf-8"))
+    text.write_bytes("Cảnh báo thử nghiệm 😀 evil.example\n".encode())
 
     built = run(
         str(DRAFT_SCRIPT),
