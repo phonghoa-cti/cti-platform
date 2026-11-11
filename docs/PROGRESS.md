@@ -149,6 +149,10 @@ Cập nhật lần cuối: 11/11/2026
   timestamp hỏng không ghi, danh sách đủ 1.000 và từ chối 1.001, non-impact assets/W02, domain/CIDR lookup và
   hai chuỗi fault không replay. Frontend focused 120/120, Python harness 42/42, gateway 14/14, typecheck/lint/
   build 9/9 route đều đạt; browser OpenMausBot và viewport desktop/mobile vẫn UNVERIFIED trong lượt này.
+- W03-R backend chỉ đọc: `GET /api/cves` fixture-first đối chiếu exact casefold với snapshot Technology SQLite
+  mở `mode=ro`, tách detail/leader summary, rank KEV/EPSS/CVSS/thời gian, cursor theo snapshot/context và cap
+  response 1 MiB. Test cục bộ kiểm auth/query precedence, schema strict, paging/stale cursor và bất biến SQL;
+  wire detail/summary/empty/error/409 đã xuất. Chưa nối frontend/gateway/browser, feed/OpenCTI, lab/production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

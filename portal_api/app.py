@@ -1,4 +1,4 @@
-"""FastAPI factory cho API duyệt W05 và tra cứu IOC W02."""
+"""FastAPI factory cho API duyệt W05, tra cứu IOC W02 và đọc CVE W03."""
 
 from __future__ import annotations
 
@@ -25,6 +25,15 @@ from portal_api.auth import (
     AuthenticationError,
     AuthenticationUnavailable,
     Principal,
+)
+from portal_api.cves import (
+    CveReadPort,
+    CveReadService,
+    CveSnapshotChanged,
+    CvesUnavailable,
+    CveTechnologyNotFound,
+    InvalidCveQuery,
+    parse_cve_query,
 )
 from portal_api.ioc_lookup import (
     InvalidIoc,
@@ -85,6 +94,10 @@ def _is_review_path(path: str) -> bool:
 
 def _is_lookup_path(path: str) -> bool:
     return path == "/api/ioc"
+
+
+def _is_cves_path(path: str) -> bool:
+    return path == "/api/cves"
 
 
 def _is_assets_path(path: str) -> bool:
@@ -173,6 +186,7 @@ def create_app(
     lookup_port: IocLookupPort | None = None,
     asset_store: AssetStore | None = None,
     technology_store: TechnologyStore | None = None,
+    cve_port: CveReadPort | None = None,
 ) -> FastAPI:
     """Tạo app; cấu hình đã được Settings kiểm fail-closed trước đó."""
 
@@ -180,6 +194,9 @@ def create_app(
     jwt_verifier = verifier or AccessJwtVerifier(settings)
     service = ReviewService(settings, store)
     lookup_service = LookupService(lookup_port, asset_store=asset_store)
+    cve_service = (
+        None if cve_port is None or technology_store is None else CveReadService(cve_port, technology_store)
+    )
 
     @app.middleware("http")
     async def review_headers(request: Request, call_next):
@@ -187,6 +204,7 @@ def create_app(
         if (
             _is_review_path(request.url.path)
             or _is_lookup_path(request.url.path)
+            or _is_cves_path(request.url.path)
             or _is_assets_path(request.url.path)
         ):
             response.headers["Cache-Control"] = "no-store"
@@ -214,6 +232,11 @@ def create_app(
             return response
         if _is_assets_path(request.url.path):
             response = _error(503, "assets_unavailable", "Dịch vụ tài sản tạm thời không sẵn sàng")
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Vary"] = JWT_HEADER
+            return response
+        if _is_cves_path(request.url.path):
+            response = _error(503, "cves_unavailable", "Dịch vụ lỗ hổng tạm thời không sẵn sàng")
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = JWT_HEADER
             return response
@@ -270,6 +293,22 @@ def create_app(
             raise ApiFailure(401, "authentication_required", "Cần xác thực hợp lệ") from exc
         if not principal.roles.intersection(LOOKUP_ROLES):
             raise ApiFailure(403, "forbidden", "Tài khoản chưa được cấp quyền quản lý tài sản")
+        return principal
+
+    def require_cves_role(request: Request) -> Principal:
+        token = request.headers.get(JWT_HEADER)
+        try:
+            principal = jwt_verifier.verify(token)
+        except AuthenticationUnavailable as exc:
+            raise ApiFailure(
+                503,
+                "cves_unavailable",
+                "Dịch vụ lỗ hổng tạm thời không sẵn sàng",
+            ) from exc
+        except AuthenticationError as exc:
+            raise ApiFailure(401, "authentication_required", "Cần xác thực hợp lệ") from exc
+        if not principal.roles.intersection(LOOKUP_ROLES | {"leader"}):
+            raise ApiFailure(403, "forbidden", "Tài khoản chưa được cấp quyền xem lỗ hổng")
         return principal
 
     def configured_asset_store() -> AssetStore:
@@ -334,6 +373,31 @@ def create_app(
                 "lookup_unavailable",
                 "Dịch vụ tra cứu tạm thời không sẵn sàng",
             ) from exc
+
+    @app.get("/api/cves")
+    def list_cves(
+        request: Request,
+        principal: Principal = Depends(require_cves_role),  # noqa: B008
+    ):
+        view = "detail" if principal.roles.intersection(LOOKUP_ROLES) else "summary"
+        try:
+            query = parse_cve_query(request, view)
+        except InvalidCveQuery as exc:
+            raise ApiFailure(422, "invalid_cve_query", "Query lỗ hổng không hợp lệ") from exc
+        if view == "summary" and query.asset_id is not None:
+            raise ApiFailure(403, "forbidden", "Tài khoản chưa được cấp quyền lọc tài sản")
+        if cve_service is None:
+            raise ApiFailure(503, "cves_unavailable", "Dịch vụ lỗ hổng tạm thời không sẵn sàng")
+        try:
+            return cve_service.read(query, view)
+        except InvalidCveQuery as exc:
+            raise ApiFailure(422, "invalid_cve_query", "Query lỗ hổng không hợp lệ") from exc
+        except CveTechnologyNotFound as exc:
+            raise ApiFailure(404, "technology_not_found", "Không tìm thấy công nghệ") from exc
+        except CveSnapshotChanged as exc:
+            raise ApiFailure(409, "cve_snapshot_changed", "Dữ liệu lỗ hổng đã thay đổi") from exc
+        except CvesUnavailable as exc:
+            raise ApiFailure(503, "cves_unavailable", "Dịch vụ lỗ hổng tạm thời không sẵn sàng") from exc
 
     @app.get("/api/assets/technologies", response_model=TechnologyPage)
     def list_technologies(
