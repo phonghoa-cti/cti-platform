@@ -1,10 +1,11 @@
-"""Hợp đồng JSON exact cho W05 API."""
+"""Hợp đồng JSON exact cho W05 review và W02 lookup API."""
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator
 
 SQLITE_MAX_INTEGER = 2**63 - 1
 JSON_SAFE_INTEGER = 2**53 - 1
@@ -15,6 +16,116 @@ SafePositiveInt = Annotated[StrictInt, Field(ge=1, le=JSON_SAFE_INTEGER)]
 
 class ExactModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class LookupExactModel(ExactModel):
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+
+
+Tlp = Literal["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"]
+IocKind = Literal["ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256"]
+BoundedName = Annotated[str, Field(min_length=1, max_length=128)]
+
+
+class IocView(LookupExactModel):
+    type: IocKind
+    value: Annotated[str, Field(min_length=1, max_length=2048)]
+    display: Annotated[str, Field(min_length=1, max_length=4096)]
+
+
+class ScoreParts(LookupExactModel):
+    reliability: Annotated[float, Field(ge=0, le=1)]
+    confirmation: Annotated[float, Field(ge=0, le=1)]
+    freshness: Annotated[float, Field(ge=0, le=1)]
+    asset: float
+
+    @field_validator("asset")
+    @classmethod
+    def asset_multiplier(cls, value: float) -> float:
+        if value not in (1.0, 1.3):
+            raise ValueError("asset multiplier is unsupported")
+        return value
+
+
+class ScoreView(LookupExactModel):
+    value: Annotated[StrictInt, Field(ge=0, le=100)]
+    level: Literal["low", "medium", "high"]
+    reason: Annotated[str, Field(min_length=1, max_length=512)]
+    parts: ScoreParts | None
+
+
+class IocSourceView(LookupExactModel):
+    name: BoundedName
+    first_seen: datetime
+    last_seen: datetime
+    tlp: Tlp
+
+
+class RelatedView(LookupExactModel):
+    techniques: Annotated[list[BoundedName], Field(max_length=100)]
+    malware: Annotated[list[BoundedName], Field(max_length=100)]
+    actors: Annotated[list[BoundedName], Field(max_length=100)]
+
+
+class AssetMatchView(LookupExactModel):
+    matched: bool
+    assets: Annotated[list[BoundedName], Field(max_length=100)]
+
+    @model_validator(mode="after")
+    def matched_agrees_with_assets(self):
+        if self.matched != bool(self.assets):
+            raise ValueError("matched must agree with assets")
+        return self
+
+
+class IocLookupResponse(LookupExactModel):
+    ioc: IocView
+    state: Literal["found", "not_found", "allowlisted"]
+    found: bool
+    allowlisted: bool
+    score: ScoreView | None
+    sources: Annotated[list[IocSourceView], Field(max_length=100)]
+    related: RelatedView
+    asset_match: AssetMatchView
+    tlp: Tlp | None
+
+    @model_validator(mode="after")
+    def state_invariants(self):
+        empty_related = not (self.related.techniques or self.related.malware or self.related.actors)
+        if self.state == "found":
+            if (
+                not self.found
+                or self.allowlisted
+                or self.score is None
+                or self.score.parts is None
+                or not self.sources
+                or self.tlp is None
+            ):
+                raise ValueError("found response is inconsistent")
+        elif self.state == "allowlisted":
+            if (
+                self.found
+                or not self.allowlisted
+                or self.score is None
+                or self.score.value != 0
+                or self.score.parts is not None
+                or self.sources
+                or not empty_related
+                or self.asset_match.matched
+                or self.tlp != "TLP:CLEAR"
+            ):
+                raise ValueError("allowlisted response is inconsistent")
+        elif (
+            self.found
+            or self.allowlisted
+            or self.score is not None
+            or self.sources
+            or not empty_related
+            or self.asset_match.matched
+            or self.tlp is not None
+        ):
+            raise ValueError("not-found response is inconsistent")
+        return self
 
 
 class Source(ExactModel):

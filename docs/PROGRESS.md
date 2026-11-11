@@ -80,6 +80,10 @@ Cập nhật lần cuối: 11/11/2026
   selection `[1]` + approve và STIX CLI trên cùng draft/DB; ma trận kiểm source/TLP/audit/provenance, export
   read-only/idempotent/non-clobber và cleanup owned resource. Đây chỉ là CLI + HTTP synthetic cục bộ; browser
   cùng draft, OpenCTI, Cloudflare/JWKS/HTTPS thật, chất lượng dataset/model, lab và production chưa được kiểm.
+- W02 lookup API in-process: `GET /api/ioc` xác minh JWT, lấy role từ cấu hình server, lọc TLP
+  trước score và trả ba trạng thái found/not_found/allowlisted theo DTO exact. Service fail closed với
+  adapter/schema sai, không làm lộ nested fact bị ẩn và không đổi các route W05. Đã kiểm bằng TestClient,
+  JWT RSA và fixture tổng hợp; chưa có OpenCTI adapter, listener, Cloudflare/JWKS thật, lab hay production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

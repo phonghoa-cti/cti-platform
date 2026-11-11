@@ -1,4 +1,4 @@
-"""FastAPI factory cho đúng ba route W05."""
+"""FastAPI factory cho API duyệt W05 và tra cứu IOC W02."""
 
 from __future__ import annotations
 
@@ -17,6 +17,13 @@ from portal_api.auth import (
     AuthenticationUnavailable,
     Principal,
 )
+from portal_api.ioc_lookup import (
+    InvalidIoc,
+    IocLookupPort,
+    LookupService,
+    LookupUnavailable,
+    PrivateIoc,
+)
 from portal_api.schemas import (
     JSON_SAFE_INTEGER,
     SQLITE_MAX_INTEGER,
@@ -28,6 +35,7 @@ from portal_api.schemas import (
     DraftDetailV1,
     DraftPage,
     DraftPageV1,
+    IocLookupResponse,
     SelectionSaveRequest,
     SelectionView,
 )
@@ -36,6 +44,7 @@ from portal_api.settings import Settings
 
 JWT_HEADER = "Cf-Access-Jwt-Assertion"
 ALLOWED_ROLES = {"analyst", "admin"}
+LOOKUP_ROLES = {"it", "analyst", "admin"}
 POSITIVE_INTEGER = re.compile(r"[1-9][0-9]*\Z")
 V1_BODY_LIMIT = 65_536
 
@@ -46,6 +55,10 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
 
 def _is_review_path(path: str) -> bool:
     return path.startswith("/api/drafts") or path.startswith("/api/v1/drafts")
+
+
+def _is_lookup_path(path: str) -> bool:
+    return path == "/api/ioc"
 
 
 def _parse_positive_integer(value: str, label: str, *, maximum: int = SQLITE_MAX_INTEGER) -> int:
@@ -109,17 +122,19 @@ def create_app(
     store: Any,
     *,
     verifier: AccessJwtVerifier | None = None,
+    lookup_port: IocLookupPort | None = None,
 ) -> FastAPI:
     """Tạo app; cấu hình đã được Settings kiểm fail-closed trước đó."""
 
     app = FastAPI(title="Phong Hỏa W05 API", version="0.1.0")
     jwt_verifier = verifier or AccessJwtVerifier(settings)
     service = ReviewService(settings, store)
+    lookup_service = LookupService(lookup_port)
 
     @app.middleware("http")
     async def review_headers(request: Request, call_next):
         response = await call_next(request)
-        if _is_review_path(request.url.path):
+        if _is_review_path(request.url.path) or _is_lookup_path(request.url.path):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = JWT_HEADER
         return response
@@ -134,6 +149,15 @@ def create_app(
 
     @app.exception_handler(Exception)
     async def unexpected_handler(request: Request, _exc: Exception):
+        if _is_lookup_path(request.url.path):
+            response = _error(
+                503,
+                "lookup_unavailable",
+                "Dịch vụ tra cứu tạm thời không sẵn sàng",
+            )
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Vary"] = JWT_HEADER
+            return response
         if _is_review_path(request.url.path):
             response = _error(503, "review_unavailable", "Dịch vụ duyệt tạm thời không sẵn sàng")
             response.headers["Cache-Control"] = "no-store"
@@ -152,6 +176,47 @@ def create_app(
         if not principal.roles.intersection(ALLOWED_ROLES):
             raise ApiFailure(403, "forbidden", "Tài khoản chưa được cấp quyền duyệt")
         return principal
+
+    def require_lookup_role(request: Request) -> Principal:
+        token = request.headers.get(JWT_HEADER)
+        try:
+            principal = jwt_verifier.verify(token)
+        except AuthenticationUnavailable as exc:
+            raise ApiFailure(
+                503,
+                "lookup_unavailable",
+                "Dịch vụ tra cứu tạm thời không sẵn sàng",
+            ) from exc
+        except AuthenticationError as exc:
+            raise ApiFailure(401, "authentication_required", "Cần xác thực hợp lệ") from exc
+        if not principal.roles.intersection(LOOKUP_ROLES):
+            raise ApiFailure(
+                403,
+                "forbidden",
+                "Tài khoản chưa được cấp quyền tra cứu IOC",
+            )
+        return principal
+
+    @app.get("/api/ioc", response_model=IocLookupResponse)
+    def lookup_ioc(
+        request: Request,
+        principal: Principal = Depends(require_lookup_role),  # noqa: B008
+    ):
+        if set(request.query_params) != {"value"} or len(request.query_params.getlist("value")) != 1:
+            raise ApiFailure(422, "invalid_ioc", "IOC không hợp lệ")
+        raw = request.query_params["value"]
+        try:
+            return lookup_service.lookup(raw, principal.roles)
+        except PrivateIoc as exc:
+            raise ApiFailure(422, "private_ip", "IP nội bộ không thể tra cứu") from exc
+        except InvalidIoc as exc:
+            raise ApiFailure(422, "invalid_ioc", "IOC không hợp lệ") from exc
+        except LookupUnavailable as exc:
+            raise ApiFailure(
+                503,
+                "lookup_unavailable",
+                "Dịch vụ tra cứu tạm thời không sẵn sàng",
+            ) from exc
 
     @app.get("/api/drafts", response_model=DraftPage)
     def list_drafts(
