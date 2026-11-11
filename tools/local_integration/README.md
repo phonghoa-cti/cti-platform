@@ -31,3 +31,9 @@ Sau khi importer được nghiệm thu, `browser-session --input-kind txt` sẽ 
 `LocalRun` sở hữu, in một dòng `READY`, rồi chờ tối đa `--duration-seconds` để người chạy hoàn tất thao tác bằng
 trình duyệt tích hợp và nhấn Enter. EOF/timeout đều FAIL đóng; cleanup luôn thuộc context manager. Chưa chạy chế
 độ này và chưa có bằng chứng browser/end-to-end cho importer hiện tại.
+
+Hậu kiểm fail-closed tính lại canonical SHA-256 của toàn envelope bằng cùng quy tắc importer; đối chiếu actor
+phiên độc lập, từng selection event và final audit (action/version/hash); đồng thời khóa allowlist cấu trúc STIX
+và năm marker riêng cho source name/raw/evidence/creator/reviewer. IOC được chọn chỉ hợp lệ trong SCO tương ứng,
+không được dùng thay marker evidence. Các kiểm này bảo vệ harness, không chứng minh exporter hiện từng làm lộ dữ
+liệu và không thay thế browser run.

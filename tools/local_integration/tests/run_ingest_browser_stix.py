@@ -12,6 +12,7 @@ import shutil
 import sys
 import tempfile
 import threading
+from collections.abc import Mapping
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, TextIO
@@ -21,22 +22,144 @@ for package_root in (ROOT, ROOT / "core", ROOT / "extractor"):
     if str(package_root) not in sys.path:
         sys.path.insert(0, str(package_root))
 
-from phonghoa_extractor.ingest_queue import get_ingest_provenance, load_ingest_envelope
+from phonghoa_extractor.ingest_queue import (
+    _validate_envelope,
+    get_ingest_provenance,
+    load_ingest_envelope,
+)
 from phonghoa_extractor import store
 from tools.local_integration.runner import E2E_SOURCE_BYTES, LocalRun, seed_ingest_fixture
 from tools.local_integration.tests.run_stix_e2e import database_state, file_inventory, run_export
+
+BUNDLE_KEYS = {"type", "id", "objects"}
+COMMON_SCO_KEYS = {"type", "spec_version", "id", "object_marking_refs"}
+VALUE_SCO_TYPES = {"ipv4-addr", "ipv6-addr", "domain-name", "url", "email-addr"}
+OBJECT_KEYS = {
+    "marking-definition": {
+        "type",
+        "spec_version",
+        "id",
+        "created",
+        "name",
+        "definition_type",
+        "definition",
+    },
+    "identity": {
+        "type",
+        "spec_version",
+        "id",
+        "created",
+        "modified",
+        "name",
+        "identity_class",
+        "object_marking_refs",
+    },
+    "file": COMMON_SCO_KEYS | {"hashes"},
+    "report": {
+        "type",
+        "spec_version",
+        "id",
+        "created_by_ref",
+        "created",
+        "modified",
+        "name",
+        "description",
+        "published",
+        "report_types",
+        "object_refs",
+        "object_marking_refs",
+        "external_references",
+    },
+}
+PROVENANCE_KEYS = {
+    "format_version",
+    "source_sha256",
+    "payload_sha256",
+    "draft_id",
+    "approved_audit_id",
+    "review_version",
+    "selection_version",
+    "selected_indices",
+    "selected_sha256",
+    "decided_at",
+    "exporter_config_sha256",
+    "source_tlp",
+    "stix_tlp",
+}
+PRIVATE_MARKER_KEYS = {
+    "source_name",
+    "raw_source",
+    "evidence",
+    "creator_subject",
+    "reviewer_subject",
+}
+
+
+def _validate_bundle_allowlist(bundle: Any) -> None:
+    if type(bundle) is not dict or set(bundle) != BUNDLE_KEYS or type(bundle.get("objects")) is not list:
+        raise RuntimeError("bundle structure ngoài allowlist")
+    for item in bundle["objects"]:
+        if type(item) is not dict or type(item.get("type")) is not str:
+            raise RuntimeError("bundle object ngoài allowlist")
+        object_type = item["type"]
+        expected_keys = (
+            COMMON_SCO_KEYS | {"value"} if object_type in VALUE_SCO_TYPES else OBJECT_KEYS.get(object_type)
+        )
+        if expected_keys is None or set(item) != expected_keys:
+            raise RuntimeError("bundle object ngoài allowlist")
+        if object_type == "marking-definition" and (
+            type(item["definition"]) is not dict or set(item["definition"]) != {"tlp"}
+        ):
+            raise RuntimeError("bundle marking ngoài allowlist")
+        if object_type == "file" and (
+            type(item["hashes"]) is not dict
+            or len(item["hashes"]) != 1
+            or not set(item["hashes"]).issubset({"MD5", "SHA-1", "SHA-256"})
+        ):
+            raise RuntimeError("bundle file ngoài allowlist")
+        if object_type == "report":
+            references = item["external_references"]
+            if (
+                type(references) is not list
+                or len(references) != 1
+                or type(references[0]) is not dict
+                or set(references[0]) != {"source_name", "external_id", "description"}
+            ):
+                raise RuntimeError("bundle reference ngoài allowlist")
+
+
+def _privacy_markers(input_kind: str, source: Path, reviewer_subject: str) -> dict[str, str]:
+    content_markers = (
+        ("Cảnh báo thử nghiệm 😀", "ghi nhận") if input_kind == "txt" else ("Page one IOC", "Page two domain")
+    )
+    return {
+        "source_name": source.name,
+        "raw_source": content_markers[0],
+        "evidence": content_markers[1],
+        "creator_subject": "e2e-author-sub",
+        "reviewer_subject": reviewer_subject,
+    }
 
 
 def verify_browser_outcome(
     run: Any,
     *,
     expected_selected_indices: tuple[int, ...],
-    expected_selection_audit_count: int = 1,
+    expected_actor_subject: str,
+    expected_selection_events: tuple[tuple[int, ...], ...],
 ) -> dict[str, Any]:
     """Hậu kiểm final audit và STIX; không ghi DB ngoài artifact bundle."""
 
     seed = run.ingest_seed
-    if seed is None or any(index not in seed.eligible_indices for index in expected_selected_indices):
+    if (
+        seed is None
+        or not expected_actor_subject
+        or not expected_selection_events
+        or expected_selection_events[-1] != expected_selected_indices
+        or any(
+            index not in seed.eligible_indices for snapshot in expected_selection_events for index in snapshot
+        )
+    ):
         raise RuntimeError("seed hoặc selection hậu kiểm không hợp lệ")
     state = database_state(run.db_path, seed.draft_id)
     draft = state["draft"]
@@ -45,15 +168,46 @@ def verify_browser_outcome(
         draft is None
         or draft[1] != "approved"
         or type(draft[2]) is not int
-        or draft[2] < 1
+        or draft[2] != len(expected_selection_events) + 1
         or type(draft[3]) is not int
-        or draft[3] < 0
+        or draft[3] != len(expected_selection_events)
     ):
         observed = None if draft is None else draft[1:]
         raise RuntimeError(f"draft chưa ở final state mong đợi: {observed!r}")
+    expected_selection_rows = []
+    for version, snapshot in enumerate(expected_selection_events, start=1):
+        serialized = json.dumps(list(snapshot), separators=(",", ":"))
+        expected_selection_rows.append(
+            (
+                version,
+                version,
+                "save_selection",
+                expected_actor_subject,
+                serialized,
+                hashlib.sha256(serialized.encode("utf-8")).hexdigest(),
+            )
+        )
+    final_serialized = json.dumps(list(expected_selected_indices), separators=(",", ":"))
+    final_sha256 = hashlib.sha256(final_serialized.encode("utf-8")).hexdigest()
+    expected_final = (
+        decision[0] if decision is not None else None,
+        "approve",
+        expected_actor_subject,
+        len(expected_selection_events),
+        "pending",
+        "approved",
+        len(expected_selection_events),
+        len(expected_selection_events) + 1,
+        len(expected_selection_events),
+        final_serialized,
+        final_sha256,
+    )
     if (
-        state["selection_count"] != expected_selection_audit_count
+        state["selection_count"] != len(expected_selection_events)
+        or state["selection_events"] != expected_selection_rows
+        or state["draft_actor"] != expected_actor_subject
         or decision is None
+        or state["decision_event"] != expected_final
         or decision[1] != "approve"
         or decision[2] != draft[3]
     ):
@@ -62,10 +216,11 @@ def verify_browser_outcome(
     if selected != expected_selected_indices:
         raise RuntimeError("final selection không khớp thao tác mong đợi")
 
-    envelope = load_ingest_envelope(run.draft_json_path)
+    envelope, envelope_sha256 = _validate_envelope(load_ingest_envelope(run.draft_json_path))
     provenance = get_ingest_provenance(run.db_path, seed.draft_id)
     if (
-        provenance.envelope_sha256 != seed.envelope_sha256
+        envelope_sha256 != seed.envelope_sha256
+        or envelope_sha256 != provenance.envelope_sha256
         or provenance.raw_sha256 != seed.raw_sha256
         or provenance.canonical_text_sha256 != seed.canonical_text_sha256
         or envelope["draft"]["source"]["sha256"] != seed.canonical_text_sha256
@@ -84,6 +239,14 @@ def verify_browser_outcome(
         bundle = json.loads(bundle_bytes)
     except (OSError, UnicodeError, json.JSONDecodeError):
         raise RuntimeError("artifact STIX không hợp lệ") from None
+    _validate_bundle_allowlist(bundle)
+    private_markers = getattr(run, "private_markers", None)
+    if (
+        not isinstance(private_markers, Mapping)
+        or set(private_markers) != PRIVATE_MARKER_KEYS
+        or any(type(value) is not str or not value for value in private_markers.values())
+    ):
+        raise RuntimeError("privacy marker config không hợp lệ")
     bundle_sha256 = hashlib.sha256(bundle_bytes).hexdigest()
     if (
         export_summary.get("draft_id") != seed.draft_id
@@ -98,13 +261,16 @@ def verify_browser_outcome(
         for index, value in zip(seed.eligible_indices, seed.ioc_values, strict=True)
         if index in selected
     }
-    deselected_values = set(seed.ioc_values) - selected_values
-    if any(value not in serialized for value in selected_values):
-        raise RuntimeError("STIX thiếu IOC đã chọn")
-    if any(value in serialized for value in deselected_values):
-        raise RuntimeError("STIX chứa IOC đã bỏ")
-    if run.created_by_subject in serialized or "admin-sub" in serialized:
-        raise RuntimeError("STIX lộ subject")
+    sco_values = set()
+    for item in bundle["objects"]:
+        if item["type"] in VALUE_SCO_TYPES:
+            sco_values.add(item["value"])
+        elif item["type"] == "file":
+            sco_values.update(item["hashes"].values())
+    if sco_values != selected_values:
+        raise RuntimeError("bundle SCO không khớp IOC đã chọn")
+    if any(marker in serialized for marker in private_markers.values()):
+        raise RuntimeError("STIX lộ privacy marker")
 
     report = next((item for item in bundle["objects"] if item.get("type") == "report"), None)
     if report is None:
@@ -114,7 +280,9 @@ def verify_browser_outcome(
     except (KeyError, IndexError, TypeError, json.JSONDecodeError):
         raise RuntimeError("STIX provenance không hợp lệ") from None
     if (
-        stix_provenance.get("source_sha256") != seed.canonical_text_sha256
+        type(stix_provenance) is not dict
+        or set(stix_provenance) != PROVENANCE_KEYS
+        or stix_provenance.get("source_sha256") != seed.canonical_text_sha256
         or stix_provenance.get("draft_id") != seed.draft_id
         or stix_provenance.get("approved_audit_id") != decision[0]
         or stix_provenance.get("review_version") != draft[2]
@@ -215,7 +383,7 @@ def _offline_check(
             selected_indices=expected,
             expected_version=0,
         )
-        selection_audit_count = 1
+        selection_events = (expected,)
         if not expected:
             expected = seed.eligible_indices
             selection = store.save_selection(
@@ -225,7 +393,7 @@ def _offline_check(
                 selected_indices=expected,
                 expected_version=selection.review_version,
             )
-            selection_audit_count = 2
+            selection_events = ((), expected)
         store.decide_draft_with_selection(
             database,
             seed.draft_id,
@@ -241,13 +409,15 @@ def _offline_check(
             source_path=source,
             draft_json_path=envelope,
             created_by_subject="e2e-author-sub",
+            private_markers=_privacy_markers(input_kind, source, actor.subject),
             ingest_seed=seed,
         )
         summary.update(
             verify_browser_outcome(
                 run,
                 expected_selected_indices=expected,
-                expected_selection_audit_count=selection_audit_count,
+                expected_actor_subject=actor.subject,
+                expected_selection_events=selection_events,
             )
         )
         summary.update({"mode": "offline", "input_format": seed.input_format, "browser": "UNVERIFIED"})
@@ -292,7 +462,13 @@ def _browser_session(
             signal = wait_for_browser_signal(sys.stdin, timeout=duration_seconds)
             if signal != "continue":
                 raise RuntimeError(f"browser session kết thúc do {signal}")
-            return verify_browser_outcome(run, expected_selected_indices=expected)
+            run.private_markers = _privacy_markers(input_kind, run.source_path, run.actor_subject)
+            return verify_browser_outcome(
+                run,
+                expected_selected_indices=expected,
+                expected_actor_subject=run.actor_subject,
+                expected_selection_events=(expected,),
+            )
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

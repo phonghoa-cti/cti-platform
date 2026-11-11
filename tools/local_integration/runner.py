@@ -304,6 +304,13 @@ class LocalRun:
         if scenario not in INGEST_BROWSER_SCENARIOS and any(value is not None for value in ingest_values):
             raise ValueError("producer/input/creator chỉ dành cho scenario ingest-browser")
         self.scenario = scenario
+        self.actor_subject = (
+            "analyst-sub"
+            if scenario == "analyst-self"
+            else "it-sub"
+            if scenario == "insufficient-role"
+            else "admin-sub"
+        )
         self.duration_seconds = duration_seconds
         self.start_ui = start_ui
         self.gateway_port = gateway_port or _free_port()
@@ -345,15 +352,8 @@ class LocalRun:
             "e": _b64uint(public.e),
         }
         now = datetime.now(UTC)
-        subject = (
-            "analyst-sub"
-            if self.scenario == "analyst-self"
-            else "it-sub"
-            if self.scenario == "insufficient-role"
-            else "admin-sub"
-        )
         claims: dict[str, Any] = {
-            "sub": subject,
+            "sub": self.actor_subject,
             "iss": settings.access_issuer,
             "aud": settings.access_audience,
             "iat": now,

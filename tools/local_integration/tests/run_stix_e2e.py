@@ -50,6 +50,7 @@ def file_inventory(db_path: Path) -> dict[str, tuple[int, str]]:
 def database_state(db_path: Path, draft_id: int) -> dict[str, Any]:
     connection = sqlite3.connect(db_path)
     try:
+        connection.execute("BEGIN")
         draft = connection.execute(
             "SELECT payload_json, review_status, review_version, selection_version FROM drafts WHERE id = ?",
             (draft_id,),
@@ -63,9 +64,31 @@ def database_state(db_path: Path, draft_id: int) -> dict[str, Any]:
             "FROM draft_audit WHERE draft_id = ?",
             (draft_id,),
         ).fetchone()
+        draft_actor = connection.execute(
+            "SELECT decided_by_subject FROM drafts WHERE id = ?", (draft_id,)
+        ).fetchone()
+        selection_events = connection.execute(
+            "SELECT selection_version,review_version,action,actor_subject,"
+            "selected_indices_json,selected_sha256 FROM draft_selection_audit "
+            "WHERE draft_id=? ORDER BY selection_version",
+            (draft_id,),
+        ).fetchall()
+        decision_event = connection.execute(
+            "SELECT id,action,actor_subject,expected_version,previous_status,new_status,"
+            "previous_version,new_version,selection_version,selected_indices_json,selected_sha256 "
+            "FROM draft_audit WHERE draft_id=?",
+            (draft_id,),
+        ).fetchone()
     finally:
         connection.close()
-    return {"draft": draft, "selection_count": selection_count, "decision": decision}
+    return {
+        "draft": draft,
+        "selection_count": selection_count,
+        "decision": decision,
+        "draft_actor": None if draft_actor is None else draft_actor[0],
+        "selection_events": selection_events,
+        "decision_event": decision_event,
+    }
 
 
 def run_export(run: LocalRun, output: Path) -> subprocess.CompletedProcess[str]:

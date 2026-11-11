@@ -20,6 +20,7 @@ import pytest
 from phonghoa_extractor import store
 from phonghoa_extractor.drafts import build_regex_draft
 from tools.local_integration.runner import LocalRun, seed_ingest_fixture
+from tools.local_integration.tests import run_ingest_browser_stix as harness_module
 from tools.local_integration.tests.run_ingest_browser_stix import (
     verify_browser_outcome,
     wait_for_browser_signal,
@@ -129,7 +130,7 @@ def test_ingest_browser_scenario_seeds_real_api_and_cleans_owned_resources(tmp_p
     assert not temp_root.exists()
 
 
-def test_offline_postcheck_verifies_selection_audit_and_stix_on_seed_database(tmp_path: Path) -> None:
+def make_approved_postcheck_case(tmp_path: Path) -> SimpleNamespace:
     source = tmp_path / "synthetic.txt"
     source.write_bytes(E2E_SOURCE_BYTES)
     producer_root = make_fixture_producer(tmp_path, source)
@@ -167,7 +168,7 @@ def test_offline_postcheck_verifies_selection_audit_and_stix_on_seed_database(tm
         decision="approve",
         expected_version=selection.review_version,
     )
-    run = SimpleNamespace(
+    return SimpleNamespace(
         db_path=database,
         selection_draft_id=seed.draft_id,
         exporter_config_path=config,
@@ -175,16 +176,214 @@ def test_offline_postcheck_verifies_selection_audit_and_stix_on_seed_database(tm
         source_path=source,
         draft_json_path=envelope,
         created_by_subject="e2e-author-sub",
+        private_markers={
+            "source_name": "synthetic.txt",
+            "raw_source": "Cảnh báo thử nghiệm 😀",
+            "evidence": "ghi nhận",
+            "creator_subject": "e2e-author-sub",
+            "reviewer_subject": "admin-sub",
+        },
         ingest_seed=seed,
     )
 
-    summary = verify_browser_outcome(run, expected_selected_indices=(1,))
+
+def test_offline_postcheck_verifies_selection_audit_and_stix_on_seed_database(tmp_path: Path) -> None:
+    run = make_approved_postcheck_case(tmp_path)
+
+    summary = verify_browser_outcome(
+        run,
+        expected_selected_indices=(1,),
+        expected_actor_subject="admin-sub",
+        expected_selection_events=((1,),),
+    )
 
     assert summary["status"] == "PASS"
     assert summary["selected_indices"] == [1]
     assert summary["source_sha256"] == E2E_SOURCE_SHA256
     assert summary["object_count"] == 4
-    assert summary["bundle_sha256"] == hashlib.sha256(bundle.read_bytes()).hexdigest()
+    assert summary["bundle_sha256"] == hashlib.sha256(run.bundle_path.read_bytes()).hexdigest()
+
+
+def test_postcheck_rejects_valid_envelope_whose_canonical_digest_changed(tmp_path: Path) -> None:
+    run = make_approved_postcheck_case(tmp_path)
+    envelope = json.loads(run.draft_json_path.read_text(encoding="utf-8"))
+    envelope["input"]["display_name"] = "renamed-synthetic.txt"
+    envelope["draft"]["source"]["name"] = "renamed-synthetic.txt"
+    run.draft_json_path.write_text(
+        json.dumps(envelope, ensure_ascii=False, separators=(",", ":"), sort_keys=True),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="source/envelope/provenance"):
+        verify_browser_outcome(
+            run,
+            expected_selected_indices=(1,),
+            expected_actor_subject="admin-sub",
+            expected_selection_events=((1,),),
+        )
+
+
+def mutate_all_postcheck_actors(run: SimpleNamespace) -> None:
+    with closing(sqlite3.connect(run.db_path)) as connection:
+        values = ("other-reviewer-sub", run.ingest_seed.draft_id)
+        connection.execute("UPDATE drafts SET decided_by_subject=? WHERE id=?", values)
+        connection.execute("UPDATE draft_audit SET actor_subject=? WHERE draft_id=?", values)
+        connection.execute("UPDATE draft_selection_audit SET actor_subject=? WHERE draft_id=?", values)
+        connection.commit()
+
+
+def mutate_selection_postcheck_actor(run: SimpleNamespace) -> None:
+    with closing(sqlite3.connect(run.db_path)) as connection:
+        connection.execute(
+            "UPDATE draft_selection_audit SET actor_subject=? WHERE draft_id=?",
+            ("other-selection-sub", run.ingest_seed.draft_id),
+        )
+        connection.commit()
+
+
+def mutate_selection_postcheck_snapshot(run: SimpleNamespace) -> None:
+    serialized = "[0]"
+    digest = hashlib.sha256(serialized.encode()).hexdigest()
+    with closing(sqlite3.connect(run.db_path)) as connection:
+        connection.execute(
+            "UPDATE draft_selection_audit SET selected_indices_json=?,selected_sha256=? WHERE draft_id=?",
+            (serialized, digest, run.ingest_seed.draft_id),
+        )
+        connection.commit()
+
+
+def mutate_selection_postcheck_versions(run: SimpleNamespace) -> None:
+    with closing(sqlite3.connect(run.db_path)) as connection:
+        connection.execute(
+            "UPDATE draft_selection_audit SET selection_version=9,review_version=9 WHERE draft_id=?",
+            (run.ingest_seed.draft_id,),
+        )
+        connection.commit()
+
+
+def mutate_selection_postcheck_action(run: SimpleNamespace) -> None:
+    with closing(sqlite3.connect(run.db_path)) as connection:
+        connection.execute("PRAGMA ignore_check_constraints=ON")
+        connection.execute(
+            "UPDATE draft_selection_audit SET action='tampered' WHERE draft_id=?",
+            (run.ingest_seed.draft_id,),
+        )
+        connection.commit()
+
+
+def mutate_final_postcheck_versions(run: SimpleNamespace) -> None:
+    with closing(sqlite3.connect(run.db_path)) as connection:
+        connection.execute(
+            "UPDATE draft_audit SET expected_version=41,previous_version=41,new_version=42 WHERE draft_id=?",
+            (run.ingest_seed.draft_id,),
+        )
+        connection.commit()
+
+
+def mutate_final_postcheck_snapshot(run: SimpleNamespace) -> None:
+    serialized = "[0]"
+    digest = hashlib.sha256(serialized.encode()).hexdigest()
+    with closing(sqlite3.connect(run.db_path)) as connection:
+        connection.execute(
+            "UPDATE draft_audit SET selected_indices_json=?,selected_sha256=? WHERE draft_id=?",
+            (serialized, digest, run.ingest_seed.draft_id),
+        )
+        connection.commit()
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        mutate_all_postcheck_actors,
+        mutate_selection_postcheck_actor,
+        mutate_selection_postcheck_snapshot,
+        mutate_selection_postcheck_versions,
+        mutate_selection_postcheck_action,
+        mutate_final_postcheck_versions,
+        mutate_final_postcheck_snapshot,
+    ],
+)
+def test_postcheck_rejects_actor_or_selection_audit_mutation_before_export(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation
+) -> None:
+    run = make_approved_postcheck_case(tmp_path)
+    mutation(run)
+
+    def export_must_not_run(*_args, **_kwargs):
+        raise AssertionError("audit mutation reached exporter")
+
+    monkeypatch.setattr(harness_module, "run_export", export_must_not_run)
+    with pytest.raises(RuntimeError, match="audit"):
+        verify_browser_outcome(
+            run,
+            expected_selected_indices=(1,),
+            expected_actor_subject="admin-sub",
+            expected_selection_events=((1,),),
+        )
+
+
+def inject_forbidden_bundle_value(bundle: dict, mutation: str, marker: str) -> None:
+    report = bundle["objects"][-1]
+    if mutation == "top_level_field":
+        bundle["x_forbidden"] = marker
+    elif mutation == "nested_field":
+        report["external_references"][0]["x_forbidden"] = marker
+    elif mutation == "selected_ioc_only_in_report":
+        sco = next(item for item in bundle["objects"] if item.get("type") == "domain-name")
+        sco["value"] = "replacement.example"
+        report["name"] += f" {marker}"
+    else:
+        report["name"] += f" {marker}"
+
+
+@pytest.mark.parametrize(
+    ("mutation", "marker_key"),
+    [
+        ("top_level_field", "evidence"),
+        ("nested_field", "evidence"),
+        ("allowed_source_name", "source_name"),
+        ("allowed_raw_source", "raw_source"),
+        ("allowed_evidence", "evidence"),
+        ("allowed_creator_subject", "creator_subject"),
+        ("allowed_reviewer_subject", "reviewer_subject"),
+        ("selected_ioc_only_in_report", "selected_ioc"),
+    ],
+)
+def test_postcheck_rejects_forbidden_bundle_structure_or_private_marker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    marker_key: str,
+) -> None:
+    run = make_approved_postcheck_case(tmp_path)
+    original_export = harness_module.run_export
+
+    def leaking_export(run_arg, output):
+        result = original_export(run_arg, output)
+        bundle = json.loads(output.read_text(encoding="utf-8"))
+        marker = (
+            run.ingest_seed.ioc_values[1] if marker_key == "selected_ioc" else run.private_markers[marker_key]
+        )
+        inject_forbidden_bundle_value(bundle, mutation, marker)
+        raw = (json.dumps(bundle, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n").encode()
+        output.write_bytes(raw)
+        summary = json.loads(result.stdout)
+        summary["bundle_sha256"] = hashlib.sha256(raw).hexdigest()
+        return subprocess.CompletedProcess(
+            result.args,
+            0,
+            json.dumps(summary, separators=(",", ":"), sort_keys=True),
+            "",
+        )
+
+    monkeypatch.setattr(harness_module, "run_export", leaking_export)
+    with pytest.raises(RuntimeError, match="bundle|marker|privacy"):
+        verify_browser_outcome(
+            run,
+            expected_selected_indices=(1,),
+            expected_actor_subject="admin-sub",
+            expected_selection_events=((1,),),
+        )
 
 
 def test_browser_signal_distinguishes_continue_eof_and_timeout() -> None:
