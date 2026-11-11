@@ -9,12 +9,16 @@ from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
 from phonghoa_core.extract import extract_iocs
+from phonghoa_extractor.attack_catalog import AttackCatalog
+from phonghoa_extractor.attack_retrieval import RetrievalResult, retrieve_techniques
 from phonghoa_extractor.evidence import quote_for_ioc
 from phonghoa_extractor.grounding import Item, ground_iocs
 
 SCHEMA_VERSION = "x01-extraction-response/1.0"
 PROMPT_VERSION = "extractor-v1"
+C4_PROMPT_VERSION = "extractor-v1-c4-context-v1"
 MAX_RESPONSE_BYTES = 1024 * 1024
+MAX_SOURCE_BYTES = 1024 * 1024
 MAX_ITEMS = 500
 MAX_FIELD_BYTES = 8 * 1024
 MAX_METADATA_LENGTH = 256
@@ -38,9 +42,12 @@ class ProviderRequest:
     text: str
     language: Literal["vi", "en"]
     tlp: str
-    config: Literal["C2", "C3"]
+    config: Literal["C2", "C3", "C4"]
     schema_version: str = SCHEMA_VERSION
     prompt_version: str = PROMPT_VERSION
+    knowledge_context: str | None = None
+    knowledge_context_sha256: str | None = None
+    knowledge_schema_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -72,9 +79,10 @@ class ScriptedProvider:
         self.destination = destination
         self.egress = egress
         self.calls = 0
+        self.requests: list[ProviderRequest] = []
 
     def generate(self, request: ProviderRequest) -> ProviderResponse:
-        del request
+        self.requests.append(request)
         self.calls += 1
         if not self.responses:
             return ProviderResponse(status="error", error_code="script_exhausted", retryable=False)
@@ -112,6 +120,36 @@ def run_extraction(
     """Chạy C2/C3 bằng provider không egress, retry một lần rồi fallback C1."""
     request = _validate_request(text, language, tlp, config)
     provider_name = _validate_provider(provider)
+    return _run_provider(request, provider, provider_name)
+
+
+def run_c4_extraction(
+    *,
+    text: str,
+    language: str,
+    tlp: object,
+    provider: LLMProvider,
+    catalog: AttackCatalog,
+    attack_query: str,
+    top_k: int = 5,
+    context_budget_bytes: int = 4096,
+) -> dict[str, Any]:
+    """Nối context ATT&CK ngoại tuyến vào request C4, không dùng context làm evidence."""
+    canonical_tlp = _validate_c4_base(text, language, tlp)
+    retrieval = retrieve_techniques(
+        catalog,
+        attack_query,
+        top_k=top_k,
+        context_budget_bytes=context_budget_bytes,
+    )
+    request = _c4_request(text, language, canonical_tlp, retrieval)
+    provider_name = _validate_provider(provider)
+    result = _run_provider(request, provider, provider_name)
+    result["attack_context"] = _attack_context(retrieval, request, result["result_mode"])
+    return result
+
+
+def _run_provider(request: ProviderRequest, provider: LLMProvider, provider_name: str) -> dict[str, Any]:
     errors: list[str] = []
     for attempt in (1, 2):
         try:
@@ -146,6 +184,35 @@ def _validate_request(text: str, language: str, tlp: object, config: str) -> Pro
     return ProviderRequest(text=text, language=language, tlp=canonical_tlp, config=config)  # type: ignore[arg-type]
 
 
+def _validate_c4_base(text: object, language: object, tlp: object) -> str:
+    if type(text) is not str or not text or type(language) is not str or language not in {"vi", "en"}:
+        raise AdapterError("invalid_input")
+    if len(text) > MAX_SOURCE_BYTES:
+        raise AdapterError("input_too_large")
+    try:
+        encoded = text.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as exc:
+        raise AdapterError("invalid_input") from exc
+    if len(encoded) > MAX_SOURCE_BYTES:
+        raise AdapterError("input_too_large")
+    return _canonical_tlp(tlp)
+
+
+def _c4_request(text: str, language: str, tlp: str, retrieval: RetrievalResult) -> ProviderRequest:
+    context = retrieval.context
+    context_payload = json.loads(context)
+    return ProviderRequest(
+        text=text,
+        language=language,  # type: ignore[arg-type]
+        tlp=tlp,
+        config="C4",
+        prompt_version=C4_PROMPT_VERSION,
+        knowledge_context=context,
+        knowledge_context_sha256=hashlib.sha256(context.encode("utf-8")).hexdigest(),
+        knowledge_schema_version=context_payload["schema_version"],
+    )
+
+
 def _canonical_tlp(tlp: object) -> str:
     if not isinstance(tlp, str):
         raise AdapterError("invalid_tlp")
@@ -158,10 +225,15 @@ def _canonical_tlp(tlp: object) -> str:
 
 
 def _validate_provider(provider: LLMProvider) -> str:
-    name = provider.name
-    valid_name = isinstance(name, str) and 0 < len(name.encode("utf-8")) <= MAX_METADATA_LENGTH
-    safe_destination = provider.destination == "fake_offline" and isinstance(provider.destination, str)
-    safe_egress = provider.egress is False
+    try:
+        name = provider.name
+        destination = provider.destination
+        egress = provider.egress
+        valid_name = isinstance(name, str) and 0 < len(name.encode("utf-8")) <= MAX_METADATA_LENGTH
+    except (AttributeError, UnicodeEncodeError):
+        raise AdapterError("egress_not_configured") from None
+    safe_destination = destination == "fake_offline" and isinstance(destination, str)
+    safe_egress = egress is False
     if not valid_name or not safe_destination or not safe_egress:
         raise AdapterError("egress_not_configured")
     return name
@@ -265,6 +337,22 @@ def _base_result(
         "mock_only": True,
         "warnings": [],
         "error_codes": list(errors),
+    }
+
+
+def _attack_context(retrieval: RetrievalResult, request: ProviderRequest, result_mode: str) -> dict[str, Any]:
+    context_payload = json.loads(retrieval.context)
+    return {
+        "requested": True,
+        "retrieval_completed": True,
+        "provider_context_sent": True,
+        "c4_adapter_completed": result_mode == "model_completed",
+        "schema_version": request.knowledge_schema_version,
+        "sha256": request.knowledge_context_sha256,
+        "byte_length": len(retrieval.context.encode("utf-8")),
+        "top_k": retrieval.top_k,
+        "budget_bytes": retrieval.context_budget_bytes,
+        "snapshot": context_payload["snapshot"],
     }
 
 

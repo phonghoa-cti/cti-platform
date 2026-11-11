@@ -73,6 +73,9 @@ Cập nhật lần cuối: 11/11/2026
   raw result bất biến và JSON context có provenance, đo toàn envelope theo budget UTF-8. Ranking/tokenizer được
   kiểm bằng fixture tổng hợp Việt/Anh qua public loader và regression dùng asset Enterprise v20.1 local; chưa nối
   generator/model, chưa phải full C4/RAG hoặc bằng chứng chất lượng semantic.
+- X01 adapter C4 context ngoại tuyến: wrapper kiểm báo cáo/TLP, gọi retriever lexical đúng một lần rồi gửi nguyên
+  context có hash/provenance trong request bất biến cho provider giả lập; retry/fallback dùng lại C3 và public audit
+  chỉ lấy evidence từ báo cáo gốc. Đây là kiểm hợp đồng bằng dữ liệu tổng hợp, chưa phải chất lượng model/RAG.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab
@@ -92,3 +95,5 @@ Cập nhật lần cuối: 11/11/2026
   loss/hostile directory mutation, W05, OpenCTI, lab và production vẫn chưa xác minh.
 - Retrieval lexical chưa được nối trước generation, chưa đo semantic/multilingual recall trên corpus hai người
   gán nhãn và chưa gọi model thật; ranking score chỉ là token overlap, không phải confidence hay semantic truth.
+- C4 mới chỉ nối request với provider giả lập và query do caller truyền; chưa đo chống prompt injection, model thật,
+  semantic/multilingual TTP, corpus hai người gán nhãn, evaluator/reporter, OpenCTI, lab hoặc production.

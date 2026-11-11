@@ -14,7 +14,12 @@ from phonghoa_extractor.attack_catalog import (
     SnapshotPin,
     TechniqueRecord,
 )
-from phonghoa_extractor.llm_adapter import ProviderResponse, ScriptedProvider, run_extraction
+from phonghoa_extractor.llm_adapter import (
+    ProviderResponse,
+    ScriptedProvider,
+    run_c4_extraction,
+    run_extraction,
+)
 from phonghoa_extractor.ttp_audit import TechniqueAudit, TtpAuditError, audit_techniques
 
 SOURCE = "😀 First quote for T1000.001.\r\nMalware Sample and Actor Example."
@@ -193,7 +198,7 @@ def test_source_hash_uses_exact_utf8_and_span_uses_unicode_code_points(source: s
         lambda value: value.update(schema_version=1),
         lambda value: value.update(schema_version="2.0"),
         lambda value: value.update(config=True),
-        lambda value: value.update(config="C4"),
+        lambda value: value.update(config="C5"),
         lambda value: value.update(mock_only=1),
         lambda value: value.pop("source"),
         lambda value: value.update(source={"sha256": "a" * 63}),
@@ -406,4 +411,52 @@ def test_regex_fallback_rejects_semantic_items_and_catalog_type_is_exact() -> No
             source_text=SOURCE,
             catalog=object(),  # type: ignore[arg-type]
         ),
+    )
+
+
+def test_public_c4_composition_audits_report_not_knowledge_and_does_not_generate_again() -> None:
+    report = "😀 Report contains T1000.001 and evil[.]example."
+    payload = {
+        "iocs": [],
+        "techniques": [
+            {"id": "T1000.001", "evidence": "Report contains T1000.001"},
+            {"id": "T1000", "evidence": "Active child"},
+        ],
+        "malware": [],
+        "actors": [],
+    }
+    provider = ScriptedProvider(
+        [ProviderResponse(status="completed", payload=payload, model_id="scripted-v1")],
+        name="scripted",
+        destination="fake_offline",
+        egress=False,
+    )
+
+    result = run_c4_extraction(
+        text=report,
+        language="en",
+        tlp="TLP:GREEN",
+        provider=provider,
+        catalog=_catalog(),
+        attack_query="Active child",
+        top_k=1,
+        context_budget_bytes=4096,
+    )
+    audits = audit_techniques(adapter_result=result, source_text=report, catalog=_catalog())
+
+    assert provider.calls == 1
+    assert [audit.config for audit in audits] == ["C4", "C4"]
+    assert audits[0].quote_status == "matched"
+    assert audits[0].evidence_span == (2, 27)
+    assert audits[1].quote_status == "not_found"
+    assert audits[1].evidence_span is None
+    assert all(audit.operational_draft_eligible is False for audit in audits)
+
+
+def test_c4_audit_acceptance_does_not_weaken_exact_semantic_item_keys() -> None:
+    result = _result(config="C4")
+    result["unverified_semantic_items"] = [{**_item(), "semantic_status": "unverified"}]
+    _assert_error(
+        "invalid_adapter_result",
+        lambda: audit_techniques(adapter_result=result, source_text=SOURCE, catalog=_catalog()),
     )

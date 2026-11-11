@@ -39,7 +39,7 @@ class TechniqueAudit:
     evidence: str
     evidence_span: tuple[int, int] | None
     source_sha256: str
-    config: Literal["C2", "C3"]
+    config: Literal["C2", "C3", "C4"]
     quote_status: Literal["matched", "missing", "not_found", "ambiguous"]
     catalog_status: Literal["active", "inactive", "unknown", "not_checked"]
     reason_code: str
@@ -52,7 +52,7 @@ class TechniqueAudit:
 
 @dataclass(frozen=True)
 class _Projection:
-    config: Literal["C2", "C3"]
+    config: Literal["C2", "C3", "C4"]
     source_sha256: str
     mode: Literal["model_completed", "regex_fallback"]
     items: list[dict[str, object]]
@@ -105,7 +105,7 @@ def _valid_projection_header(result: dict, config: object, source: object, provi
         type(result.get("schema_version")) is str
         and result["schema_version"] == "1.0"
         and type(config) is str
-        and config in {"C2", "C3"}
+        and config in {"C2", "C3", "C4"}
         and result.get("mock_only") is True
         and valid_hash
         and type(provider) is dict
