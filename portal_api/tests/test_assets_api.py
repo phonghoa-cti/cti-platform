@@ -234,6 +234,41 @@ def test_assets_http_rejects_body_limit_and_repeated_or_extra_query(tmp_path, rs
     assert extra.status_code == 422
 
 
+@pytest.mark.parametrize("asset_id", ["0", "1.0", "true", "9007199254740992"])
+def test_assets_put_rejects_invalid_path_id_with_asset_error(tmp_path, rsa_keys, asset_id):
+    store = _store(tmp_path)
+    client, private_key = _client(tmp_path, rsa_keys, asset_store=store)
+
+    response = client.put(
+        f"/api/assets/{asset_id}",
+        headers=_mutation_headers(private_key),
+        json={
+            "type": "domain",
+            "value": "congty.vn",
+            "note": "",
+            "expected_version": 1,
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"error": {"code": "invalid_asset", "message": "Tài sản không hợp lệ"}}
+
+
+@pytest.mark.parametrize("expected_version", ["0", "1.0", "true", "9007199254740992"])
+def test_assets_delete_rejects_invalid_version_with_asset_error(tmp_path, rsa_keys, expected_version):
+    store = _store(tmp_path)
+    asset = store.create("domain", "congty.vn", "", "it-sub")
+    client, private_key = _client(tmp_path, rsa_keys, asset_store=store)
+
+    response = client.delete(
+        f"/api/assets/{asset.id}?expected_version={expected_version}",
+        headers=_mutation_headers(private_key),
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"error": {"code": "invalid_asset", "message": "Tài sản không hợp lệ"}}
+
+
 def test_store_failure_uses_route_specific_unavailable_error(tmp_path, rsa_keys):
     class BrokenStore:
         def list(self, _asset_type=None):

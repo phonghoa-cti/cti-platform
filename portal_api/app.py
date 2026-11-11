@@ -90,6 +90,13 @@ def _parse_positive_integer(value: str, label: str, *, maximum: int = SQLITE_MAX
     return parsed
 
 
+def _parse_asset_positive_integer(value: str) -> int:
+    try:
+        return _parse_positive_integer(value, "asset", maximum=JSON_SAFE_INTEGER)
+    except ApiFailure as exc:
+        raise ApiFailure(422, "invalid_asset", "Tài sản không hợp lệ") from exc
+
+
 def _parse_list_query(request: Request, *, maximum: int = SQLITE_MAX_INTEGER) -> tuple[int, int | None]:
     allowed = {"limit", "before_id"}
     if set(request.query_params) - allowed:
@@ -330,7 +337,7 @@ def create_app(
         principal: Principal = Depends(require_assets_role),  # noqa: B008
     ):
         store = configured_asset_store()
-        parsed_id = _parse_positive_integer(asset_id, "asset_id", maximum=JSON_SAFE_INTEGER)
+        parsed_id = _parse_asset_positive_integer(asset_id)
         _require_origin(request, settings)
         _require_json(request)
         try:
@@ -361,18 +368,14 @@ def create_app(
         principal: Principal = Depends(require_assets_role),  # noqa: B008
     ):
         store = configured_asset_store()
-        parsed_id = _parse_positive_integer(asset_id, "asset_id", maximum=JSON_SAFE_INTEGER)
+        parsed_id = _parse_asset_positive_integer(asset_id)
         _require_origin(request, settings)
         if (
             set(request.query_params) != {"expected_version"}
             or len(request.query_params.getlist("expected_version")) != 1
         ):
             raise ApiFailure(422, "invalid_asset", "Query tài sản không hợp lệ")
-        expected_version = _parse_positive_integer(
-            request.query_params["expected_version"],
-            "expected_version",
-            maximum=JSON_SAFE_INTEGER,
-        )
+        expected_version = _parse_asset_positive_integer(request.query_params["expected_version"])
         try:
             store.delete(parsed_id, expected_version, principal.subject)
         except Exception as exc:
