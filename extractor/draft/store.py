@@ -23,6 +23,7 @@ def _parse_args() -> argparse.Namespace:
     save_parser = subparsers.add_parser("save", help="lưu một draft JSON mới")
     save_parser.add_argument("--db", required=True, type=Path, help="file SQLite")
     save_parser.add_argument("--input", required=True, type=Path, help="draft JSON UTF-8")
+    save_parser.add_argument("--created-by-subject", help="subject opaque của tác giả draft")
     save_parser.add_argument("--timeout", type=float, default=5.0, help="timeout khóa DB (giây)")
 
     get_parser = subparsers.add_parser("get", help="đọc một draft theo ID")
@@ -64,7 +65,12 @@ def main() -> int:
     try:
         if args.command == "save":
             draft = json.loads(args.input.read_text(encoding="utf-8"))
-            draft_id = save_draft(args.db, draft, timeout=args.timeout)
+            draft_id = save_draft(
+                args.db,
+                draft,
+                created_by_subject=args.created_by_subject,
+                timeout=args.timeout,
+            )
             print(json.dumps({"id": draft_id, "status": "pending"}))
             return 0
 

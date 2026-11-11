@@ -72,6 +72,67 @@ def test_cli_text_to_draft_save_and_get_across_processes(tmp_path: Path):
     assert "evil.example" not in saved.stdout + saved.stderr + loaded.stdout + loaded.stderr
 
 
+def test_cli_save_accepts_created_by_subject_for_reviewable_draft(tmp_path: Path):
+    text = tmp_path / "input.txt"
+    draft_json = tmp_path / "draft.json"
+    db = tmp_path / "drafts.sqlite"
+    text.write_bytes("Cảnh báo thử nghiệm 😀 evil.example\n".encode("utf-8"))
+
+    built = run(
+        str(DRAFT_SCRIPT),
+        "--input",
+        str(text),
+        "--output",
+        str(draft_json),
+        "--language",
+        "vi",
+        "--tlp",
+        "TLP:GREEN",
+    )
+    saved = run(
+        str(STORE_SCRIPT),
+        "save",
+        "--db",
+        str(db),
+        "--input",
+        str(draft_json),
+        "--created-by-subject",
+        "e2e-author-sub",
+    )
+
+    assert built.returncode == saved.returncode == 0
+    assert json.loads(saved.stdout) == {"id": 1, "status": "pending"}
+    assert get_draft(db, 1)["review"]["created_by_subject"] == "e2e-author-sub"
+    assert "e2e-author-sub" not in saved.stdout + saved.stderr
+
+
+@pytest.mark.parametrize("subject", ["", "   "])
+def test_cli_save_rejects_blank_created_by_subject_before_database_io(tmp_path: Path, subject: str):
+    draft_json = tmp_path / "draft.json"
+    draft_json.write_text(
+        json.dumps(build_regex_draft("evil.example", source="synthetic.txt", language="vi")),
+        encoding="utf-8",
+    )
+    db = tmp_path / "drafts.sqlite"
+
+    result = run(
+        str(STORE_SCRIPT),
+        "save",
+        "--db",
+        str(db),
+        "--input",
+        str(draft_json),
+        "--created-by-subject",
+        subject,
+    )
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "Traceback" not in result.stderr
+    assert "created_by_subject" in result.stderr
+    assert not db.exists()
+
+
 def test_cli_input_errors_do_not_create_db_or_output(tmp_path: Path):
     malformed = tmp_path / "malformed.json"
     malformed.write_text("{not-json", encoding="utf-8")
