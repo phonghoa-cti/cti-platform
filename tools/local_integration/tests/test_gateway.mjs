@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import { startGateway } from "../gateway.mjs";
@@ -211,6 +214,46 @@ test("asset refresh fault fires once after a successful mutation then recovers",
     assert.deepEqual(seen, ["POST /api/assets", "GET /api/assets"]);
   } finally {
     await close(gateway); await close(api); await close(ui);
+  }
+});
+
+test("asset unknown-outcome fault commits once, hides success, and writes sanitized trace", async () => {
+  let mutations = 0;
+  const api = await listen((req, res) => {
+    if (req.method === "POST") mutations += 1;
+    res.writeHead(req.method === "POST" ? 201 : 200, { "Content-Type": "application/json" });
+    res.end(req.method === "POST" ? '{"id":1}' : '{"items":[{"id":1}]}');
+  });
+  const ui = await listen((_req, res) => res.end("ui"));
+  const traceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "w04-gateway-trace-"));
+  const tracePath = path.join(traceRoot, "trace.jsonl");
+  const gateway = await startGateway({
+    apiPort: api.address().port,
+    uiPort: ui.address().port,
+    port: 0,
+    jwt: "gateway-token",
+    failAssetMutationResponseOnce: true,
+    tracePath,
+  });
+  try {
+    const mutation = await request(gateway.address().port, "/api/assets", {
+      method: "POST",
+      headers: { Origin: `http://127.0.0.1:${gateway.address().port}` },
+      body: "{}",
+    });
+    assert.equal(mutation.status, 503);
+    assert.equal(JSON.parse(mutation.body).error.code, "synthetic_unknown_outcome");
+    assert.equal((await request(gateway.address().port, "/api/assets")).status, 200);
+    assert.equal(mutations, 1);
+    const trace = fs.readFileSync(tracePath, "utf8").trim().split("\n").map(JSON.parse);
+    assert.deepEqual(trace, [
+      { counter: 1, method: "POST", path: "/api/assets", status: 503 },
+      { counter: 2, method: "GET", path: "/api/assets", status: 200 },
+    ]);
+    assert.equal(fs.readFileSync(tracePath, "utf8").includes("gateway-token"), false);
+  } finally {
+    await close(gateway); await close(api); await close(ui);
+    fs.rmSync(traceRoot, { recursive: true, force: true });
   }
 });
 

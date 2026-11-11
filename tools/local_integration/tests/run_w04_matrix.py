@@ -6,6 +6,7 @@ import argparse
 import json
 import socket
 import sqlite3
+import tempfile
 from contextlib import closing
 from pathlib import Path
 from typing import Any
@@ -258,6 +259,50 @@ def _run_refresh_fault(matrix: Matrix) -> dict[str, Any]:
     }
 
 
+def _run_unknown_outcome(matrix: Matrix) -> dict[str, Any]:
+    with tempfile.TemporaryDirectory(prefix="w04-trace-") as trace_root:
+        trace_path = Path(trace_root) / "gateway-trace.jsonl"
+        with LocalRun(
+            "w04-unknown-outcome",
+            duration_seconds=20,
+            start_ui=False,
+            trace_path=trace_path,
+        ) as run:
+            created = _json_request(
+                "POST",
+                f"{run.url}/api/assets",
+                headers={"Origin": run.url},
+                json={"type": "domain", "value": "unknown.example", "note": "synthetic unknown outcome"},
+            )
+            matrix.check(created.status_code == 503, "unknown outcome hides committed success")
+            matrix.check(
+                created.json()["error"]["code"] == "synthetic_unknown_outcome",
+                "unknown outcome code",
+            )
+            reconciled = _json_request("GET", f"{run.url}/api/assets")
+            matrix.check(reconciled.status_code == 200, "unknown outcome reconcile GET")
+            matrix.check(len(reconciled.json()["items"]) == 1, "unknown outcome commit visible")
+            counts = _db_counts(run.db_path)
+            matrix.check(counts == (1, 1), "unknown outcome does not replay mutation")
+            trace = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+            matrix.check(
+                trace
+                == [
+                    {"counter": 1, "method": "POST", "path": "/api/assets", "status": 503},
+                    {"counter": 2, "method": "GET", "path": "/api/assets", "status": 200},
+                ],
+                "unknown outcome sanitized trace",
+            )
+        matrix.check("jwt" not in trace_path.read_text(encoding="utf-8").lower(), "trace excludes JWT")
+    return {
+        "mutation_requests": 1,
+        "reconcile_get_requests": 1,
+        "statuses": [503, 200],
+        "asset_rows": counts[0],
+        "audit_rows": counts[1],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path)
@@ -268,6 +313,7 @@ def main() -> int:
         "primary": _run_primary(matrix),
         "roles": _run_roles(matrix),
         "refresh_recovery": _run_refresh_fault(matrix),
+        "unknown_outcome": _run_unknown_outcome(matrix),
     }
     result["assertions"] = matrix.assertions
     encoded = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)

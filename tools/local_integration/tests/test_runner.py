@@ -77,6 +77,7 @@ def test_non_w02_scenario_keeps_production_default_lookup_port_missing() -> None
         ("w04-multi-role", 200),
         ("w04-missing-token", 401),
         ("w04-forbidden", 403),
+        ("w04-unknown-outcome", 200),
     ],
 )
 def test_w04_scenarios_opt_in_assets_and_role_policy(scenario: str, status: int) -> None:

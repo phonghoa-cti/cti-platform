@@ -67,6 +67,7 @@ W04_SCENARIOS = frozenset(
         "w04-missing-token",
         "w04-forbidden",
         "w04-refresh-503",
+        "w04-unknown-outcome",
     }
 )
 SCENARIOS = (
@@ -149,6 +150,7 @@ class LocalRun:
         *,
         start_ui: bool = True,
         gateway_port: int | None = None,
+        trace_path: Path | None = None,
     ):
         if scenario not in SCENARIOS:
             raise ValueError("scenario không được phép")
@@ -158,6 +160,7 @@ class LocalRun:
         self.duration_seconds = duration_seconds
         self.start_ui = start_ui
         self.gateway_port = gateway_port or _free_port()
+        self.trace_path = trace_path.resolve() if trace_path is not None else None
         self.api_port = _free_port()
         self.ui_port = _free_port()
         self.url = f"http://127.0.0.1:{self.gateway_port}"
@@ -194,7 +197,13 @@ class LocalRun:
         now = datetime.now(UTC)
         if self.scenario in {"analyst-self", "w02-analyst", "w04-analyst"}:
             subject = "analyst-sub"
-        elif self.scenario in {"insufficient-role", "w02-it", "w02-it-hidden-mutated", "w04-it"}:
+        elif self.scenario in {
+            "insufficient-role",
+            "w02-it",
+            "w02-it-hidden-mutated",
+            "w04-it",
+            "w04-unknown-outcome",
+        }:
             subject = "it-sub"
         elif self.scenario in {"w02-multi-role", "w04-multi-role"}:
             subject = "multi-sub"
@@ -421,6 +430,11 @@ class LocalRun:
                 env["W05_FAIL_REFRESH"] = "1"
             if self.scenario == "w04-refresh-503":
                 env["W04_FAIL_ASSET_REFRESH_ONCE"] = "1"
+            if self.scenario == "w04-unknown-outcome":
+                env["W04_FAIL_ASSET_MUTATION_RESPONSE_ONCE"] = "1"
+            if self.trace_path is not None:
+                self.trace_path.parent.mkdir(parents=True, exist_ok=True)
+                env["W04_TRACE_PATH"] = str(self.trace_path)
             self._gateway_process = subprocess.Popen(
                 ["node", str(gateway)],
                 cwd=gateway.parent,

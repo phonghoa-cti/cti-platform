@@ -119,6 +119,10 @@ Cập nhật lần cuối: 11/11/2026
   thêm danh tính hay retry mutation. Parser/view W02 giữ `asset_match` cho found/allowlisted/not_found bằng bốn
   fixture candidate đã đối chiếu SHA-256. Đây là component/schema cục bộ; route API thật, gateway, database,
   browser, Cloudflare/JWKS/HTTPS, lab, OpenCTI và production chưa được kiểm.
+- W04 nối cục bộ frontend/backend: `/tai-san` dùng adapter HTTP với cùng gateway/API/SQLite như `/tra-cuu`;
+  harness có fault refresh 503 rồi phục hồi và fault mutation đã commit nhưng mất success response, không replay.
+  Có helper bounded start/status/stop, trace lược dữ liệu và snapshot DB trước cleanup; browser OpenMausBot chưa
+  được chạy trong lượt tích hợp này nên browser acceptance và viewport vẫn UNVERIFIED.
 - W04 frontend rework F1–F3: đồng bộ `created_by` tối đa 512; mutation chỉ map các cặp status/code đã xác nhận,
   còn lỗi gateway/không rõ của POST/PUT/DELETE là `unknown-mutation` và không replay; context token được kiểm lại
   sau refresh để notice domain cũ không lọt sang tab IP. TDD ghi nhận 4/6/3 failure RED, sau GREEN focused assets

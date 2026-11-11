@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import http from "node:http";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
@@ -68,14 +69,17 @@ function readBody(request, limit) {
   });
 }
 
-export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false, failAssetRefreshOnce = false }) {
+export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, failRefreshAfterPost = false, failAssetRefreshOnce = false, failAssetMutationResponseOnce = false, tracePath = null }) {
   for (const value of [apiPort, uiPort]) {
     if (!Number.isInteger(value) || value < 1 || value > 65535) throw new TypeError("upstream port không hợp lệ");
   }
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new TypeError("gateway port không hợp lệ");
   if (jwt !== null && typeof jwt !== "string") throw new TypeError("jwt phải là string hoặc null");
+  if (tracePath !== null && typeof tracePath !== "string") throw new TypeError("trace path phải là string hoặc null");
   let postRecorded = false;
   let assetRefreshPending = false;
+  let assetMutationFaultUsed = false;
+  let requestCounter = 0;
   const server = http.createServer(async (request, response) => {
     const ownPort = server.address()?.port;
     if (request.headers.host !== `127.0.0.1:${ownPort}`) return safeError(response, 400, "invalid_host");
@@ -85,15 +89,24 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     } catch {
       return safeError(response, 400, "invalid_request_target");
     }
+    const counter = ++requestCounter;
+    const trace = (status) => {
+      if (tracePath === null) return;
+      fs.appendFileSync(tracePath, `${JSON.stringify({ counter, method: request.method, path: url.pathname, status })}\n`, { encoding: "utf8" });
+    };
     const isApi = url.pathname.startsWith("/api/");
     const isV1 = V1_API_PATH.test(url.pathname);
     const isAsset = ASSET_API_PATH.test(url.pathname);
     if (isApi && !isV1 && !isAsset && url.pathname !== IOC_API_PATH && !LEGACY_API_PATH.test(url.pathname)) {
       return safeError(response, 404, "not_found");
     }
-    if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") return safeError(response, 503, "synthetic_refresh_failure");
+    if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") {
+      trace(503);
+      return safeError(response, 503, "synthetic_refresh_failure");
+    }
     if (isAsset && failAssetRefreshOnce && assetRefreshPending && request.method === "GET") {
       assetRefreshPending = false;
+      trace(503);
       return safeError(response, 503, "synthetic_refresh_failure");
     }
     let body;
@@ -110,6 +123,7 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     const failUpstream = () => {
       if (responseComplete || failureHandled) return;
       failureHandled = true;
+      trace(503);
       safeError(response, 503, "upstream_unavailable");
     };
     const upstream = http.request({ host: "127.0.0.1", port: targetPort, method: request.method, path: `${url.pathname}${url.search}`, headers, timeout: requestTimeoutMs }, (upstreamResponse) => {
@@ -121,6 +135,19 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
       upstreamResponse.once("close", () => {
         if (!upstreamResponse.complete) failUpstream();
       });
+      const successfulAssetMutation = isAsset
+        && ["POST", "PUT", "DELETE"].includes(request.method ?? "")
+        && (upstreamResponse.statusCode ?? 500) < 300;
+      if (failAssetMutationResponseOnce && !assetMutationFaultUsed && successfulAssetMutation) {
+        assetMutationFaultUsed = true;
+        upstreamResponse.once("end", () => {
+          trace(503);
+          safeError(response, 503, "synthetic_unknown_outcome");
+        });
+        upstreamResponse.resume();
+        return;
+      }
+      trace(upstreamResponse.statusCode ?? 502);
       response.writeHead(upstreamResponse.statusCode ?? 502, cleanResponseHeaders(upstreamResponse));
       upstreamResponse.pipe(response);
     });
@@ -148,6 +175,8 @@ async function main() {
     requestTimeoutMs: Number(process.env.W05_REQUEST_TIMEOUT_MS ?? "1000"),
     failRefreshAfterPost: process.env.W05_FAIL_REFRESH === "1",
     failAssetRefreshOnce: process.env.W04_FAIL_ASSET_REFRESH_ONCE === "1",
+    failAssetMutationResponseOnce: process.env.W04_FAIL_ASSET_MUTATION_RESPONSE_ONCE === "1",
+    tracePath: process.env.W04_TRACE_PATH ?? null,
   });
   const stop = () => server.close(() => process.exit(0));
   process.on("SIGINT", stop); process.on("SIGTERM", stop);
