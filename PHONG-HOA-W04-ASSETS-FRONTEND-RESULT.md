@@ -41,7 +41,7 @@ Không phát hiện lệch hợp đồng ở bốn fixture. Đây chỉ là regr
 | `npm test -- tests/assets-http.test.ts tests/assets-app.test.tsx tests/ioc-lookup-http.test.ts tests/ioc-lookup.test.tsx` (RED đầu) | 1 | 95 test chạy; 4 fail đúng hành vi W02 mới, 2 suite thiếu module W04 |
 | `npm test -- tests/assets-http.test.ts` (RED body timeout/bound) | 1 | 24 test; 2 fail do body treo/vượt 1 MiB chưa bị hủy |
 | cùng nhóm test tập trung sau GREEN | 0 | 132/132 test đạt |
-| `npm test` | 0 | 221/221 test, 11/11 file đạt |
+| `npm test` | 0 | 222/222 test, 11/11 file đạt sau rework R1 |
 | `npm run typecheck` | 0 | PASS |
 | `npm run lint` | 0 | PASS, 0 warning |
 | `npm run build` | 0 | PASS bằng Next.js 16.4.6/Turbopack; sinh route `/tai-san/mau` |
@@ -64,6 +64,29 @@ và không sửa package/lock; sau đó đúng lệnh `npm run build` exit 0. Ra
 - `portal/web/README.md`, `docs/PROGRESS.md`
 
 Raw evidence: `w04-assets-frontend-evidence/`.
+
+## Rework R1 — mutation cũ sau khi đổi tab
+
+Review phát hiện mutation domain đang chờ có thể hoàn tất sau khi người dùng đã chuyển sang tab dải IP, rồi gọi
+refresh domain và ghi đè bảng/context mới. Test RED tái hiện đúng lỗi: tab vẫn là Dải IP nhưng bảng bị đổi thành
+`congty.vn` và hiện thông báo thành công của context cũ.
+
+Sửa tối thiểu bằng `contextRef`: mutation ghi nhận token lúc bắt đầu; chuyển tab hoặc cleanup/unmount tăng token.
+Kết quả success/error/finally của mutation cũ chỉ được đổi state khi token vẫn thuộc context hiện tại. Chuyển tab
+cũng giải phóng trạng thái saving của context cũ; mutation cũ không phát GET refresh không còn cần thiết. Request
+ownership sẵn có vẫn bảo vệ response list đã bắt đầu trước đó.
+
+| Kiểm R1 | Exit | Kết quả |
+|---|---:|---|
+| `npm test -- tests/assets-app.test.tsx` RED | 1 | 1 fail/12 test; bảng IP bị domain cũ ghi đè |
+| cùng lệnh GREEN | 0 | 12/12 test đạt |
+| `npm test` | 0 | 222/222 test, 11/11 file đạt |
+| `npm run typecheck` | 0 | PASS |
+| `npm run lint` | 0 | PASS |
+| `npm run build` | 0 | PASS; `/tai-san/mau` được prerender |
+| `git diff --check` | 0 | PASS |
+
+Evidence R1 dùng tiền tố `w04-assets-frontend-evidence/rework-r1-`.
 
 ## PASS / FAIL / UNVERIFIED
 

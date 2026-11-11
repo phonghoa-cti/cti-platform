@@ -1,0 +1,201 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web
+
+ ❯ tests/assets-app.test.tsx (12 tests | 1 failed) 2492ms
+   ❯ W04 assets management (12)
+     × does not let a completed mutation refresh overwrite a newer tab context 372ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/assets-app.test.tsx > W04 assets management > does not let a completed mutation refresh overwrite a newer tab context
+TestingLibraryElementError: Unable to find an element with the text: 203.0.113.0/24. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      class="assets-app"
+    >
+      <header
+        class="assets-app__topbar"
+      >
+        <div>
+          <h1>
+            Tài sản doanh nghiệp
+          </h1>
+          <p>
+            Khai báo tên miền và dải IP để nhận biết IOC nào thuộc hạ tầng của bạn.
+          </p>
+        </div>
+        <div
+          aria-label="Ngôn ngữ giao diện"
+          class="assets-app__locale"
+        >
+          <button
+            aria-pressed="true"
+            type="button"
+          >
+            Tiếng Việt
+          </button>
+          <button
+            aria-pressed="false"
+            type="button"
+          >
+            English
+          </button>
+        </div>
+      </header>
+      <p
+        class="assets-app__sample-label"
+      >
+        Dữ liệu mẫu — thay đổi chỉ trong phiên thử
+      </p>
+      <section
+        aria-label="Quản lý tài sản"
+        class="assets-app__workspace"
+      >
+        <div
+          aria-label="Loại tài sản"
+          class="assets-app__tabs"
+          role="tablist"
+        >
+          <button
+            aria-selected="false"
+            role="tab"
+            type="button"
+          >
+            Tên miền
+          </button>
+          <button
+            aria-selected="true"
+            role="tab"
+            type="button"
+          >
+            Dải IP
+          </button>
+        </div>
+        <header
+          class="assets-app__panel-header"
+        >
+          <div>
+            <h2>
+              Dải IP
+            </h2>
+            <p>
+              Tài sản đang hoạt động · dữ liệu được tải theo loại
+            </p>
+          </div>
+          <button
+            class="assets-app__primary"
+            type="button"
+          >
+            Thêm dải IP
+          </button>
+        </header>
+        <div
+          class="assets-app__notice assets-app__notice--success"
+          role="status"
+        >
+          <p>
+            Đã lưu tài sản.
+          </p>
+        </div>
+        <div
+          class="assets-app__table-wrap"
+        >
+          <table
+            class="assets-app__table"
+          >
+            <caption
+              class="sr-only"
+            >
+              Danh sách tài sản loại
+
+              Dải IP
+            </caption>
+            <thead>
+              <tr>
+                <th>
+                  Dải IP
+                </th>
+                <th>
+                  Ghi chú
+                </th>
+                <th>
+                  Phiên bản
+                </th>
+                <th>
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <code>
+                    congty.vn
+                  </code>
+                </td>
+                <td>
+                  Tên miền chính
+                </td>
+                <td>
+                  <span
+                    class="assets-app__version"
+                  >
+                    v
+                    1
+                  </span>
+                </td>
+                <td>
+                  <div
+                    class="assets-app__row-actions"
+                  >
+                    <button
+                      aria-label="Sửa congty.vn"
+                      type="button"
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      aria-label="Xóa congty.vn"
+                      type="button"
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <footer
+          class="assets-app__boundary"
+        >
+          Kiểm tra phía trình duyệt chỉ hỗ trợ nhập liệu; API vẫn là thẩm quyền về định dạng, phiên bản và quyền.
+        </footer>
+      </section>
+    </main>
+  </div>
+</body>
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/assets-app.test.tsx:192:19
+    190|     await waitFor(() => expect(source.list).toHaveBeenCalledTimes(3));
+    191|     expect(screen.getByRole("tab", { name: "Dải IP" })).toHaveAttribut…
+    192|     expect(screen.getByText("203.0.113.0/24")).toBeInTheDocument();
+       |                   ^
+    193|     expect(screen.queryByText("congty.vn")).not.toBeInTheDocument();
+    194|     expect(screen.queryByText("Đã lưu tài sản.")).not.toBeInTheDocumen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  21:54:22
+   Duration  6.60s (tests 41%, environment 40%, setup 11%, import 5%, transform 2%)
+
+EXIT_CODE=1

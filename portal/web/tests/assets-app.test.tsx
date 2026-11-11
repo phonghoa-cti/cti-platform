@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AssetsApp } from "@/components/assets-app";
@@ -164,5 +164,34 @@ describe("W04 assets management", () => {
 
     await waitFor(() => expect(screen.getByText("203.0.113.0/24")).toBeInTheDocument());
     expect(screen.queryByText("congty.vn")).not.toBeInTheDocument();
+  });
+
+  it("does not let a completed mutation refresh overwrite a newer tab context", async () => {
+    const mutation = deferred<AssetItem>();
+    const ip: AssetItem = { ...domain, id: 2, type: "ip_range", value: "203.0.113.0/24" };
+    const source = dataSource({
+      list: vi.fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([ip])
+        .mockResolvedValueOnce([domain]),
+      create: vi.fn().mockReturnValue(mutation.promise),
+    });
+    const user = userEvent.setup();
+    render(<AssetsApp dataSource={source} />);
+    await screen.findByText(/Chưa có tên miền nào/);
+    await user.click(screen.getByRole("button", { name: "Thêm tên miền" }));
+    await user.type(screen.getByRole("textbox", { name: "Tên miền" }), "congty.vn");
+    await user.click(screen.getByRole("button", { name: "Lưu tài sản" }));
+
+    await user.click(screen.getByRole("tab", { name: "Dải IP" }));
+    expect(await screen.findByText("203.0.113.0/24")).toBeInTheDocument();
+    await act(async () => mutation.resolve(domain));
+
+    await waitFor(() => expect(source.create).toHaveBeenCalledTimes(1));
+    expect(source.list).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("tab", { name: "Dải IP" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("203.0.113.0/24")).toBeInTheDocument();
+    expect(screen.queryByText("congty.vn")).not.toBeInTheDocument();
+    expect(screen.queryByText("Đã lưu tài sản.")).not.toBeInTheDocument();
   });
 });

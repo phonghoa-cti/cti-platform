@@ -52,6 +52,7 @@ export function AssetsApp({
   const [deleteTarget, setDeleteTarget] = useState<AssetItem | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const requestRef = useRef(0);
+  const contextRef = useRef(0);
   const messages = locale === "vi" ? vi.w04 : en.w04;
 
   const load = useCallback(async (selectedType: AssetType, preserveCommitted = false) => {
@@ -77,12 +78,16 @@ export function AssetsApp({
 
   useEffect(() => {
     queueMicrotask(() => void load(type));
-    return () => { requestRef.current += 1; };
+    return () => {
+      requestRef.current += 1;
+      contextRef.current += 1;
+    };
   }, [load, type]);
 
   const switchType = (next: AssetType) => {
     if (next === type) return;
     requestRef.current += 1;
+    contextRef.current += 1;
     setType(next);
     setItems([]);
     setLoading(true);
@@ -90,6 +95,7 @@ export function AssetsApp({
     setForm(null);
     setDeleteTarget(null);
     setNotice(null);
+    setSaving(false);
   };
 
   const startCreate = () => {
@@ -115,6 +121,7 @@ export function AssetsApp({
       return;
     }
     setSaving(true);
+    const context = contextRef.current;
     setFormError(null);
     setNotice(null);
     try {
@@ -128,11 +135,13 @@ export function AssetsApp({
           expectedVersion: form.item!.version,
         });
       }
+      if (context !== contextRef.current) return;
       setForm(null);
       setNotice({ kind: "success", message: messages.saved });
       const refreshed = await load(type, true);
       if (!refreshed) setNotice({ kind: "committed-refresh", message: messages.committedRefresh });
     } catch (error) {
+      if (context !== contextRef.current) return;
       const kind = errorKind(error);
       if (kind === "conflict") {
         setFormError(messages.conflict);
@@ -145,21 +154,24 @@ export function AssetsApp({
         setFormError(messages.errors[kind] ?? messages.errors.unavailable);
       }
     } finally {
-      setSaving(false);
+      if (context === contextRef.current) setSaving(false);
     }
   };
 
   const remove = async () => {
     if (!deleteTarget || saving) return;
     setSaving(true);
+    const context = contextRef.current;
     setNotice(null);
     try {
       await source.remove(deleteTarget.id, deleteTarget.version);
+      if (context !== contextRef.current) return;
       setDeleteTarget(null);
       setNotice({ kind: "success", message: messages.deleted });
       const refreshed = await load(type, true);
       if (!refreshed) setNotice({ kind: "committed-refresh", message: messages.committedRefresh });
     } catch (error) {
+      if (context !== contextRef.current) return;
       const kind = errorKind(error);
       setDeleteTarget(null);
       if (kind === "unknown-mutation") {
@@ -170,7 +182,7 @@ export function AssetsApp({
         setNotice({ kind: "error", message: messages.errors[kind] ?? messages.errors.unavailable });
       }
     } finally {
-      setSaving(false);
+      if (context === contextRef.current) setSaving(false);
     }
   };
 
