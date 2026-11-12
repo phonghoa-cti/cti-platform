@@ -1,5 +1,7 @@
 # Phong Hỏa — quá trình và kết quả đến 12/11/2026
 
+**Cập nhật sau bản chốt này:** người dùng yêu cầu dừng lúc 11:10. Xem [bàn giao bổ sung khi tạm dừng](../2026-11-12-stop/README.md) để biết phần phát sinh sau 09:07 và trạng thái dừng cuối cùng. Nội dung bên dưới giữ nguyên mốc lịch sử.
+
 **Bản chốt lúc 08:56 giờ Việt Nam, ngày 12/11/2026. Dự án đã có nhiều luồng chạy cục bộ và được nghiệm thu từng phần; chưa hoàn thành toàn bộ MVP, chưa chạy trên lab hoặc production.** Người dùng yêu cầu đẩy kết quả hiện tại lên GitHub và ghi lại quá trình. Lượt này bảo toàn mã, lịch sử và tài liệu; không thay đổi hành vi sản phẩm.
 
 ## Đọc bản nào trước

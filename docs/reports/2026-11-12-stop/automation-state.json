@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-11-12T04:16:11Z",
+  "automations": [
+    {
+      "id": "79621896-f322-47a8-80d7-072739a2314b",
+      "name": "Phong Hỏa — tự tiếp tục việc còn mở",
+      "enabled": false,
+      "nextRunAt": null
+    },
+    {
+      "id": "a0c37aa6-ee86-4a66-9e0e-743cb76f0a9d",
+      "name": "Phong Hỏa — nối việc khi hạn mức Codex khôi phục",
+      "enabled": false,
+      "nextRunAt": null
+    }
+  ]
+}

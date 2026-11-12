@@ -1,0 +1,93 @@
+[
+  {
+    "source": "$THREADS\\12897c0e-1e4e-45ba-aa9c-fbbd7c9e4747\\PHONG-HOA-W03-S2-ACCEPTANCE-FRONTEND.md",
+    "published": "archive/threads/12897c0e-1e4e-45ba-aa9c-fbbd7c9e4747/PHONG-HOA-W03-S2-ACCEPTANCE-FRONTEND.md",
+    "source_sha256": "1cb5118f3ce4a71c14dd49039f0d47919c36554821a52772aaec7d5c4b809ee6",
+    "published_sha256": "5cdb4cff9d96b648c9ac4362b3ee6da65d145a3826d2b4e17078d37b495119c4",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\12897c0e-1e4e-45ba-aa9c-fbbd7c9e4747\\PHONG-HOA-W03-S2-BACKEND-R1-RESULT.md",
+    "published": "archive/threads/12897c0e-1e4e-45ba-aa9c-fbbd7c9e4747/PHONG-HOA-W03-S2-BACKEND-R1-RESULT.md",
+    "source_sha256": "84e125691f4578da7980f6da8353b7e7e4fa2da835419baea126154f662444a1",
+    "published_sha256": "84e125691f4578da7980f6da8353b7e7e4fa2da835419baea126154f662444a1",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\12897c0e-1e4e-45ba-aa9c-fbbd7c9e4747\\PHONG-HOA-W03-S2-R1-RESUME.md",
+    "published": "archive/threads/12897c0e-1e4e-45ba-aa9c-fbbd7c9e4747/PHONG-HOA-W03-S2-R1-RESUME.md",
+    "source_sha256": "3990953e81a6e46a51432dc9c8eebf4104932d9d3e42b04d9a39246f3b7cd350",
+    "published_sha256": "ac1baad391adda89d866da38c763ae0e947d1abe14801a7085fa54b450159ee2",
+    "change": "new"
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-GITHUB-PUBLICATION-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-GITHUB-PUBLICATION-20261112.md",
+    "source_sha256": "fe39fce1d1177e727fd5311c382fe56de3772f79678c6dbba7e982159a9aebf8",
+    "published_sha256": "26cc7c822cc76c0adc87a94019de383016640141f78f202d53aa17e067310937",
+    "change": "new"
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-S2-FRONTEND-STOP-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-S2-FRONTEND-STOP-20261112.md",
+    "source_sha256": "85c0c15a3dae62c4a8e72f028a80ffc3607f9ec0b977e6f3b714f74050bb9f17",
+    "published_sha256": "f9f3388e03731d63a9d9eeef1f28636f61fa2cb211f49283f82d822bb962628b",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\9ab7082c-db6a-43f8-a0f5-41f731c1fac0\\PHONG-HOA-W03-S2-FINISH-BRIEF.md",
+    "published": "archive/threads/9ab7082c-db6a-43f8-a0f5-41f731c1fac0/PHONG-HOA-W03-S2-FINISH-BRIEF.md",
+    "source_sha256": "ea9bd5e6e669a93393237988317b1f06f6093243a7dcc108a1b3de9c8d336f44",
+    "published_sha256": "a4fffe63b2c515447bab540761559827a4f2143768bac410d151d8efa01298a5",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\9ab7082c-db6a-43f8-a0f5-41f731c1fac0\\PHONG-HOA-W03-S2-REVIEW-R1.md",
+    "published": "archive/threads/9ab7082c-db6a-43f8-a0f5-41f731c1fac0/PHONG-HOA-W03-S2-REVIEW-R1.md",
+    "source_sha256": "208c573456382b514ce9e8bbc81f6f6268d4f4c8aed132ba146588ae150dc00e",
+    "published_sha256": "6691af52c21b2e68069083d5bda606abd71c9017a3642cd26f754708719c900e",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\ac95b575-9df8-4f39-bb20-f27be0abf7e9\\PHONG-HOA-W03-S1-CLOSEOUT-RESULT.md",
+    "published": "archive/threads/ac95b575-9df8-4f39-bb20-f27be0abf7e9/PHONG-HOA-W03-S1-CLOSEOUT-RESULT.md",
+    "source_sha256": "7ad34f1a1e64c321a93458542f9206b870f0943c7c454e539ae4fbd57c44411f",
+    "published_sha256": "ce189b5a6185f54e368b55b2e74b776288abf0245331a4a4cac6b286f03a771c",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\ac95b575-9df8-4f39-bb20-f27be0abf7e9\\PHONG-HOA-W03-S2-RESEARCH.md",
+    "published": "archive/threads/ac95b575-9df8-4f39-bb20-f27be0abf7e9/PHONG-HOA-W03-S2-RESEARCH.md",
+    "source_sha256": "72e3c504e6c230908e1d6566cf2cdb1e30ab577962b8cead1708dcde66566df4",
+    "published_sha256": "2fd86d031be2585a0d39d54100f732b53d9c0beced0ce7a69a02f445402dcf45",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\c10d07c4-917a-4f70-bd33-56abccf3066d\\PHONG-HOA-W03-CONTINUATION-RECOVERY-20261112.md",
+    "published": "archive/threads/c10d07c4-917a-4f70-bd33-56abccf3066d/PHONG-HOA-W03-CONTINUATION-RECOVERY-20261112.md",
+    "source_sha256": "33e2d4f759598d9e94bc093a371cb93b709e39acdcb6b09c55e8fd0ed1c23756",
+    "published_sha256": "af719795194e884acf3ec7a5764b3764ce5aaae5aef92663160e9033bb7cb636",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\c10d07c4-917a-4f70-bd33-56abccf3066d\\PHONG-HOA-W03-S2-BACKEND-RESULT.md",
+    "published": "archive/threads/c10d07c4-917a-4f70-bd33-56abccf3066d/PHONG-HOA-W03-S2-BACKEND-RESULT.md",
+    "source_sha256": "f75ea13ffdf70cf89dca0bb2e4d75ef50824df0a4938a05a15472eec8db8b5fe",
+    "published_sha256": "f75ea13ffdf70cf89dca0bb2e4d75ef50824df0a4938a05a15472eec8db8b5fe",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\c10d07c4-917a-4f70-bd33-56abccf3066d\\PHONG-HOA-W03-S2-DECISION-AND-BACKEND-BRIEF.md",
+    "published": "archive/threads/c10d07c4-917a-4f70-bd33-56abccf3066d/PHONG-HOA-W03-S2-DECISION-AND-BACKEND-BRIEF.md",
+    "source_sha256": "e22226496a51ab391daeecb3447390e39eada8425e74e398eed701e179ca74d4",
+    "published_sha256": "379e206ce173783bf3fd77a40379895de74861b8aec91f8729456ff4d0909612",
+    "change": "new"
+  },
+  {
+    "source": "$THREADS\\f6e858a6-2a08-4728-bf81-8f861fcaeace\\PHONG-HOA-W03-S2-BACKEND-RECOVERY.md",
+    "published": "archive/threads/f6e858a6-2a08-4728-bf81-8f861fcaeace/PHONG-HOA-W03-S2-BACKEND-RECOVERY.md",
+    "source_sha256": "6ef7c5c271f616854fefa192ec31eaf1ff3fd7783cdc85e47b5c97058ebaacc7",
+    "published_sha256": "4dee7eb09bc12747b3d85859f4153e774032af695002981e832f953aa12e9155",
+    "change": "new"
+  }
+]
