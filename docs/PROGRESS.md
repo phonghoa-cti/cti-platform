@@ -1,6 +1,15 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 11/11/2026
+Cập nhật lần cuối: 12/11/2026
+
+## 12/11/2026 — W03-S2 Backend read model trạng thái
+
+- Thêm route opt-in `GET /api/cves/status-view`: detail ghép status theo relation, Leader nhận projection lược;
+  filter status trước paging, bộ đếm actionable/quá hạn theo ngày UTC và cursor riêng phát hiện drift.
+- Technology và status được đọc trong một transaction/một connection SQLite chỉ đọc; GET không migrate/audit/ghi.
+  Fixture detail/Leader/error và test writer thật giữa hai phép đọc dùng dữ liệu/JWT/DB tổng hợp cục bộ.
+- Giữ nguyên W03-R/W03-S1/technology/auth. Chưa kiểm gateway/frontend/browser, feed/OpenCTI, Cloudflare/JWKS/HTTPS,
+  lab hay production; status người dùng ghi nhận không chứng minh đã vá.
 
 ## 12/11/2026 — W03-S1 Frontend trạng thái theo quan hệ
 

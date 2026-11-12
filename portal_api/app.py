@@ -46,6 +46,14 @@ from portal_api.cves_status import (
     StatusVersionConflict,
     validate_status_request_body,
 )
+from portal_api.cves_status_view import (
+    CveStatusSnapshotChanged,
+    CveStatusTechnologyNotFound,
+    CveStatusViewService,
+    CveStatusViewUnavailable,
+    InvalidCveStatusQuery,
+    parse_cve_status_query,
+)
 from portal_api.ioc_lookup import (
     InvalidIoc,
     IocLookupPort,
@@ -223,6 +231,7 @@ def create_app(
     technology_store: TechnologyStore | None = None,
     cve_port: CveReadPort | None = None,
     cve_status_store: CveStatusStore | None = None,
+    cve_status_view_clock: Any | None = None,
 ) -> FastAPI:
     """Tạo app; cấu hình đã được Settings kiểm fail-closed trước đó."""
 
@@ -235,6 +244,16 @@ def create_app(
     )
     cve_status_service = (
         None if cve_port is None or cve_status_store is None else CveStatusService(cve_port, cve_status_store)
+    )
+    cve_status_view_service = (
+        None
+        if (
+            cve_port is None
+            or cve_status_store is None
+            or technology_store is None
+            or cve_status_store.path.resolve() != technology_store.path.resolve()
+        )
+        else CveStatusViewService(cve_port, cve_status_store, clock=cve_status_view_clock)
     )
 
     @app.middleware("http")
@@ -468,6 +487,30 @@ def create_app(
         except CveSnapshotChanged as exc:
             raise ApiFailure(409, "cve_snapshot_changed", "Dữ liệu lỗ hổng đã thay đổi") from exc
         except CvesUnavailable as exc:
+            raise ApiFailure(503, "cves_unavailable", "Dịch vụ lỗ hổng tạm thời không sẵn sàng") from exc
+
+    @app.get("/api/cves/status-view")
+    def list_cves_status_view(
+        request: Request,
+        principal: Principal = Depends(require_cves_role),  # noqa: B008
+    ):
+        view = "detail" if principal.roles.intersection(LOOKUP_ROLES) else "summary"
+        if view == "summary" and ("asset_id" in request.query_params or "status" in request.query_params):
+            raise ApiFailure(403, "forbidden", "Tài khoản chưa được cấp quyền lọc trạng thái")
+        try:
+            query = parse_cve_status_query(request, view)
+            if cve_status_view_service is None:
+                raise CveStatusViewUnavailable("status view not configured")
+            return cve_status_view_service.read(query, view)
+        except InvalidCveStatusQuery as exc:
+            raise ApiFailure(
+                422, "invalid_cve_status_query", "Query trạng thái lỗ hổng không hợp lệ"
+            ) from exc
+        except CveStatusTechnologyNotFound as exc:
+            raise ApiFailure(404, "technology_not_found", "Không tìm thấy công nghệ") from exc
+        except CveStatusSnapshotChanged as exc:
+            raise ApiFailure(409, "status_snapshot_changed", "Dữ liệu trạng thái đã thay đổi") from exc
+        except CveStatusViewUnavailable as exc:
             raise ApiFailure(503, "cves_unavailable", "Dịch vụ lỗ hổng tạm thời không sẵn sàng") from exc
 
     @app.get("/api/cves/{cve_id}/technologies/{technology_id}/status")

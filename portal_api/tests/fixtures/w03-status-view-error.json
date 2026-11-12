@@ -1,0 +1,5 @@
+{
+  "status": 422,
+  "headers": {"cache-control": "no-store", "vary": "Cf-Access-Jwt-Assertion"},
+  "body": {"error": {"code": "invalid_cve_status_query", "message": "Query trạng thái lỗ hổng không hợp lệ"}}
+}
