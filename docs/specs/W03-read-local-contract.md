@@ -29,8 +29,8 @@ Fixture tối đa 4 MiB, 0..1.000 candidate, mỗi candidate 1..20 product. Adap
 HTTPS URL (authority phải parse được, có hostname, port hợp lệ, không credential/whitespace/backslash/escape),
 bool không nhận số, số hữu hạn, quan hệ null và duplicate trước khi trả bất kỳ kết quả nào. Không có DNS/live
 request khi kiểm URL. KEV
-overlay phải đánh dấu đầy đủ; affected vendor/product đều 1..128 code point và nguồn KEV fixture phải đúng nhãn
-`CISA KEV synthetic sample`. `false` chỉ có nghĩa không nằm trong snapshot mẫu.
+overlay phải đánh dấu đầy đủ; affected vendor là 1..128 và affected product là 1..256 Unicode code point;
+nguồn KEV fixture phải đúng nhãn `CISA KEV synthetic sample`. `false` chỉ có nghĩa không nằm trong snapshot mẫu.
 
 Detail item có CVE/source scores, `matches` tăng theo `technology_id` và `priority`. Summary item chỉ có
 `cve_id,title,kev,epss_score,cvss_base_score,priority,match_count`; không có metadata technology. Tổng kết được

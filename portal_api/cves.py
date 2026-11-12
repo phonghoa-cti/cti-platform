@@ -323,7 +323,7 @@ def _product(value: object) -> dict[str, str]:
     if not isinstance(value, dict) or set(value) != {"vendor", "product"}:
         raise CvesUnavailable("invalid product")
     vendor = _text(value["vendor"], 128)
-    product = _text(value["product"], 128)
+    product = _text(value["product"], 256)
     return {
         "vendor": vendor,
         "product": product,
