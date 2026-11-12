@@ -9,8 +9,10 @@ Cập nhật lần cuối: 11/11/2026
 - Giới hạn: mới kiểm thử component/provider cục bộ; chưa kiểm browser với Backend thật, gateway, lab hoặc production.
 - W03 product boundary Backend: affected product trong dataset/read được nâng riêng từ 128 lên 256 Unicode code
   point để khớp W04; vendor vẫn 128 và trim/control/policy không đổi. Test API cục bộ kiểm 128/129/256,
-  257 fail-closed, astral, vendor/control và chuỗi GET/PUT/history product256 có đúng một audit. Capture tích hợp
-  product256 hiện chưa được sửa/kiểm lại; gateway/browser/feed/OpenCTI/lab/production vẫn chưa được kiểm.
+  257 fail-closed, astral, vendor/control và chuỗi GET/PUT/history product256 có đúng một audit. Candidate tích hợp
+  `867bdca` đã kiểm HTTP capture thật và parser production với product256 astral; product257/vendor129 fail-closed,
+  fixture LF đạt trên checkout Git mới có `core.autocrlf=true`. Browser A/B dùng lại bằng chứng đã nghiệm thu trước;
+  feed/OpenCTI/lab/production vẫn chưa được kiểm.
 
 ## Mốc
 | Mốc | Hạn | Trạng thái |
@@ -210,8 +212,8 @@ Cập nhật lần cuối: 11/11/2026
   status-history không nhận hoặc tiêu thụ bộ đếm. Probe gateway và ma trận HTTP/SQLite có request xen kẽ chứng minh
   từng scenario vẫn chỉ một PUT, một status, một audit và phục hồi hữu hạn; phạm vi chưa ghép UI/browser không đổi.
 - W03-S1 tích hợp status chặng A: frontend đã ghép cục bộ và wire capture API thật được parser/provider production
-  đọc với Unicode, note 1000, actor 512, vendor/version 128, history 100+cursor; product context mới chứng minh 128,
-  còn 256 không biểu diễn được qua dataset CVE đang giới hạn 128 và được giữ là blocker thay vì sửa contract. Browser
+  đọc với Unicode, note 1000, actor 512, vendor/version 128, history 100+cursor. Delta `867bdca` bổ sung product256
+  astral qua HTTP capture và parser production, đồng thời giữ product257/vendor129 fail-closed. Browser
   desktop 1280×720 đã chứng minh known-commit PUT200, GET `503→503→200`, lỗi tạm thời vẫn giữ notice đã lưu và
   đóng/mở chi tiết trong cùng trang phục hồi với đúng một status/audit. Unknown-outcome reentry cùng trang còn
   PENDING; mobile, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab và production chưa kiểm.
