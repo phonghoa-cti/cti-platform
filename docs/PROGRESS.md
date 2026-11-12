@@ -211,6 +211,10 @@ Cập nhật lần cuối: 11/11/2026
   desktop 1280×720 đã chứng minh known-commit PUT200, GET `503→503→200`, lỗi tạm thời vẫn giữ notice đã lưu và
   đóng/mở chi tiết trong cùng trang phục hồi với đúng một status/audit. Unknown-outcome reentry cùng trang còn
   PENDING; mobile, feed/OpenCTI, Cloudflare/JWKS/HTTPS, lab và production chưa kiểm.
+- W03-S1 chặng B rework thêm scenario helper riêng cho unknown-outcome sau commit với đúng hai GET status lỗi trên
+  exact relation trước khi phục hồi; regression focused chứng minh `PUT503 → GET503 → GET503 → GET200`, đúng một
+  PUT, một status và một audit. Đây là fault tổng hợp có điều khiển phục vụ browser evidence, không đổi UI/Backend,
+  hợp đồng product128/256 hoặc phạm vi lab/production.
 
 ## Vướng mắc
 - Bộ version mới chỉ được kiểm cấu hình; chưa pull image, boot service hoặc chứng minh tương thích/runtime trên lab

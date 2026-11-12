@@ -110,6 +110,7 @@ W03_STATUS_SCENARIOS = frozenset(
         "w03-status-missing-token",
         "w03-status-known-commit",
         "w03-status-unknown-outcome",
+        "w03-status-unknown-reentry",
     }
 )
 SCENARIOS = (
@@ -272,6 +273,7 @@ class LocalRun:
             "w03-status-it",
             "w03-status-known-commit",
             "w03-status-unknown-outcome",
+            "w03-status-unknown-reentry",
         }:
             subject = "it-sub"
         elif self.scenario in {
@@ -559,6 +561,9 @@ class LocalRun:
             if self.scenario == "w03-status-known-commit":
                 env["W03_FAIL_STATUS_GET_COUNT"] = "2"
             if self.scenario == "w03-status-unknown-outcome":
+                env["W03_FAIL_STATUS_MUTATION_RESPONSE_ONCE"] = "1"
+            if self.scenario == "w03-status-unknown-reentry":
+                env["W03_FAIL_STATUS_GET_COUNT"] = "2"
                 env["W03_FAIL_STATUS_MUTATION_RESPONSE_ONCE"] = "1"
             if self.trace_path is not None:
                 self.trace_path.parent.mkdir(parents=True, exist_ok=True)

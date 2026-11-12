@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import json
 import socket
+import sqlite3
 import subprocess
 import time
+from contextlib import closing
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -200,6 +203,42 @@ def test_w03_status_runner_can_capture_actor_at_validator_boundary() -> None:
 
         assert response.status_code == 200
         assert response.json()["record"]["updated_by"] == actor
+
+
+def test_w03_status_unknown_reentry_fails_two_exact_gets_then_recovers(
+    tmp_path: Path,
+) -> None:
+    trace_path = tmp_path / "unknown-reentry-trace.jsonl"
+    with LocalRun(
+        "w03-status-unknown-reentry",
+        duration_seconds=20,
+        start_ui=False,
+        trace_path=trace_path,
+    ) as run:
+        status_url = f"{run.url}/api/cves/CVE-2026-2001/technologies/1/status"
+        context = httpx.get(status_url, timeout=2).json()["context"]
+        mutation = httpx.put(
+            status_url,
+            headers={"Origin": run.url},
+            json={
+                "status": "patching",
+                "note": "unknown reentry",
+                "expected_status_version": 0,
+                "expected_technology_record_version": context["technology_record_version"],
+                "expected_dataset_id": context["dataset_id"],
+            },
+            timeout=2,
+        )
+        statuses = [httpx.get(status_url, timeout=2).status_code for _ in range(3)]
+        with closing(sqlite3.connect(run.db_path)) as connection:
+            status_count = connection.execute("SELECT COUNT(*) FROM cve_status_records").fetchone()[0]
+            audit_count = connection.execute("SELECT COUNT(*) FROM cve_status_audit").fetchone()[0]
+
+    trace = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    assert mutation.status_code == 503
+    assert statuses == [503, 503, 200]
+    assert sum(row["method"] == "PUT" for row in trace) == 1
+    assert status_count == audit_count == 1
 
 
 def test_selection_scenario_adds_two_ioc_fixture_without_changing_legacy_fixtures() -> None:

@@ -139,6 +139,7 @@ def test_browser_helper_accepts_only_bounded_w03_browser_scenarios() -> None:
         "w03-status-it",
         "w03-status-known-commit",
         "w03-status-unknown-outcome",
+        "w03-status-unknown-reentry",
     }.issubset(ALLOWED_SCENARIOS)
 
 

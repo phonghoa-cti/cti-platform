@@ -31,6 +31,7 @@ ALLOWED_SCENARIOS = (
     "w03-status-it",
     "w03-status-known-commit",
     "w03-status-unknown-outcome",
+    "w03-status-unknown-reentry",
 )
 
 
