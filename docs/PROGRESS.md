@@ -6,6 +6,8 @@ Cập nhật lần cuối: 12/11/2026
 
 - Thêm route opt-in `GET /api/cves/status-view`: detail ghép status theo relation, Leader nhận projection lược;
   filter status trước paging, bộ đếm actionable/quá hạn theo ngày UTC và cursor riêng phát hiện drift.
+- R1 siết cursor trước dependency: từ chối type sai, số JSON không hữu hạn, ngày lịch không tồn tại và Unicode
+  surrogate bằng 422; test tách riêng drift dataset/Technology/status/ngày UTC để mỗi 409 có nguyên nhân độc lập.
 - Technology và status được đọc trong một transaction/một connection SQLite chỉ đọc; GET không migrate/audit/ghi.
   Fixture detail/Leader/error và test writer thật giữa hai phép đọc dùng dữ liệu/JWT/DB tổng hợp cục bộ.
 - Giữ nguyên W03-R/W03-S1/technology/auth. Chưa kiểm gateway/frontend/browser, feed/OpenCTI, Cloudflare/JWKS/HTTPS,

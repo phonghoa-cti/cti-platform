@@ -10,7 +10,7 @@ import sqlite3
 import unicodedata
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from portal_api.cves import (
     CVE_ID,
@@ -336,10 +336,11 @@ def _decode_cursor(value):
         raise InvalidCveStatusQuery("invalid cursor")
     try:
         raw = base64.b64decode(value + "=" * (-len(value) % 4), altchars=b"-_", validate=True)
-        parsed = json.loads(raw.decode("utf-8"))
-    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        parsed = json.loads(raw.decode("utf-8"), parse_constant=_reject_json_constant)
+        canonical = _canonical_bytes(parsed)
+    except (TypeError, ValueError, UnicodeDecodeError, UnicodeEncodeError, json.JSONDecodeError) as exc:
         raise InvalidCveStatusQuery("invalid cursor") from exc
-    if base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii") != value or raw != _canonical_bytes(parsed):
+    if base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii") != value or raw != canonical:
         raise InvalidCveStatusQuery("noncanonical cursor")
     if (
         not isinstance(parsed, dict)
@@ -366,13 +367,21 @@ def _decode_cursor(value):
         or not re.fullmatch(r"sha256:[0-9a-f]{64}", snapshot["dataset_id"])
         or not re.fullmatch(r"[0-9a-f]{64}", snapshot["technologies"])
         or not re.fullmatch(r"[0-9a-f]{64}", snapshot["statuses"])
-        or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", snapshot["as_of_date"])
+        or not _valid_wire_date(snapshot["as_of_date"])
+        or not isinstance(context["domain"], str)
         or context["domain"] != CURSOR_KIND
+        or not isinstance(context["view"], str)
         or context["view"] not in {"detail", "summary"}
-        or context["kev"] not in {None, True, False}
-        or (context["asset_id"] is not None and type(context["asset_id"]) is not int)
-        or (context["q"] is not None and not isinstance(context["q"], str))
-        or (context["status"] is not None and context["status"] not in STATUS_FILTERS)
+        or (context["kev"] is not None and type(context["kev"]) is not bool)
+        or (
+            context["asset_id"] is not None
+            and (type(context["asset_id"]) is not int or not 1 <= context["asset_id"] <= JSON_SAFE_INTEGER)
+        )
+        or not _valid_context_q(context["q"])
+        or (
+            context["status"] is not None
+            and (not isinstance(context["status"], str) or context["status"] not in STATUS_FILTERS)
+        )
         or type(context["limit"]) is not int
         or not 1 <= context["limit"] <= 100
     ):
@@ -393,3 +402,28 @@ def _decimal(value, maximum):
 
 def _has_control(value):
     return any(unicodedata.category(char) in {"Cc", "Cs"} for char in value)
+
+
+def _reject_json_constant(_value):
+    raise ValueError("nonfinite JSON number")
+
+
+def _valid_wire_date(value):
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        return False
+    try:
+        return date.fromisoformat(value).isoformat() == value
+    except ValueError:
+        return False
+
+
+def _valid_context_q(value):
+    if value is None:
+        return True
+    if not isinstance(value, str) or not 1 <= len(value) <= 128 or _has_control(value):
+        return False
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True

@@ -186,6 +186,11 @@ def _encode(value):
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
 
 
+def _encode_untrusted(value):
+    raw = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode()
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
 def _wire(response):
     return {
         "status": response.status_code,
@@ -301,6 +306,78 @@ def test_cursor_context_cross_route_and_snapshot_changes(tmp_path, rsa_keys):
     assert all(
         (item.status_code, item.json()["error"]["code"]) == (409, "status_snapshot_changed")
         for item in (date_changed, status_changed, dataset_changed, technology_changed)
+    )
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "value"),
+    [
+        ("context", "view", []),
+        ("context", "kev", {}),
+        ("context", "status", []),
+        ("context", "kev", 1),
+        ("snapshot", "as_of_date", "2026-99-99"),
+        ("context", "kev", float("nan")),
+        ("context", "q", "\ud800"),
+    ],
+    ids=[
+        "view-array",
+        "kev-object",
+        "status-array",
+        "kev-integer",
+        "impossible-date",
+        "nonfinite-number",
+        "unpaired-surrogate",
+    ],
+)
+def test_invalid_cursor_fields_are_422_before_dependency_and_do_not_write(
+    tmp_path, rsa_keys, section, field, value
+):
+    client, key, _technology, status_store, port, _first, _second = _setup(tmp_path, rsa_keys)
+    initial = _get(client, key, "?kev=true&limit=1")
+    cursor = initial.json()["page"]["next_cursor"]
+    control = _get(client, key, f"?kev=true&limit=1&cursor={cursor}")
+    mutated = _decode(cursor)
+    mutated[section][field] = value
+    before = _db_snapshot(status_store.path)
+    calls_before = port.calls
+
+    response = _get(client, key, f"?kev=true&limit=1&cursor={_encode_untrusted(mutated)}")
+
+    assert control.status_code == 200
+    assert (response.status_code, response.json()["error"]["code"]) == (
+        422,
+        "invalid_cve_status_query",
+    )
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"].lower() == "cf-access-jwt-assertion"
+    assert port.calls == calls_before
+    assert _db_snapshot(status_store.path) == before
+
+
+@pytest.mark.parametrize("drift", ["status", "dataset", "technology", "utc-date"])
+def test_each_cursor_snapshot_drift_is_independently_409(tmp_path, rsa_keys, drift):
+    day = [datetime(2026, 11, 12, tzinfo=UTC)]
+    client, key, technology, status_store, port, first, _second = _setup(
+        tmp_path, rsa_keys, clock=lambda: day[0]
+    )
+    initial = _get(client, key, "?limit=1")
+    cursor = initial.json()["page"]["next_cursor"]
+
+    if drift == "status":
+        _insert_status(status_store, first, "open", cve_id="CVE-2026-3002")
+    elif drift == "dataset":
+        port.dataset["candidates"].append(_candidate("CVE-2026-3999"))
+    elif drift == "technology":
+        technology.update(first.id, "Fortinet", "FortiOS", "7.2.1", "private", first.version, "seed")
+    else:
+        day[0] = datetime(2026, 11, 13, tzinfo=UTC)
+
+    response = _get(client, key, f"?limit=1&cursor={cursor}")
+
+    assert (response.status_code, response.json()["error"]["code"]) == (
+        409,
+        "status_snapshot_changed",
     )
 
 
