@@ -116,7 +116,7 @@ def main() -> int:
         observed["unavailable"] = unavailable.status_code
         write(output / "unavailable.json", unavailable.json())
 
-    product_256 = "Sản phẩm " + "P" * (256 - len("Sản phẩm "))
+    product_256 = "😀" * 256
     with LocalRun("w03-status-it", duration_seconds=30, start_ui=False) as run:
         changed = request(
             "PUT",
@@ -127,7 +127,7 @@ def main() -> int:
                 "vendor": "Fortinet",
                 "product": product_256,
                 "software_version": "7.4.2",
-                "note": "Repro product 256",
+                "note": "Wire product 256",
                 "expected_version": 1,
             },
         )
@@ -137,26 +137,59 @@ def main() -> int:
         candidate = next(item for item in fixture["candidates"] if item["cve_id"] == "CVE-2026-2001")
         candidate["affected_products"] = [{"vendor": "Fortinet", "product": product_256}]
         write(run.cve_fixture_path, fixture)
-        loader_error = None
+        _validate_dataset(FixtureCveReadPort(run.cve_fixture_path).list_candidates())
+        product_status = request("GET", run.url, STATUS)
+        if product_status.status_code != 200:
+            raise RuntimeError(f"product 256 status failed: {product_status.status_code}")
+        observed["product_256"] = product_status.status_code
+        write(output / "product-256.json", product_status.json())
+
+        candidate["affected_products"] = [{"vendor": "Fortinet", "product": product_256 + "P"}]
+        write(run.cve_fixture_path, fixture)
         try:
             _validate_dataset(FixtureCveReadPort(run.cve_fixture_path).list_candidates())
-        except CvesUnavailable as exc:
-            loader_error = str(exc)
-        if loader_error is None:
-            raise RuntimeError("product 256 unexpectedly passed CVE dataset validation")
-        product_status = request("GET", run.url, STATUS)
-        if product_status.status_code != 503:
-            raise RuntimeError(f"product 256 status repro changed: {product_status.status_code}")
-        observed["product_256_repro"] = product_status.status_code
-        write(
-            output / "product-256-repro.json",
-            {
-                "product_length": len(product_256),
-                "technology_update": {"status": changed.status_code, "body": changed.json()},
-                "loader_error": loader_error,
-                "status_read": {"status": product_status.status_code, "body": product_status.json()},
+        except CvesUnavailable:
+            pass
+        else:
+            raise RuntimeError("product 257 unexpectedly passed CVE dataset validation")
+        product_257 = request("GET", run.url, STATUS)
+        if product_257.status_code != 503:
+            raise RuntimeError(f"product 257 status changed: {product_257.status_code}")
+        observed["product_257"] = product_257.status_code
+        write(output / "product-257-rejected.json", product_257.json())
+
+    vendor_128 = "V" * 128
+    with LocalRun("w03-status-it", duration_seconds=30, start_ui=False) as run:
+        changed = request(
+            "PUT",
+            run.url,
+            "/api/assets/technologies/1",
+            headers={"Origin": run.url},
+            json={
+                "vendor": vendor_128,
+                "product": "FortiOS",
+                "software_version": "7.4.2",
+                "note": "Wire vendor boundary",
+                "expected_version": 1,
             },
         )
+        if changed.status_code != 200:
+            raise RuntimeError(f"vendor 128 technology setup failed: {changed.status_code}")
+        fixture = json.loads(run.cve_fixture_path.read_text(encoding="utf-8"))
+        candidate = next(item for item in fixture["candidates"] if item["cve_id"] == "CVE-2026-2001")
+        candidate["affected_products"] = [{"vendor": vendor_128 + "V", "product": "FortiOS"}]
+        write(run.cve_fixture_path, fixture)
+        try:
+            _validate_dataset(FixtureCveReadPort(run.cve_fixture_path).list_candidates())
+        except CvesUnavailable:
+            pass
+        else:
+            raise RuntimeError("vendor 129 unexpectedly passed CVE dataset validation")
+        vendor_129 = request("GET", run.url, STATUS)
+        if vendor_129.status_code != 503:
+            raise RuntimeError(f"vendor 129 status changed: {vendor_129.status_code}")
+        observed["vendor_129"] = vendor_129.status_code
+        write(output / "vendor-129-rejected.json", vendor_129.json())
 
     actor = "a" * 512
     vendor = "Nhà cung cấp " + "V" * (128 - len("Nhà cung cấp "))
@@ -231,7 +264,9 @@ def main() -> int:
         "review_required": 200,
         "conflict": 409,
         "unavailable": 503,
-        "product_256_repro": 503,
+        "product_256": 200,
+        "product_257": 503,
+        "vendor_129": 503,
         "boundary_status": 200,
         "history_100": 200,
         "history_tail": 200,
@@ -241,7 +276,7 @@ def main() -> int:
     write(
         output / "manifest.json",
         {
-            "status": "PARTIAL",
+            "status": "PASS",
             "capture_status": "PASS",
             "responses": observed,
             "boundaries": {
@@ -249,11 +284,12 @@ def main() -> int:
                 "history_first_items": len(history_100.json()["items"]),
                 "history_tail_items": len(history_tail.json()["items"]),
                 "note": len(boundary_note),
-                "product": len(product),
-                "product_requested": len(product_256),
-                "product_blocker": "CVE dataset product validation is capped at 128",
+                "product_existing_boundary": len(product),
+                "product": len(product_256),
+                "product_rejected": len(product_256) + 1,
                 "software_version": len(software_version),
                 "vendor": len(vendor),
+                "vendor_rejected": len(vendor_128) + 1,
             },
         },
     )

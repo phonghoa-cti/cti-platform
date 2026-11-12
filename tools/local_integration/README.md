@@ -176,6 +176,5 @@ npm test -- --run tests/cve-status-wire-capture.test.ts
 
 Khi `W03_STATUS_WIRE_REQUIRED=1`, env thiếu, thư mục có thật nhưng thiếu fixture, hoặc JSON hỏng đều phải làm
 test thoát khác 0. Capture có response Unicode thật, note 1000, actor 512, vendor/version 128 và history
-`limit=100` với cursor. Product trong context mới chứng minh đến 128: loader dataset CVE giới hạn product 128,
-trong khi technology/context cho phép 256, nên product 256 hiện cho `status_unavailable`; đây là giới hạn bằng
-chứng, không được đổi contract để làm test xanh.
+`limit=100` với cursor. Capture cũng đưa product 256 ký tự Unicode astral qua API thật và parser production;
+product 257 cùng vendor 129 phải fail-closed với `status_unavailable`.
