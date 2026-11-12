@@ -1,0 +1,2893 @@
+[
+  {
+    "source": "$THREADS\\102946c8-01cf-40a3-9c75-59bd886ca4ec\\PHONG-HOA-W03-CONTINUATION-20261112-0726.md",
+    "published": "archive/threads/102946c8-01cf-40a3-9c75-59bd886ca4ec/PHONG-HOA-W03-CONTINUATION-20261112-0726.md",
+    "source_sha256": "13d6b1464187cc123f50dc3a43d560a561f3c6e470ded1cc7551fb5b1083cc0c",
+    "published_sha256": "13d6b1464187cc123f50dc3a43d560a561f3c6e470ded1cc7551fb5b1083cc0c",
+    "bytes": 2554
+  },
+  {
+    "source": "$THREADS\\4431b864-0d00-4d10-93c9-a10bcad43317\\PHONG-HOA-W03-BACKEND-QA-BRIEF-20261112.md",
+    "published": "archive/threads/4431b864-0d00-4d10-93c9-a10bcad43317/PHONG-HOA-W03-BACKEND-QA-BRIEF-20261112.md",
+    "source_sha256": "d54db9e267a4c292c478cdc65888be883845ca58327ed56c9f4298dc5a2aca66",
+    "published_sha256": "a57ddab36205ea693c1ad33d5ce73ab43b14125fbb02bf69d6b2b8ddb8d4c6cd",
+    "bytes": 3571
+  },
+  {
+    "source": "$THREADS\\4431b864-0d00-4d10-93c9-a10bcad43317\\PHONG-HOA-W03-BACKEND-QA-RESULT.md",
+    "published": "archive/threads/4431b864-0d00-4d10-93c9-a10bcad43317/PHONG-HOA-W03-BACKEND-QA-RESULT.md",
+    "source_sha256": "a7e4f98dadf06aa43ddf76a9b2b422e90ec695a78ada01e241e5883b487c1ea0",
+    "published_sha256": "e3382e8f4179ab9d5fb4ba10a45600f8f8deef239367a93a5706149dfb2647b5",
+    "bytes": 6486
+  },
+  {
+    "source": "$THREADS\\4431b864-0d00-4d10-93c9-a10bcad43317\\PHONG-HOA-W03-FRONTEND-QA-BRIEF-20261112.md",
+    "published": "archive/threads/4431b864-0d00-4d10-93c9-a10bcad43317/PHONG-HOA-W03-FRONTEND-QA-BRIEF-20261112.md",
+    "source_sha256": "858b0f1b0369aaac20a7c4aaaa02afaf0139b5a84bb651bc6c3c6252e7496af7",
+    "published_sha256": "8b6139cccbd58798d026efd44d9f31964c4e33c14ffaef3f2d9520eadb6f685c",
+    "bytes": 4681
+  },
+  {
+    "source": "$THREADS\\4431b864-0d00-4d10-93c9-a10bcad43317\\PHONG-HOA-W03-FRONTEND-QA-RESULT.md",
+    "published": "archive/threads/4431b864-0d00-4d10-93c9-a10bcad43317/PHONG-HOA-W03-FRONTEND-QA-RESULT.md",
+    "source_sha256": "069d7a21d4aa5567d7e41a4bff2a1784ca4a75f4434e2de356d9db4e0ef0fc75",
+    "published_sha256": "1987437d4164740a57b0dc1893829b05db6b650191082fb5b822eccf050d85e2",
+    "bytes": 6036
+  },
+  {
+    "source": "$THREADS\\4431b864-0d00-4d10-93c9-a10bcad43317\\PHONG-HOA-W03-FRONTEND-REWORK-BRIEF-20261112.md",
+    "published": "archive/threads/4431b864-0d00-4d10-93c9-a10bcad43317/PHONG-HOA-W03-FRONTEND-REWORK-BRIEF-20261112.md",
+    "source_sha256": "f157a67ef7bae0c768dfe5a3054067e832388487974b6fe56b12de1e9f742a26",
+    "published_sha256": "c5d429465b2d117e351e587c37dc7d3c2120c36daf49850c603251cbb93730ee",
+    "bytes": 3515
+  },
+  {
+    "source": "$THREADS\\4431b864-0d00-4d10-93c9-a10bcad43317\\PHONG-HOA-W03-FRONTEND-REWORK-RESULT.md",
+    "published": "archive/threads/4431b864-0d00-4d10-93c9-a10bcad43317/PHONG-HOA-W03-FRONTEND-REWORK-RESULT.md",
+    "source_sha256": "ecb90f735a06f23a29c1b1d5dbd2e2a61e37fe0c3c322cd569330ef9bdc3ec78",
+    "published_sha256": "abe48cc1824e1710d3cc047c0f99fee7cee4012a54f84c16b7cddfb0ab201936",
+    "bytes": 4589
+  },
+  {
+    "source": "$THREADS\\4431b864-0d00-4d10-93c9-a10bcad43317\\leader-w03-qa-review-20261112\\ACCEPTANCE.md",
+    "published": "archive/threads/4431b864-0d00-4d10-93c9-a10bcad43317/leader-w03-qa-review-20261112/ACCEPTANCE.md",
+    "source_sha256": "960970d1e366679c95c6c8b4292b355c80e26c451dea2d638c699eb44e944359",
+    "published_sha256": "7041e067f4d5ccd385f217d02e238dd6b2567d60c41a69c5439c610b293c2639",
+    "bytes": 2519
+  },
+  {
+    "source": "$THREADS\\484d57b0-1cb9-4264-b24a-54cecff6e454\\PHONG-HOA-W03-STATUS-INTEGRATION-BRIEF-20261112.md",
+    "published": "archive/threads/484d57b0-1cb9-4264-b24a-54cecff6e454/PHONG-HOA-W03-STATUS-INTEGRATION-BRIEF-20261112.md",
+    "source_sha256": "281120a2f65bfb439c239f6e98a4f30a5ffdf3de9c798fe43740cd57d877286c",
+    "published_sha256": "77c19ee5bab005ca9bf4c56b8c5147d5d8660c28d7f97ff85cd00490fe2d2e1f",
+    "bytes": 5834
+  },
+  {
+    "source": "$THREADS\\484d57b0-1cb9-4264-b24a-54cecff6e454\\PHONG-HOA-W03-STATUS-INTEGRATION-PREP-RECOVERY-RESULT.md",
+    "published": "archive/threads/484d57b0-1cb9-4264-b24a-54cecff6e454/PHONG-HOA-W03-STATUS-INTEGRATION-PREP-RECOVERY-RESULT.md",
+    "source_sha256": "105e0cc66c592938244ec99f247cbad0211d77e9f3edc4ec2f8dd807972d4880",
+    "published_sha256": "7c533d8f61f31d65fe349f18d33d5c5dc659cadfc1efdef0be78d8b4478bdd10",
+    "bytes": 3794
+  },
+  {
+    "source": "$THREADS\\484d57b0-1cb9-4264-b24a-54cecff6e454\\PHONG-HOA-W03-STATUS-INTEGRATION-RESULT.md",
+    "published": "archive/threads/484d57b0-1cb9-4264-b24a-54cecff6e454/PHONG-HOA-W03-STATUS-INTEGRATION-RESULT.md",
+    "source_sha256": "de977a7795707999fe66f94bc3308106926c15ed171ae9c409a1a0b2be0f861d",
+    "published_sha256": "8dd9461ca1408054046e51c0e7e6f4f756e9c199724ea865aab493774e65be3b",
+    "bytes": 5104
+  },
+  {
+    "source": "$THREADS\\484d57b0-1cb9-4264-b24a-54cecff6e454\\leader-w03-status-prep-acceptance\\ACCEPTANCE.md",
+    "published": "archive/threads/484d57b0-1cb9-4264-b24a-54cecff6e454/leader-w03-status-prep-acceptance/ACCEPTANCE.md",
+    "source_sha256": "e381fddf6aa3cd5e9b02f6d8e9efca8e3f53e8e79439ca8c7110c4474f774e77",
+    "published_sha256": "7fbbc92469879f84f82db862e0be8a5a9fffeed466563dfc2184912e82e13aa1",
+    "bytes": 2351
+  },
+  {
+    "source": "$THREADS\\48f883ae-6d18-46a9-83fa-cc7436de1f5d\\PHONG-HOA-W03-DELTA-QA-BRIEF-20261112.md",
+    "published": "archive/threads/48f883ae-6d18-46a9-83fa-cc7436de1f5d/PHONG-HOA-W03-DELTA-QA-BRIEF-20261112.md",
+    "source_sha256": "e2c93d86aa04e574fd1ca89574000c2f8c5345495b74fde447dd29f36391923f",
+    "published_sha256": "8af636aded835f3b4ed09b61aab88a2dfb51a6d135b9819f72e05b769f05dad8",
+    "bytes": 5571
+  },
+  {
+    "source": "$THREADS\\48f883ae-6d18-46a9-83fa-cc7436de1f5d\\PHONG-HOA-W03-DELTA-QA-RESULT.md",
+    "published": "archive/threads/48f883ae-6d18-46a9-83fa-cc7436de1f5d/PHONG-HOA-W03-DELTA-QA-RESULT.md",
+    "source_sha256": "942d31047c07d8610b9acd4a1f19849cdf3467a75e4b1f2401411eae83ef69cd",
+    "published_sha256": "1ae7d12b5a4d36edfb77f7ec50cdd24b3e7b8d461b2df96a3928e5ddb4b51db6",
+    "bytes": 9659
+  },
+  {
+    "source": "$THREADS\\48f883ae-6d18-46a9-83fa-cc7436de1f5d\\PHONG-HOA-W03-DELTA-REVIEW-AND-NEXT.md",
+    "published": "archive/threads/48f883ae-6d18-46a9-83fa-cc7436de1f5d/PHONG-HOA-W03-DELTA-REVIEW-AND-NEXT.md",
+    "source_sha256": "6ceddfb6688d1301c9cb3cf807a6b3d36fc19a73bba06ec04aeaac292701e62d",
+    "published_sha256": "185a984214484e2535e5e6fb3c6d5ff414b5182e9de447553c6547e727edf88f",
+    "bytes": 5420
+  },
+  {
+    "source": "$THREADS\\662556d5-bef1-4bf9-b1f8-ce0ad295308c\\PHONG-HOA-W03-STATUS-EVIDENCE-STAGE-A-BRIEF.md",
+    "published": "archive/threads/662556d5-bef1-4bf9-b1f8-ce0ad295308c/PHONG-HOA-W03-STATUS-EVIDENCE-STAGE-A-BRIEF.md",
+    "source_sha256": "bd621f907ab5cadf1310d116d28b4759fbca9955d9932ba7dcbc144fa3752a6c",
+    "published_sha256": "d8439e7b0890bb018845efcdbd637de0057b72bdf0f71b75d59b56b97d7aab84",
+    "bytes": 6276
+  },
+  {
+    "source": "$THREADS\\662556d5-bef1-4bf9-b1f8-ce0ad295308c\\PHONG-HOA-W03-STATUS-EVIDENCE-STAGE-A-RESULT.md",
+    "published": "archive/threads/662556d5-bef1-4bf9-b1f8-ce0ad295308c/PHONG-HOA-W03-STATUS-EVIDENCE-STAGE-A-RESULT.md",
+    "source_sha256": "de6da631e6e33b37537608503a9f6e13ec7528f76316408a27628957ae9930fe",
+    "published_sha256": "191ee8d00177e7e3f2151e3df6e158c2caa312d83ae59f050bf3aff32a8052e8",
+    "bytes": 6356
+  },
+  {
+    "source": "$THREADS\\7720a19d-5db9-427d-9e14-e5ce81e15744\\PHONG-HOA-W03-STATUS-INTEGRATION-REVIEW-20261112.md",
+    "published": "archive/threads/7720a19d-5db9-427d-9e14-e5ce81e15744/PHONG-HOA-W03-STATUS-INTEGRATION-REVIEW-20261112.md",
+    "source_sha256": "a8c0ab3f52e1c8e047d7c7452bdd62da39cb0051db1448fd2b74ae6d3bdcec29",
+    "published_sha256": "1ee25b3ad6a67b75825a3ac077dde33d58a9efe9a8433671deba2f40c71b2267",
+    "bytes": 7335
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-NEXT-DECISION.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-NEXT-DECISION.md",
+    "source_sha256": "db2c5a91da5f342e48cf1defcf0e1507d80580e22c9afa9f0c1fb5fb6ba0cbc7",
+    "published_sha256": "db2c5a91da5f342e48cf1defcf0e1507d80580e22c9afa9f0c1fb5fb6ba0cbc7",
+    "bytes": 1627
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-PRODUCT-FIX-BRIEF.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-PRODUCT-FIX-BRIEF.md",
+    "source_sha256": "2335bc14e58d6f68993470fd70fcca5e87767e8c7fc622ec62be8320345da485",
+    "published_sha256": "3eef019800fcf1e8f87b368b0e36c7b38abb355482baaee21c115b9158ba5408",
+    "bytes": 2258
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-PRODUCT-FIX-RESULT.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-PRODUCT-FIX-RESULT.md",
+    "source_sha256": "64c5f5aec57cf0d77f045c749dbbea8f278e1f5ea9cfa00c6adc87348945e377",
+    "published_sha256": "72d0dc33b28149cbad30fe5c61ba3f67b9b6c7e0311a5ab97bfac2848a0dceff",
+    "bytes": 3590
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-PRODUCT-LIMIT-REVIEW-BRIEF.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-PRODUCT-LIMIT-REVIEW-BRIEF.md",
+    "source_sha256": "79a000505d34b9b0a3503ba409a8a06c98a731fa7ea094d49fa64fa861ff735d",
+    "published_sha256": "5440c5190546eac6c4a733017aab4b4be43f5acc4a4accb99e0619b884f99621",
+    "bytes": 2624
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-PRODUCT-LIMIT-REVIEW-RESULT.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-PRODUCT-LIMIT-REVIEW-RESULT.md",
+    "source_sha256": "b4e1b36ccf216c08987bea905f2b4089c2faaa3eef6dc95965af841773e20acf",
+    "published_sha256": "b4e1b36ccf216c08987bea905f2b4089c2faaa3eef6dc95965af841773e20acf",
+    "bytes": 6545
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-STAGE-A-REVIEW.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-STAGE-A-REVIEW.md",
+    "source_sha256": "f2c4ee1b952fa445d8be3b08dfe0bd243da970387ab0da53a74f32af1893bed3",
+    "published_sha256": "10ec765f29948f49fd1742e55238cfa893954b88d8a30ebba44652ad68d57aed",
+    "bytes": 4161
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-STAGE-B-BRIEF.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-STAGE-B-BRIEF.md",
+    "source_sha256": "ac25fbec2da0355d69c85c1525d4e572767b618c848314f53c8ae33d4a8021a5",
+    "published_sha256": "66cbb06c1951bb65be3ae4206b6d79fcbb25a6077b7c8bb552831c22c542c7b7",
+    "bytes": 3078
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-STAGE-B-RESULT.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-STAGE-B-RESULT.md",
+    "source_sha256": "ee16f141c4bb2f3c627c8ea94fd6e2b5b0e4c2aed23add5c79fda30e6048beb7",
+    "published_sha256": "fafaae693bf9100e04ac76f6c9343d1e2af38f2aca79e3cd7789a0a78684e6fa",
+    "bytes": 4452
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-STAGE-B-REWORK-RESULT.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-STAGE-B-REWORK-RESULT.md",
+    "source_sha256": "11edc5c19562ec25b5e6366376197d8bc2041baef898672427d273056b77c76d",
+    "published_sha256": "08076bd22733c42f19ca233253d66080f7a4f7c84eeed2b571d192ee6461c69e",
+    "bytes": 4190
+  },
+  {
+    "source": "$THREADS\\783188b9-409e-47a1-b799-eab58c16854a\\PHONG-HOA-W03-STAGE-B-REWORK.md",
+    "published": "archive/threads/783188b9-409e-47a1-b799-eab58c16854a/PHONG-HOA-W03-STAGE-B-REWORK.md",
+    "source_sha256": "050ea2eabf1971b1fafb782d8c922ab6d23d9662e00a3de13da3a5dadb8d4358",
+    "published_sha256": "94eca19cc294d37c2cc6d6e25b20fdf9e9ac15c1dd1377160c853d23abb39512",
+    "bytes": 1812
+  },
+  {
+    "source": "$THREADS\\ac95b575-9df8-4f39-bb20-f27be0abf7e9\\PHONG-HOA-W03-INTEGRATION-PRODUCT256-RESULT.md",
+    "published": "archive/threads/ac95b575-9df8-4f39-bb20-f27be0abf7e9/PHONG-HOA-W03-INTEGRATION-PRODUCT256-RESULT.md",
+    "source_sha256": "011b7381c0ffb5221e353c7dfc11d0abac330c7d3b2c47a75fb43b3dd3459f41",
+    "published_sha256": "6e913c126c5f7e575ac660c6b4c4de23f6c58a0e9460e22e6523e82346b627f3",
+    "bytes": 4988
+  },
+  {
+    "source": "$THREADS\\ac95b575-9df8-4f39-bb20-f27be0abf7e9\\PHONG-HOA-W03-PRODUCT256-ACCEPTANCE-NEXT.md",
+    "published": "archive/threads/ac95b575-9df8-4f39-bb20-f27be0abf7e9/PHONG-HOA-W03-PRODUCT256-ACCEPTANCE-NEXT.md",
+    "source_sha256": "fc4900f97377bd378954f8e6529214847b6732636fd8b2a9cff7e56c3e42dbcf",
+    "published_sha256": "8aa5f1d5f8a05731e4ed5c638ccf8f1394847439fc413b8d2e197075009ac25d",
+    "bytes": 4652
+  },
+  {
+    "source": "$THREADS\\ac95b575-9df8-4f39-bb20-f27be0abf7e9\\PHONG-HOA-W03-PRODUCT256-CONTINUATION.md",
+    "published": "archive/threads/ac95b575-9df8-4f39-bb20-f27be0abf7e9/PHONG-HOA-W03-PRODUCT256-CONTINUATION.md",
+    "source_sha256": "0e740e80bc6f874beb8b106335bbc31238b253ea632bb20c262a289d395896e8",
+    "published_sha256": "26fa12ea6f56a91a055d594e03215cd9c25b2f351deca5c79063f31c08d07df6",
+    "bytes": 2965
+  },
+  {
+    "source": "$THREADS\\b24dd84f-a5b6-4fbe-86c8-50c8286d51e2\\PHONG-HOA-W02-DOCS-ACCEPTANCE-20261111.md",
+    "published": "archive/threads/b24dd84f-a5b6-4fbe-86c8-50c8286d51e2/PHONG-HOA-W02-DOCS-ACCEPTANCE-20261111.md",
+    "source_sha256": "56e52480290523f57584577d5b7dc18b6e0e6e266cef5670c48678c9a6b63082",
+    "published_sha256": "b7264c3737d7ab1b57472a785f6f06e1323662e07a126074999d86ceb04eb87a",
+    "bytes": 3272
+  },
+  {
+    "source": "$THREADS\\cf98b168-ecfc-4799-bd0f-0a78c1ed38ff\\PHONG-HOA-W03-STATUS-FRONTEND-QA-BRIEF-20261112.md",
+    "published": "archive/threads/cf98b168-ecfc-4799-bd0f-0a78c1ed38ff/PHONG-HOA-W03-STATUS-FRONTEND-QA-BRIEF-20261112.md",
+    "source_sha256": "ba61d3399d5370b4cbe7424929d13ec588304f03671477491008921f4922af6b",
+    "published_sha256": "377975b39e10b3a94a91c69799dceae623405935387d48891ff470b099419b39",
+    "bytes": 4455
+  },
+  {
+    "source": "$THREADS\\cf98b168-ecfc-4799-bd0f-0a78c1ed38ff\\PHONG-HOA-W03-STATUS-FRONTEND-QA-RESULT.md",
+    "published": "archive/threads/cf98b168-ecfc-4799-bd0f-0a78c1ed38ff/PHONG-HOA-W03-STATUS-FRONTEND-QA-RESULT.md",
+    "source_sha256": "0a6ce8fb8dd7014a0b946cfcee563dd702466ea3c695b8ce1eefe2eed7b72fe4",
+    "published_sha256": "0a6ce8fb8dd7014a0b946cfcee563dd702466ea3c695b8ce1eefe2eed7b72fe4",
+    "bytes": 5924
+  },
+  {
+    "source": "$THREADS\\cf98b168-ecfc-4799-bd0f-0a78c1ed38ff\\PHONG-HOA-W03-STATUS-INTEGRATION-PREP-REWORK-BRIEF-20261112.md",
+    "published": "archive/threads/cf98b168-ecfc-4799-bd0f-0a78c1ed38ff/PHONG-HOA-W03-STATUS-INTEGRATION-PREP-REWORK-BRIEF-20261112.md",
+    "source_sha256": "9803c536c459b582ef71ae8d0f3e663041cfdd244125c8dc12b075839158fbca",
+    "published_sha256": "ed9b2913d9094888491a72564ba942d1c4f61fb1d1a158d5af48b6bfd6a0cbaa",
+    "bytes": 3297
+  },
+  {
+    "source": "$THREADS\\cf98b168-ecfc-4799-bd0f-0a78c1ed38ff\\leader-w03-status-inputs-review\\ACCEPTANCE.md",
+    "published": "archive/threads/cf98b168-ecfc-4799-bd0f-0a78c1ed38ff/leader-w03-status-inputs-review/ACCEPTANCE.md",
+    "source_sha256": "b172ac0485c3a7328cd8a5e5e789ac21431154212558622c374b520fe9937411",
+    "published_sha256": "af474750cbc161d11a63db4741ff585a4f3c2093bacd5ec9cc204e56d67dffe4",
+    "bytes": 3469
+  },
+  {
+    "source": "$THREADS\\f0799256-d8df-4854-bf10-f44780254a5e\\PHONG-HOA-W03-STATUS-INTEGRATION-RECOVERY-20261112.md",
+    "published": "archive/threads/f0799256-d8df-4854-bf10-f44780254a5e/PHONG-HOA-W03-STATUS-INTEGRATION-RECOVERY-20261112.md",
+    "source_sha256": "1740834f502b81dc11446f735bb592bc948f71d6e40195788484ec9a7222c190",
+    "published_sha256": "fa10123d0b02d8770b1137f26fb52f7d4c38168c1cb9e1e225fb50f09c19967a",
+    "bytes": 5015
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-ADAPTER-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-AI-ADAPTER-RESULT.md",
+    "source_sha256": "427b85982cf9908d5d75bb8aec472e4551fd23ed6c2a171a1dfe5a9c1278ca22",
+    "published_sha256": "427b85982cf9908d5d75bb8aec472e4551fd23ed6c2a171a1dfe5a9c1278ca22",
+    "bytes": 5997
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-ADAPTER-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-AI-ADAPTER-REVIEW-20261111.md",
+    "source_sha256": "91b8e759dfd75d14873eac2f928810f7f53d34ab569d9ae52b855c4b34c43cd2",
+    "published_sha256": "91b8e759dfd75d14873eac2f928810f7f53d34ab569d9ae52b855c4b34c43cd2",
+    "bytes": 2842
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-EVAL-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-AI-EVAL-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "7afbade9ab50400aecdcf1e4ea5ad9e1577c84be468ca79581c7c8834f010ef5",
+    "published_sha256": "42e485a74f54a9d85289cba436ee2355ff376cc70bcd7b2bdf35e47c39132a9a",
+    "bytes": 8082
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-EVAL-LEADER-ADDENDUM.md",
+    "published": "archive/workspace/PHONG-HOA-AI-EVAL-LEADER-ADDENDUM.md",
+    "source_sha256": "ad8c9c3c7f3121e85d4f79ad09f5c7b9ff8859cc74e7ea83ffbe18fd5c9a524e",
+    "published_sha256": "ad8c9c3c7f3121e85d4f79ad09f5c7b9ff8859cc74e7ea83ffbe18fd5c9a524e",
+    "bytes": 4618
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-EVAL-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-AI-EVAL-NEXT-BRIEF.md",
+    "source_sha256": "2e1ac7c044e392dae9fd19ca8b7dce9ec1f0b356f82803e22122bc4875b359da",
+    "published_sha256": "23c6ff180cd8576988a61bd015635198e33898e22178cf21abcdb5e670253489",
+    "bytes": 2749
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-EVAL-NEXT-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-AI-EVAL-NEXT-RESEARCH.md",
+    "source_sha256": "611ef26538b0a424d5b3637f96b7436d6fe1396309193fbb4a11b92588b3ec72",
+    "published_sha256": "982e79cff8d5fd1b59b1cf403a1b465036caaaccc03a332b174a25266e5095ca",
+    "bytes": 9248
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-EVAL-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-AI-EVAL-RESULT.md",
+    "source_sha256": "d0c0dc5e99b7a1e8001c4942cf4240a30800dab8177532476d62c977110c264e",
+    "published_sha256": "d0c0dc5e99b7a1e8001c4942cf4240a30800dab8177532476d62c977110c264e",
+    "bytes": 7136
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-EVAL-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-AI-EVAL-REVIEW-20261111.md",
+    "source_sha256": "4ca85b11c9ff004395407873b18659d09537b9a93a58530b41625a0ea14bdd7b",
+    "published_sha256": "4ca85b11c9ff004395407873b18659d09537b9a93a58530b41625a0ea14bdd7b",
+    "bytes": 3374
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-AI-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "367f0b49c75e936e87dbdb916f09c0b76aad8ec1e9aecd0d137fd0ac4a6c563b",
+    "published_sha256": "367f0b49c75e936e87dbdb916f09c0b76aad8ec1e9aecd0d137fd0ac4a6c563b",
+    "bytes": 17111
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-AI-NEXT-BRIEF.md",
+    "source_sha256": "827f6a20b59a65591472f415517058d3cd937b32a7566d39bfaa20733c11c48b",
+    "published_sha256": "827f6a20b59a65591472f415517058d3cd937b32a7566d39bfaa20733c11c48b",
+    "bytes": 2931
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AI-NEXT-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-AI-NEXT-RESEARCH.md",
+    "source_sha256": "cf5a41c4600c92544f30a1cde75d9091401866389ba9834a94912ceaa0eca47f",
+    "published_sha256": "46191b9ed19567348943dd6ab569a4bbed7cc924d6c218d990892ed9a8da6477",
+    "bytes": 14655
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-API-ACCEPTANCE-NEXT-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-API-ACCEPTANCE-NEXT-20261111.md",
+    "source_sha256": "3b0ab5bae164c9f7011d21b3aae2178319ef42fa8ea88d224e549b77b1c3d990",
+    "published_sha256": "19580ee312679863f11afb895ea9ec6ad1648df47b564a66359771560fc087b2",
+    "bytes": 11025
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-AUTONOMOUS-CONTINUATION.md",
+    "published": "archive/workspace/PHONG-HOA-AUTONOMOUS-CONTINUATION.md",
+    "source_sha256": "a4428cf59dd685bd65c785ba69a6b8bd622bd8dfe3d6b5dbd18767f624f9f4c1",
+    "published_sha256": "a4428cf59dd685bd65c785ba69a6b8bd622bd8dfe3d6b5dbd18767f624f9f4c1",
+    "bytes": 5792
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-BASELINE-VERIFICATION.md",
+    "published": "archive/workspace/PHONG-HOA-BASELINE-VERIFICATION.md",
+    "source_sha256": "916f553223f6fab9022f7e962ec3d809d8c1f6ed0a1f382256061fdbf646d9d3",
+    "published_sha256": "67d7710b4b0e5af435f394847c02b7d32beaf64d9009c7a9f407b7fe45fa47ce",
+    "bytes": 6388
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-DEMO-PREPARATION-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-DEMO-PREPARATION-PLAN.md",
+    "source_sha256": "745f5531795c8f1053622fa2ee382e3d9ec7de156d7d6f8fd9b4802e69ca956a",
+    "published_sha256": "0bb010f6ebaa8b15de0feef7e739b19e3489278445d8c14426718404ee11e3dd",
+    "bytes": 7660
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-DEMO-PREPARATION-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-DEMO-PREPARATION-RESULT.md",
+    "source_sha256": "4f04f93756fbff944b12474e13b4a9704eaccd9828fd7da817a8b8be1ea68f34",
+    "published_sha256": "c43337242f1bc2504bb95a9803c208ec64ca713e6180b9e9669511de8452d1a7",
+    "bytes": 6175
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-DEMO-QA-REVIEW.md",
+    "published": "archive/workspace/PHONG-HOA-DEMO-QA-REVIEW.md",
+    "source_sha256": "85bab101bab08d881d1cc8b31469cb94df8a457e5bda4aec2e1228135d229b02",
+    "published_sha256": "0cc2bc924b63f4b40450fbd3bd292cc7e59570d8b92cb6efc24fcf5d258a6178",
+    "bytes": 10450
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-F01-CONNECTOR-MATRIX.md",
+    "published": "archive/workspace/PHONG-HOA-F01-CONNECTOR-MATRIX.md",
+    "source_sha256": "6c2a06799eabed67b005ca52a431134c93ae21f2f54e26661fe4fd6f4f3fa18a",
+    "published_sha256": "6c2a06799eabed67b005ca52a431134c93ae21f2f54e26661fe4fd6f4f3fa18a",
+    "bytes": 20205
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-F01-DOCS-IMPLEMENTATION.md",
+    "published": "archive/workspace/PHONG-HOA-F01-DOCS-IMPLEMENTATION.md",
+    "source_sha256": "675fa9c3f78ce352ad43c7ca4fa1a248539bc90583bc56ce494735e0bc83a66f",
+    "published_sha256": "cde3b5b51ac07b1c642a83bb16eb5fa3794c06c8da6c11b27fad990cea7e3af3",
+    "bytes": 3879
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-FRONTEND-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-FRONTEND-BRIEF.md",
+    "source_sha256": "b41486ab79d217bc24efa0bf8e4b28b7041ff929010d2fc759df72e953ec76b6",
+    "published_sha256": "6314ed027c3ebc1582914104258da289138346d2b144dfe845cd3c331478c84e",
+    "bytes": 5841
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-FRONTEND-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-FRONTEND-RESULT.md",
+    "source_sha256": "3c7b5d36b8b088f6436a01574cc45b8c0f8867b1bdbedf90667f19f2ec7e8f4d",
+    "published_sha256": "3c7b5d36b8b088f6436a01574cc45b8c0f8867b1bdbedf90667f19f2ec7e8f4d",
+    "bytes": 5630
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-FRONTEND-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-FRONTEND-REVIEW-20261111.md",
+    "source_sha256": "3a43ca5a877812b909cc50fefb24edcedd7b9cf4651a96d1f0cb07bcc631c0bb",
+    "published_sha256": "3a43ca5a877812b909cc50fefb24edcedd7b9cf4651a96d1f0cb07bcc631c0bb",
+    "bytes": 3094
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-INGEST-W02-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-INGEST-W02-REVIEW-20261111.md",
+    "source_sha256": "8d5d6d06cd2f77c1bbc38fca8d73045187588b28a7df794ea092334c231111ff",
+    "published_sha256": "0f113cd3ccd711327c628a5e397548b24d63dc9b3bb0211413f0aa1fd61c6570",
+    "bytes": 9116
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-INITIAL-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-INITIAL-RESEARCH.md",
+    "source_sha256": "4e7fa222915d5a9b1958840a68b35e502b5995ec688b982b37013facbf6103f7",
+    "published_sha256": "4e7fa222915d5a9b1958840a68b35e502b5995ec688b982b37013facbf6103f7",
+    "bytes": 8383
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-INTEGRATION-ACCEPTANCE-NEXT-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-INTEGRATION-ACCEPTANCE-NEXT-20261111.md",
+    "source_sha256": "4823d432ed1a5aa84c372572825316fe56982f755705a720e5d6a32009d9eed1",
+    "published_sha256": "99f7373aef2f16548927746192186491df5e4f4871b25d4ea573790ba7cac256",
+    "bytes": 8995
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LEADER-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-LEADER-ACCEPTANCE-20261111.md",
+    "source_sha256": "3c100c4664a7e732465646571f63d786a81c24eed212939307be6eccc8c41506",
+    "published_sha256": "3c100c4664a7e732465646571f63d786a81c24eed212939307be6eccc8c41506",
+    "bytes": 6143
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LEADER-REVIEW-20261111-0040.md",
+    "published": "archive/workspace/PHONG-HOA-LEADER-REVIEW-20261111-0040.md",
+    "source_sha256": "f5bd15054ed8ecff96daf00fd95ee168cd45eddf9f32ca993006b04c498f1a50",
+    "published_sha256": "f5bd15054ed8ecff96daf00fd95ee168cd45eddf9f32ca993006b04c498f1a50",
+    "bytes": 3271
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LEADER-REVIEW-20261111-0110.md",
+    "published": "archive/workspace/PHONG-HOA-LEADER-REVIEW-20261111-0110.md",
+    "source_sha256": "53876e4b6723a6d6c658b9a544523a48c0565e0b1de8a1f5134e3688048008ad",
+    "published_sha256": "53876e4b6723a6d6c658b9a544523a48c0565e0b1de8a1f5134e3688048008ad",
+    "bytes": 2925
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LEADER-REVIEW-20261111-0115.md",
+    "published": "archive/workspace/PHONG-HOA-LEADER-REVIEW-20261111-0115.md",
+    "source_sha256": "9af681806702b0601d5d002609539cde38ac8f4107da8ffc04d25b5940f54c1e",
+    "published_sha256": "9af681806702b0601d5d002609539cde38ac8f4107da8ffc04d25b5940f54c1e",
+    "bytes": 3138
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LEADER-REVIEW-20261111-0155.md",
+    "published": "archive/workspace/PHONG-HOA-LEADER-REVIEW-20261111-0155.md",
+    "source_sha256": "5dbddc37024b639e503d128972257f9791bafc4bd4b2af14a9eb4d040fb2befd",
+    "published_sha256": "27107ed7646c75c839772dae31771fce289aae7b791379fba1cf51d7f2767201",
+    "bytes": 2543
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LEADER-REVIEW-20261111-0205.md",
+    "published": "archive/workspace/PHONG-HOA-LEADER-REVIEW-20261111-0205.md",
+    "source_sha256": "c17c1f0fa83f30f43680000efbdcd9be9b0b0fc58d45ef942f310b6fc31eeabf",
+    "published_sha256": "800ed52f33317358d023fb9637bd675701d371d894b1ad1e438d711799907d74",
+    "bytes": 2976
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LEADER-REVIEW-20261111-0220.md",
+    "published": "archive/workspace/PHONG-HOA-LEADER-REVIEW-20261111-0220.md",
+    "source_sha256": "3b85fbf241d3787f642f2da0a210326acad2f1ca2741ecc6dbd86dae776c3d90",
+    "published_sha256": "9bae3b5340d2636adb1223af8e3d9ba4640eef8471cf6cca711347532e423f84",
+    "bytes": 3172
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LOCAL-INTEGRATION-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-LOCAL-INTEGRATION-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "17b0024ac139edffe812dd3c99de86d82db840fb7bde963e958362b693c23f57",
+    "published_sha256": "17b0024ac139edffe812dd3c99de86d82db840fb7bde963e958362b693c23f57",
+    "bytes": 14271
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LOCAL-INTEGRATION-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-LOCAL-INTEGRATION-LEADER-PLAN.md",
+    "source_sha256": "410d7dc5330e43962a1a18e1413a31e13679f4821ac913cdbe42213f1dd60600",
+    "published_sha256": "958cc948d257a4b5e4513a839eca8879b89c9548f87c8784309f32243a90cc10",
+    "bytes": 11820
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LOCAL-INTEGRATION-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-LOCAL-INTEGRATION-RESEARCH-BRIEF.md",
+    "source_sha256": "56fab5d51a16a19aa1fdf8011ef72b6e55f8aa6dd21ea7f145ea7b0b0384bb87",
+    "published_sha256": "083d207a44b2db88669690d8c88c4ca1497f4749a9a1d224fcda87e4d34ecbc6",
+    "bytes": 5550
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LOCAL-INTEGRATION-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-LOCAL-INTEGRATION-RESEARCH.md",
+    "source_sha256": "102cef2dbf43423100e522953593de45863e9bea392ff64995343c2bb22eef6a",
+    "published_sha256": "102cef2dbf43423100e522953593de45863e9bea392ff64995343c2bb22eef6a",
+    "bytes": 12016
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LOCAL-INTEGRATION-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-LOCAL-INTEGRATION-RESULT.md",
+    "source_sha256": "a72f60084de62a6ae8b372977d88eb79775c5e951c7bbfa6ee4c97acfd5fccc0",
+    "published_sha256": "7cea1b9a71ccdbcf5d67b78d28d84a6c76ade3e08eed41587de4b70a82a71acb",
+    "bytes": 9844
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-LOCAL-INTEGRATION-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-LOCAL-INTEGRATION-REVIEW-20261111.md",
+    "source_sha256": "8af9dbad1aee4624e5f4aea49eb9ae33d5ed881936f2f1764dfb5682272c56d7",
+    "published_sha256": "8af9dbad1aee4624e5f4aea49eb9ae33d5ed881936f2f1764dfb5682272c56d7",
+    "bytes": 15285
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-NGHIEM-THU-KHONG-DOC-CODE.md",
+    "published": "archive/workspace/PHONG-HOA-NGHIEM-THU-KHONG-DOC-CODE.md",
+    "source_sha256": "e06cbfe1dd91dca991d879cb2ccdabb11d86dbbae7b15d57c30388763fa225eb",
+    "published_sha256": "e06cbfe1dd91dca991d879cb2ccdabb11d86dbbae7b15d57c30388763fa225eb",
+    "bytes": 5006
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-OFFLINE-CONTINUATION-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-OFFLINE-CONTINUATION-PLAN.md",
+    "source_sha256": "2f32dc42ebd759434d7873bd92f39d923beb3ff31c1bb6c109307d7cdc508e4b",
+    "published_sha256": "2f32dc42ebd759434d7873bd92f39d923beb3ff31c1bb6c109307d7cdc508e4b",
+    "bytes": 19568
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-ORCHESTRATION-RESEARCH-20261110.md",
+    "published": "archive/workspace/PHONG-HOA-ORCHESTRATION-RESEARCH-20261110.md",
+    "source_sha256": "27014a8cfdb205a91ec398f0596caf16285175b653f9367f33dc42bb3a3f6577",
+    "published_sha256": "1fe9fa18d5c3b275980d71114ac8bf9e87a19e3ac5b2e4350c404cf9ae09f8b5",
+    "bytes": 9652
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-PARALLEL-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-PARALLEL-ACCEPTANCE-20261111.md",
+    "source_sha256": "1a5392820684c9d68d891f0e3bf515d5c2fa3f8651b7305d344fba49e29c87b9",
+    "published_sha256": "c5bdfd11c1638d30209e7bb7ebc9e38a9703d5982bae5b120cbd71a870765af6",
+    "bytes": 3582
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-PARALLEL-EXECUTION-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-PARALLEL-EXECUTION-20261111.md",
+    "source_sha256": "c444100fb49b5ebc5c1201e9c245966739de328091344995c0695035bc09245f",
+    "published_sha256": "f62dc45a2ec2ff88417ff0863b0ed895371f9bc308616a306a8d28157c41ded6",
+    "bytes": 10490
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-PARALLEL-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-PARALLEL-PLAN.md",
+    "source_sha256": "045b7d69a49e4624e6d09d7d169ba6f6172d157df4709e9da25a8675501a8ebb",
+    "published_sha256": "e7bc701e4b8ddf76563db27edc5373363a52a5a6baf861852164da408f0b9057",
+    "bytes": 24492
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-PARALLEL-W02-PLAN-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-PARALLEL-W02-PLAN-20261111.md",
+    "source_sha256": "d58c0c0e5ee38d65baf32dd017e384f50048de76d85a389e5bbaf3a487272187",
+    "published_sha256": "181d28d6ef81bc18f34270eab029c0260f687b972da943a443e2fa312848e974",
+    "bytes": 8883
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-SKILLS-MCP-WORKFLOW-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-SKILLS-MCP-WORKFLOW-RESEARCH.md",
+    "source_sha256": "beacb87cffb27d11457266e4db1fe21acbd4e021df494b94e998520514336149",
+    "published_sha256": "beacb87cffb27d11457266e4db1fe21acbd4e021df494b94e998520514336149",
+    "bytes": 18951
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-UI-API-INTEGRATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-UI-API-INTEGRATION-BRIEF.md",
+    "source_sha256": "69f83a9de84dc3ad5fbcf8a3c45312c9f5361d123a11d4b20b398d31b26659d6",
+    "published_sha256": "d8ccc21f3d50303fe7171ae979391e969a64d23e62fae7b6f7eed701047d30a4",
+    "bytes": 6968
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-UI-API-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-UI-API-RESULT.md",
+    "source_sha256": "6e905530540da49c936ff3f7a5d631dc5b99ddc9749f5be4ab39e23fd25d8d03",
+    "published_sha256": "6e905530540da49c936ff3f7a5d631dc5b99ddc9749f5be4ab39e23fd25d8d03",
+    "bytes": 8863
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-UI-API-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-UI-API-REVIEW-20261111.md",
+    "source_sha256": "daa7dca3f3a2a3e4b380d0d024501f69177f39d456086aee69720e55dfe6624e",
+    "published_sha256": "daa7dca3f3a2a3e4b380d0d024501f69177f39d456086aee69720e55dfe6624e",
+    "bytes": 4121
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W02-API-ADAPTER-DISPATCH-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W02-API-ADAPTER-DISPATCH-20261111.md",
+    "source_sha256": "57ae0d0d77ba31504f1ed7a4b01ffb06170edcc85d272c09732525b263e3a690",
+    "published_sha256": "b3c31122969e0d5e74d6f6373923443e4cada7c3a7e4a2d2ec58b4d1a639a96b",
+    "bytes": 10380
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W02-API-CONTRACT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W02-API-CONTRACT-BRIEF.md",
+    "source_sha256": "93dab3d51d5e62e63711f6dc7fbd6b05a5c039c38f62e6e667b3ac2b34da84df",
+    "published_sha256": "0848bbe47690ba9421b1b1f8c5f525257c989905f39aac469958b6cdb15aa115",
+    "bytes": 10140
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W02-HARNESS-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W02-HARNESS-REVIEW-20261111.md",
+    "source_sha256": "237073bbf89c7302fd9e63ad3e6eae903b8847b0a00b96c46119c0260d28afcf",
+    "published_sha256": "2cd6643a2a154e580f766e72cbb8d729ffab5fe06b88601f4907dd653391414f",
+    "bytes": 8883
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W02-LOCAL-INTEGRATION-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W02-LOCAL-INTEGRATION-RESULT.md",
+    "source_sha256": "dd9c8f7baf4f91ec623d77477700a7dbb80caaf483df05c050e465dd63827424",
+    "published_sha256": "0de36c67f424be01a9adacb411817106a1a3800d59f3083a85f379a05e35915d",
+    "bytes": 6393
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W02-LOOKUP-API-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W02-LOOKUP-API-RESULT.md",
+    "source_sha256": "9489a79ac701d3fc577a6b0b56a09c29b460ac83434f9393e442905da5a06856",
+    "published_sha256": "9489a79ac701d3fc577a6b0b56a09c29b460ac83434f9393e442905da5a06856",
+    "bytes": 3479
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W02-LOOKUP-HTTP-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W02-LOOKUP-HTTP-RESULT.md",
+    "source_sha256": "fc184c6076cdc007b8c2fba44addca6ba061ad8b44fe42accc19d55f1ecd1748",
+    "published_sha256": "fc184c6076cdc007b8c2fba44addca6ba061ad8b44fe42accc19d55f1ecd1748",
+    "bytes": 5228
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W02-LOOKUP-UI-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W02-LOOKUP-UI-RESULT.md",
+    "source_sha256": "d4673d6d273d06931ae2a962713666b4bd8f2d68a340c987e7c84278b2ae75df",
+    "published_sha256": "d4673d6d273d06931ae2a962713666b4bd8f2d68a340c987e7c84278b2ae75df",
+    "bytes": 6382
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W02-LOOKUP-UI-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W02-LOOKUP-UI-REVIEW-20261111.md",
+    "source_sha256": "d0739d1a87d53339e7e6c8d5a4c4991dedb0bcf121e6b2bc3bf91892d7c80701",
+    "published_sha256": "d0739d1a87d53339e7e6c8d5a4c4991dedb0bcf121e6b2bc3bf91892d7c80701",
+    "bytes": 4751
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-BACKEND-QA-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-BACKEND-QA-RESULT.md",
+    "source_sha256": "a7e4f98dadf06aa43ddf76a9b2b422e90ec695a78ada01e241e5883b487c1ea0",
+    "published_sha256": "e3382e8f4179ab9d5fb4ba10a45600f8f8deef239367a93a5706149dfb2647b5",
+    "bytes": 6486
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-BACKEND-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-BACKEND-RESULT.md",
+    "source_sha256": "24043d9e34a4a4c7351cb494bcda14af678c96761aacd4767644b3a0b111564d",
+    "published_sha256": "24043d9e34a4a4c7351cb494bcda14af678c96761aacd4767644b3a0b111564d",
+    "bytes": 3503
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-BACKEND-REWORK-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-BACKEND-REWORK-BRIEF-20261112.md",
+    "source_sha256": "20c33864efd9bd4cba70d8033b441c90649de89c7e151a1a2e74acf3b4d92a9c",
+    "published_sha256": "9f998f8596486ab20be4f6e307b337e79231e97a15a3066256a7132ec17c9f93",
+    "bytes": 4835
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-BACKEND-REWORK-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-BACKEND-REWORK-RESULT.md",
+    "source_sha256": "20d7df82897b0e4af2a3bca557ad99c8430c6fd4d722c7609ee8a057815f4f35",
+    "published_sha256": "b2b1b8767d29a8cc376d6d330621f0dad10f521a9a74803b31e5870047076172",
+    "bytes": 3194
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-FILTER-FIX-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-FILTER-FIX-BRIEF-20261112.md",
+    "source_sha256": "9557b595147d1289841c29577b7809015b4bb1ce514972dadf09806c62018efc",
+    "published_sha256": "7e2b62998a66015b5c02e18f35034af113e7a7411f46a4dd51abaf48c2c0114c",
+    "bytes": 2363
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-FILTER-FIX-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-FILTER-FIX-RESULT.md",
+    "source_sha256": "57d151486ed6a0c9d66aacc9a62d87d90c109d1fbb0035e365c483d44fb8bfdf",
+    "published_sha256": "59da55162cb987be6710a55c9b1e83891decdb6fe510deefde8cd6fe8001c8c5",
+    "bytes": 3675
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-FILTER-INTEGRATION-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-FILTER-INTEGRATION-BRIEF-20261112.md",
+    "source_sha256": "cc56cd10b38b645720e94f0b3002e0478dfe75f01467f579bf2cef26f4556abe",
+    "published_sha256": "fc631e9bcdd974f2939edf6c3ea415b91a843b9c60327b38cb20655f1cc8ceba",
+    "bytes": 2977
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-FILTER-INTEGRATION-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-FILTER-INTEGRATION-RESULT.md",
+    "source_sha256": "125f70366c3167e00df83a9b056f02e7c7d90acca26f6aafcfb8c4540b4d2fa4",
+    "published_sha256": "125f70366c3167e00df83a9b056f02e7c7d90acca26f6aafcfb8c4540b4d2fa4",
+    "bytes": 3085
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-FRONTEND-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-FRONTEND-RESULT.md",
+    "source_sha256": "c60b18b74d598e16d893ffd9d35abfbc3bee3d8090106ec206f016b0b1eb9c25",
+    "published_sha256": "c60b18b74d598e16d893ffd9d35abfbc3bee3d8090106ec206f016b0b1eb9c25",
+    "bytes": 4040
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-FRONTEND-REWORK-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-FRONTEND-REWORK-RESULT.md",
+    "source_sha256": "ecb90f735a06f23a29c1b1d5dbd2e2a61e37fe0c3c322cd569330ef9bdc3ec78",
+    "published_sha256": "abe48cc1824e1710d3cc047c0f99fee7cee4012a54f84c16b7cddfb0ab201936",
+    "bytes": 4589
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-IMPLEMENT-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-IMPLEMENT-BRIEF-20261112.md",
+    "source_sha256": "4a05dc9bdc4508d0af8c7fa917991c2276bf78ad5a2694f479a33f05bc2f5fe6",
+    "published_sha256": "684bb648a0efcffd451a1f018462c5c9b85ad355c16497e4f8d4f727c343c98e",
+    "bytes": 17240
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-INTEGRATION-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-INTEGRATION-BRIEF-20261112.md",
+    "source_sha256": "977ce0d0bfef1b8e2be4fe98b79e58b5295c44e6d4855994e4a2fc5ee6a49e0f",
+    "published_sha256": "2d7f04fa3f6c744fc1f44b55fbe216e3d506879b71e36bd73beb5e180e3c9b8f",
+    "bytes": 7626
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-INTEGRATION-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-INTEGRATION-RESULT.md",
+    "source_sha256": "e4f0cca59e1cc8d140d966a38e39ba6e2f35a6a69939c36e0ac1f536dcd62b03",
+    "published_sha256": "e4f0cca59e1cc8d140d966a38e39ba6e2f35a6a69939c36e0ac1f536dcd62b03",
+    "bytes": 5133
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-INTEGRATION-REWORK-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-INTEGRATION-REWORK-BRIEF-20261112.md",
+    "source_sha256": "0bd2d26b50c87159721a22ba2bb23d9958b16ac361c8d38c08d02865415261da",
+    "published_sha256": "c203d6220b847165c6932cc8ea05e27fbf891db24e01037af7c715d0f2be3380",
+    "bytes": 3022
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-INTEGRATION-REWORK-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-INTEGRATION-REWORK-RESULT.md",
+    "source_sha256": "7a400f4c73cc69dd5aae3baffd772d2b210f8c526380eadf1f67b8a79382654f",
+    "published_sha256": "7a400f4c73cc69dd5aae3baffd772d2b210f8c526380eadf1f67b8a79382654f",
+    "bytes": 4025
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-NEXT-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-NEXT-BRIEF-20261112.md",
+    "source_sha256": "d7eb9e5102839b35d52223ea6d16735d2cb6510bc776b6abc8e92a4d6bde6435",
+    "published_sha256": "f276e4308fc234429f1b3c89de111e53d94c3fe6525823c3b9a8b82bb04511f8",
+    "bytes": 5151
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-RESEARCH-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-RESEARCH-20261112.md",
+    "source_sha256": "84826ff9bfd3d89c219a14fc102e28d78c62abb06d16c40c67311c2da14f6926",
+    "published_sha256": "9e363356711bfb70744c99e6f25d8dfbf43c09d1ce2801573ec0b5545d952c88",
+    "bytes": 20917
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-BACKEND-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-BACKEND-RESULT.md",
+    "source_sha256": "27403459a9fa5f604d230a6b8bf9724c148acbc914538c8d630bcd842cbb1df4",
+    "published_sha256": "27403459a9fa5f604d230a6b8bf9724c148acbc914538c8d630bcd842cbb1df4",
+    "bytes": 4085
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-BACKEND-REWORK-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-BACKEND-REWORK-BRIEF-20261112.md",
+    "source_sha256": "f4528f43688abb03677bcfdab656fdc186842dba36f2b5feef17cfe85b239600",
+    "published_sha256": "a95b61a055f3b175464a4786bc89623641aad287a22bf06b8f3d7c2fdd250ba2",
+    "bytes": 3817
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-BACKEND-REWORK-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-BACKEND-REWORK-RESULT.md",
+    "source_sha256": "8202da50c5590fe9404acbea2730d9d43a2a0438fa03dd7748de6e1b673ccaf4",
+    "published_sha256": "8202da50c5590fe9404acbea2730d9d43a2a0438fa03dd7748de6e1b673ccaf4",
+    "bytes": 3029
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-FRONTEND-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-FRONTEND-RESULT.md",
+    "source_sha256": "9a5c66840c4a7f69f11eb4df61d4e041b9eef4aa3fc27aa5d43c01343cfa003b",
+    "published_sha256": "9a5c66840c4a7f69f11eb4df61d4e041b9eef4aa3fc27aa5d43c01343cfa003b",
+    "bytes": 3117
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-FRONTEND-REWORK-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-FRONTEND-REWORK-BRIEF-20261112.md",
+    "source_sha256": "46d03200a5bcd277ea35cb25bb5f8f995e14f6424b936a1da1f964c499e7163f",
+    "published_sha256": "d976242acdefeee234e389f920db7900e4fdd31056f2d9f1fd00a7fd7768b410",
+    "bytes": 4185
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-FRONTEND-REWORK-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-FRONTEND-REWORK-RESULT.md",
+    "source_sha256": "8dc594a02ab306b7c94e5301e8bf6b0106591bbdd36af72df4cf61825d86c0d3",
+    "published_sha256": "8dc594a02ab306b7c94e5301e8bf6b0106591bbdd36af72df4cf61825d86c0d3",
+    "bytes": 1990
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-FRONTEND-REWORK2-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-FRONTEND-REWORK2-BRIEF-20261112.md",
+    "source_sha256": "96af424e668086583a1fb9bc43839c5d02a1c032fcb2066e005dce6c05363ab1",
+    "published_sha256": "8a794f30aa9394b6f56e3b287606a04f88b8377056266a6096a6f4fe97e8f319",
+    "bytes": 3005
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-FRONTEND-REWORK2-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-FRONTEND-REWORK2-RESULT.md",
+    "source_sha256": "892a9d2dd4692abc3a838a822c51f9ce34fe6c2fc5c08ea26bce9919be397be5",
+    "published_sha256": "892a9d2dd4692abc3a838a822c51f9ce34fe6c2fc5c08ea26bce9919be397be5",
+    "bytes": 1959
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-IMPLEMENT-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-IMPLEMENT-BRIEF-20261112.md",
+    "source_sha256": "542887d06ba34b5774e9a72a2a69c18c4b1631883408918adf7ef7981e0fb264",
+    "published_sha256": "ee1f9a6ad6069204a46a928bf2a3bee632ac8765e65e24bd60b13be4b88a9efc",
+    "bytes": 17979
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-INTEGRATION-PREP-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-INTEGRATION-PREP-BRIEF-20261112.md",
+    "source_sha256": "a28f77c85f88b303286a45d15dced53bdb1efac6f7973c959dcf0a3b3d0859ea",
+    "published_sha256": "9b064b04eb7fc0c2c0bb2d509573f9b3931d5ac19059a34157db9ebf6588ab7b",
+    "bytes": 5687
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-INTEGRATION-PREP-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-INTEGRATION-PREP-RESULT.md",
+    "source_sha256": "87636e5000c6e84708905b44d0c4995d3a0ffa00215faf3943628229ea3fc5b6",
+    "published_sha256": "87636e5000c6e84708905b44d0c4995d3a0ffa00215faf3943628229ea3fc5b6",
+    "bytes": 4720
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-NEXT-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-NEXT-BRIEF-20261112.md",
+    "source_sha256": "c1ad4a41275a1541df7a8ef5b097ccb0abfe3ace934ff7400b624ad4ebff70d4",
+    "published_sha256": "3032aad6096e598b301fed0c6f48c7da4ee169d90d2b70730f051ee0bfd4bf2d",
+    "bytes": 4940
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W03-STATUS-RESEARCH-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W03-STATUS-RESEARCH-20261112.md",
+    "source_sha256": "c63ad100d48450ed3276cbff2e076387f9ea37894ac0930080e4f6c77a3cce24",
+    "published_sha256": "7096f8fde8cac4d3e014beeb26629c4b6db5a82d16ba29e3445ad02c7c7ef159",
+    "bytes": 16847
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-ASSETS-RESEARCH-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-ASSETS-RESEARCH-20261111.md",
+    "source_sha256": "d1af31d21adea22a2cb88d1aeb36f3532fb33fcb8dfa32edc4a63e4a30df18cd",
+    "published_sha256": "8968209125abb0885a5d087847e94762c9259822f1a856f1ce9f1c8dce7fa3cd",
+    "bytes": 17834
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-ASSETS-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W04-ASSETS-RESULT.md",
+    "source_sha256": "683b657a22c5dc0efe5c08a16162741614067cbd44c72d8226fd14514be83d1e",
+    "published_sha256": "da763402545cfda3f1c52c704230c82d595394ab9a7b6641d10cd95f441ecdb4",
+    "bytes": 13782
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-BACKEND-F4-REWORK-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-BACKEND-F4-REWORK-20261111.md",
+    "source_sha256": "04332d9a9135edd314c1ccaf395eabdbe63f241baeedffe867b712eace09d23b",
+    "published_sha256": "f7f8a2eca1d10b86f5887be9686442a532c687eca9ed27511bcc9368c75413ca",
+    "bytes": 3725
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-BACKEND-QA-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-BACKEND-QA-BRIEF-20261111.md",
+    "source_sha256": "509b5cd4980855a7c5f446f63e6f25e6bdff386288384954493ca9057af48303",
+    "published_sha256": "f31f4466e4764cddb1c41713609e63c235f25df168ce6d4ec103c2de87c66d49",
+    "bytes": 4121
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-BACKEND-QA-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W04-BACKEND-QA-RESULT.md",
+    "source_sha256": "c63dc5ac838027e4ce24034c4bad6682e6b77796fcfe5b7299469f19586ea29d",
+    "published_sha256": "c63dc5ac838027e4ce24034c4bad6682e6b77796fcfe5b7299469f19586ea29d",
+    "bytes": 7923
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-BACKEND-REWORK-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-BACKEND-REWORK-20261111.md",
+    "source_sha256": "fc5f6e738ac9ab505735ab55445318d5e13fa9c16486edb40668645797decc1e",
+    "published_sha256": "582f9d69318161e26668e1f3f14e78e09249b308e952703d3961dbb59f9a47c5",
+    "bytes": 5884
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-FRONTEND-PARALLEL-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-FRONTEND-PARALLEL-BRIEF-20261111.md",
+    "source_sha256": "9cd019a9d8c640c03a89c83026d6f3149b88028ca3118c802958fbaab61a0a4d",
+    "published_sha256": "abb1dcddcdd435f4fb4b74c1117b352c09fc6ece9f596102ed0c87f71eb7ea2f",
+    "bytes": 7358
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-FRONTEND-REWORK-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-FRONTEND-REWORK-20261111.md",
+    "source_sha256": "0856f2f309983e844ac92fa1a5631678b6485425ac86f1e2842457aa4b798c2d",
+    "published_sha256": "77083588b0e0b9f458a1c29f05c48243944e4bb4e95057bf099c2c21887247c7",
+    "bytes": 4807
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-IMPLEMENT-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-IMPLEMENT-BRIEF-20261111.md",
+    "source_sha256": "a3522f35d3ca0197a0afb058271baeff30b49dd3f804cb8a9de957e64e91d6fe",
+    "published_sha256": "49624e8765913f11712b6c40559aba1a4bb7fcb91cff792fa2ec125e99cc6826",
+    "bytes": 10894
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-INTEGRATION-PREP-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-INTEGRATION-PREP-BRIEF-20261111.md",
+    "source_sha256": "27b32ca22ec4c04bc4afbfceae9039c309ab26981b368e66d037a80033e87b61",
+    "published_sha256": "cfa87df6cd693a85fdb86a3dd11d2ae362312a643a19d570d1df5156aaa58c2e",
+    "bytes": 4751
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-INTEGRATION-PREP-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W04-INTEGRATION-PREP-RESULT.md",
+    "source_sha256": "fa415b9a2c5961947759b9263e59688af84201549c9763b4fcef9046a6b1f787",
+    "published_sha256": "fa415b9a2c5961947759b9263e59688af84201549c9763b4fcef9046a6b1f787",
+    "bytes": 4523
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-INTEGRATION-RECOVERY-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-INTEGRATION-RECOVERY-20261111.md",
+    "source_sha256": "35c6f345539697f37c887923b60aee78b01ef809cecff3a60aded9892298fe8a",
+    "published_sha256": "35c6f345539697f37c887923b60aee78b01ef809cecff3a60aded9892298fe8a",
+    "bytes": 3059
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-LOCAL-INTEGRATION-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-LOCAL-INTEGRATION-BRIEF-20261111.md",
+    "source_sha256": "6fa6cb28add6fd52c877ca67c96c2091afdb40c896fe22fdc0a9117e7396b374",
+    "published_sha256": "3fdc9b48d3d8b579b987b8889794aad1a16ac9731ef1f5842da20c8e2b909df0",
+    "bytes": 6922
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-NEXT-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-NEXT-BRIEF-20261111.md",
+    "source_sha256": "330ae9e8106f88fd0e5e52ea1e483c0575787d48f854844e7203ea88441bfbad",
+    "published_sha256": "fee4c77d832948933692a6d14f036f7222de1712e5037187919dd34903c0936d",
+    "bytes": 3849
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-BACKEND-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-BACKEND-BRIEF-20261111.md",
+    "source_sha256": "985715546a48197b3bd8adf4af521fa5266487db2cd1cadc8ff02c05deafa829",
+    "published_sha256": "ce8479fc220263193a2260cdbe497b791ba58837c974c25b1e3cffecc30078a9",
+    "bytes": 3629
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-BACKEND-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-BACKEND-RESULT.md",
+    "source_sha256": "202fbb594a8d4a5eb97e02ddda114cf489cc3843c28eeed18c7f4077cc220bbe",
+    "published_sha256": "202fbb594a8d4a5eb97e02ddda114cf489cc3843c28eeed18c7f4077cc220bbe",
+    "bytes": 4451
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-CONTRACT-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-CONTRACT-20261111.md",
+    "source_sha256": "fd86c51973d2caf5132d21e84f5349917f8967536e8789886459229b93789d2e",
+    "published_sha256": "fd86c51973d2caf5132d21e84f5349917f8967536e8789886459229b93789d2e",
+    "bytes": 8698
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-FRONTEND-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-FRONTEND-BRIEF-20261111.md",
+    "source_sha256": "4aea089e03f05bd6f8f218ffb12d8fefa3a8948ba14c82b9968d6bd124c26723",
+    "published_sha256": "7c0a3eccafabfd30ad817fa0953128c4605a76ed71c8ccc96e1ea7003feab099",
+    "bytes": 4042
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-FRONTEND-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-FRONTEND-RESULT.md",
+    "source_sha256": "dc2a264b40434756877a9c2a5800392860337f91cb16e83a6a1d338e6347a35e",
+    "published_sha256": "dc2a264b40434756877a9c2a5800392860337f91cb16e83a6a1d338e6347a35e",
+    "bytes": 9194
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-INTEGRATION-BRIEF-20261112.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-INTEGRATION-BRIEF-20261112.md",
+    "source_sha256": "aee29dcd484f7ac6acda98c8cd6b9c05d1209c6622aa2a8d4e62c8e0b33f2e46",
+    "published_sha256": "5a3ad0849c197e57a1ac759e171a149d200926946fd4eb1f138bb04ada98bf7b",
+    "bytes": 7282
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-INTEGRATION-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-INTEGRATION-RESULT.md",
+    "source_sha256": "f9f7c89f3da54ed2cf3e4920ddd6842bb8b92b49e34d8fa18faf2abb4a8fb886",
+    "published_sha256": "f9f7c89f3da54ed2cf3e4920ddd6842bb8b92b49e34d8fa18faf2abb4a8fb886",
+    "bytes": 6645
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-NEXT-BRIEF-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-NEXT-BRIEF-20261111.md",
+    "source_sha256": "5003d3ac700b4d7cdbf382ef6537db5ba39419bff5daeb9fb185d6b963b8cb23",
+    "published_sha256": "3ffadf5068fb2b7ad0ac9be550000ec3d3665d9a3a21fea37eae586196a0b57d",
+    "bytes": 4151
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-RESEARCH-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-RESEARCH-20261111.md",
+    "source_sha256": "dd92209a4c9d9d16454ef3de6b837ad8d97e1219294292110a666a2f098dc0e7",
+    "published_sha256": "dd92209a4c9d9d16454ef3de6b837ad8d97e1219294292110a666a2f098dc0e7",
+    "bytes": 18487
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W04-TECHNOLOGY-REWORK-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W04-TECHNOLOGY-REWORK-20261111.md",
+    "source_sha256": "a7230e439ab8d3275c2445cdbcf1572ac687e27030f0854840fa4c0e0ad38d0c",
+    "published_sha256": "0ebaae41263317ccc8f3708f94939f5a5092ba6c745face3c210f86a894016c5",
+    "bytes": 6930
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-API-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-API-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "c5b349bab51dfcd720441f76554e89f53a85b6dbc95bb7a6891d3992376206d1",
+    "published_sha256": "43985eee887b4915a42de031bcfccf66e3ca94d5b2593943b3f6e5553129932f",
+    "bytes": 9797
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-API-LEADER-ADDENDUM.md",
+    "published": "archive/workspace/PHONG-HOA-W05-API-LEADER-ADDENDUM.md",
+    "source_sha256": "395c7e71af9c0736e963a34b67cfd538b7c10a2a3f9811296e1d57041d57ce51",
+    "published_sha256": "395c7e71af9c0736e963a34b67cfd538b7c10a2a3f9811296e1d57041d57ce51",
+    "bytes": 6173
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-API-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-API-NEXT-BRIEF.md",
+    "source_sha256": "743cd13bd81bb98dc112aec91edded005938bc0940ca2777dd66abc6e62d62f1",
+    "published_sha256": "ef0d59b7d01aa4b3073d5ce9fd292934bfd7803c1e661907be83fb054bf94310",
+    "bytes": 3440
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-API-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-W05-API-RESEARCH.md",
+    "source_sha256": "fc35c35f0516a2d57bae0573b4b5836b74c4ff7092e4dc9c2d439f79c5f537ad",
+    "published_sha256": "38255c747fa604da6f08d7aaaf56ca5b1b98fee2c21126d154f711d30027d3da",
+    "bytes": 13672
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-API-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W05-API-RESULT.md",
+    "source_sha256": "a082a2fc99162027f1fdf51ac5e8fdbc1ddf5ea705c4c458f477d71a281ff533",
+    "published_sha256": "a082a2fc99162027f1fdf51ac5e8fdbc1ddf5ea705c4c458f477d71a281ff533",
+    "bytes": 5318
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-API-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-API-REVIEW-20261111.md",
+    "source_sha256": "a9a56a2cb78c15a09081f45fb073bf70fbd240845635e69ef06711271532663c",
+    "published_sha256": "a9a56a2cb78c15a09081f45fb073bf70fbd240845635e69ef06711271532663c",
+    "bytes": 5170
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-EDIT-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-EDIT-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "3249f7d25f904f1013b1c18465ca1a0a8cd3d0425493965161a3bbdbc2f83fdc",
+    "published_sha256": "3249f7d25f904f1013b1c18465ca1a0a8cd3d0425493965161a3bbdbc2f83fdc",
+    "bytes": 8668
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-EDIT-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-W05-EDIT-LEADER-PLAN.md",
+    "source_sha256": "9fb5df3e1702a4fa86d2b05f10080baec2c80da011306b8e0ef00751a470877e",
+    "published_sha256": "3bedd9c298b11869a83b7f5ad0221d472ad298030f3231da33c89361af7b6e80",
+    "bytes": 10866
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-EDIT-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-EDIT-NEXT-BRIEF.md",
+    "source_sha256": "f4365fcbbbcf0c4f7aedd8c551059396b381f5568f12a312bcd3a73eb7a07fe7",
+    "published_sha256": "e86a771702bbf6efc1924eddd0574dcaac0a19b2b4d9b70947b9d1472a7b9d01",
+    "bytes": 5765
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-EDIT-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-W05-EDIT-RESEARCH.md",
+    "source_sha256": "f8dab592a594bab8a1a72e99ecbc5d0728937ae39ef756fc4fc1473ebca6b4ba",
+    "published_sha256": "f8dab592a594bab8a1a72e99ecbc5d0728937ae39ef756fc4fc1473ebca6b4ba",
+    "bytes": 9960
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-EDIT-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W05-EDIT-RESULT.md",
+    "source_sha256": "cf0c413f697c090e5084ecabc79c9def531591e89e6c346cfb28bbcc2dcbf2f0",
+    "published_sha256": "d46f32641f0b7792e84edb9e1ae37717a568458912046d5e9c4b7955069c1c42",
+    "bytes": 7177
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-EDIT-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-EDIT-REVIEW-20261111.md",
+    "source_sha256": "0c7a32ef053ffb95c3dade805a999763e44cdbb9bcbf947bc0aceac75ba01881",
+    "published_sha256": "0c7a32ef053ffb95c3dade805a999763e44cdbb9bcbf947bc0aceac75ba01881",
+    "bytes": 8021
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-NEXT-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-NEXT-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "ae69f05de647cf2b24a6584422713ba8b0034e2571ce63145a66409ff92628d2",
+    "published_sha256": "36f4a914277cc530be98776cd6dde3402c06b6c6a37b012562f4f2bfd09633f6",
+    "bytes": 16104
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-NEXT-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-NEXT-RESEARCH-BRIEF.md",
+    "source_sha256": "6314c0eb506cf5747547423d718ecfdb7c47f57607b6f08ef52721b86a1464e0",
+    "published_sha256": "6314c0eb506cf5747547423d718ecfdb7c47f57607b6f08ef52721b86a1464e0",
+    "bytes": 3237
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-NEXT-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-W05-NEXT-RESEARCH.md",
+    "source_sha256": "3cb45fc9ee9bd1680a5efe8dc07dee4d1fa83be8dfee173e231ed4c80af1a222",
+    "published_sha256": "801f324ca5eb0ddd1397df6516d49c1c4e5727ca55296cb3756be09f30f7f92e",
+    "bytes": 11297
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-REVIEW-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W05-REVIEW-RESULT.md",
+    "source_sha256": "4eef6371d749e80f4698778f45cca21c2d65ec0aa9ecee73a0386d5877d18f8d",
+    "published_sha256": "4eef6371d749e80f4698778f45cca21c2d65ec0aa9ecee73a0386d5877d18f8d",
+    "bytes": 8692
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-API-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-API-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "6f33d500bea580d67ca2dcb268f61931a19571f6326319a13ab8a3495fd747aa",
+    "published_sha256": "a8cb37af83d9ffdfd7154639c04da8c338ebb9994f5b9b535ff4a4a098abc1e3",
+    "bytes": 10493
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-API-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-API-LEADER-PLAN.md",
+    "source_sha256": "7c8f6ea0ecf1374ecad3b00c47c1b64d27c4185e527508cde329f944a0887b3e",
+    "published_sha256": "f8c54ea527fda35a8a5eded4eb02cb99bbeed1f5384baa7f736ca156a3144e1f",
+    "bytes": 10959
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-API-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-API-NEXT-BRIEF.md",
+    "source_sha256": "ac2c9f623975d83d6c1d298d02a4fffbbe87a3000a8750efcbb0436ec638a9b4",
+    "published_sha256": "3fb772886b9d57cf0892f044eb7482c88f946908d328b4320308baad70973aaa",
+    "bytes": 7246
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-API-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-API-RESEARCH.md",
+    "source_sha256": "3315288fb710db80ccfb8d4d3012197027edc6fa1e24d0d09613bdb58a30d70a",
+    "published_sha256": "4441f0fdafa88f6f920a90e074e615a310b9e4a77dc81dc1fa5fedbdf8a39fa1",
+    "bytes": 13279
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-API-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-API-RESULT.md",
+    "source_sha256": "f573cf6527d48b72a2750151b731f392b5ec2c2d79c652d8f9aa4e3edeb2336a",
+    "published_sha256": "f573cf6527d48b72a2750151b731f392b5ec2c2d79c652d8f9aa4e3edeb2336a",
+    "bytes": 4611
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-API-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-API-REVIEW-20261111.md",
+    "source_sha256": "ccce79ba39a80d60b9db3d8eb5db00c0b0f78d1f22ad35fa1158c80b13f56f7f",
+    "published_sha256": "ccce79ba39a80d60b9db3d8eb5db00c0b0f78d1f22ad35fa1158c80b13f56f7f",
+    "bytes": 4577
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-INTEGRATION-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-INTEGRATION-ACCEPTANCE-20261111.md",
+    "source_sha256": "cd7cee079e914a287ea6b8f6dcaa7198471208ec022cd894c5c4bd48ff246ffd",
+    "published_sha256": "cd7cee079e914a287ea6b8f6dcaa7198471208ec022cd894c5c4bd48ff246ffd",
+    "bytes": 4126
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-INTEGRATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-INTEGRATION-BRIEF.md",
+    "source_sha256": "17ed56869c108050f8e049dc4e258eb099c09bff37f7f1a7d1d4e657c07ac07b",
+    "published_sha256": "52b3add0765ebd10172ebd68d6b10b4605a63fffbb90aa2d15a03cca3b832eb3",
+    "bytes": 10271
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-INTEGRATION-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-INTEGRATION-RESULT.md",
+    "source_sha256": "c434555caa47ad185e8c7589bf81739e99f3d7a45520d709bb9b7d3ae3842ab1",
+    "published_sha256": "c434555caa47ad185e8c7589bf81739e99f3d7a45520d709bb9b7d3ae3842ab1",
+    "bytes": 5724
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-INTEGRATION-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-INTEGRATION-REVIEW-20261111.md",
+    "source_sha256": "5a0b4f521ab3a642fb450f25f760cbfba66a21b02532d06f76f87991df38c732",
+    "published_sha256": "6f1d555cebd7cb624056c81f5845cef2ef286d6be6e32762c9aba14eb451f766",
+    "bytes": 6811
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-UI-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-UI-ACCEPTANCE-20261111.md",
+    "source_sha256": "a27922ae08d1672840ce199c56c0d32b55fa90559ee23abb6fdd2c8fa6d0ec4a",
+    "published_sha256": "c897abdd43429d04846b6d7a04b55f9ba97cda6f6a33ad9567ffaa9fe2271267",
+    "bytes": 3110
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-UI-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-UI-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "47f1daa8188f3698d2201000357a2b498be3f2535901566bde1ed3588ba0c308",
+    "published_sha256": "937397a11b2e098a636e607a18ba36b9c9479c01b5828e125f76d1538cb1f445",
+    "bytes": 11118
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-UI-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-UI-LEADER-PLAN.md",
+    "source_sha256": "01838d0f9d656b994148710496b548236cbe9a3704d5ca42c0a31fb2e511db42",
+    "published_sha256": "ea269be08f8a132973c16c9fb5121cfba93893ee673831d0882100a88b3539f7",
+    "bytes": 14199
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-UI-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-UI-NEXT-BRIEF.md",
+    "source_sha256": "11cf0a408c063153bb8af251092f50f5c95aabdf1725f26e56853422b7bd5294",
+    "published_sha256": "0715d254802f39b636a4c9ca2e84bc623edcfe573d4e3672e92afc817c4c2f89",
+    "bytes": 6164
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-UI-RECHECK-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-UI-RECHECK-20261111.md",
+    "source_sha256": "249669bebdf3380e196741359abf17bd87a8c6e4e4fbf594d9c57134214c7dcc",
+    "published_sha256": "5fbd2179ae046c9dd506a53214159b71cfacc83095db5a08306997fafec15e51",
+    "bytes": 5688
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-UI-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-UI-RESEARCH.md",
+    "source_sha256": "0d79648c5977b05b544321dce7e6674386e5aed77428d1f733f3868350f706c1",
+    "published_sha256": "0d79648c5977b05b544321dce7e6674386e5aed77428d1f733f3868350f706c1",
+    "bytes": 12527
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-UI-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-UI-RESULT.md",
+    "source_sha256": "446867c01e09cfeb4278662b54f05983a97f794b1a0ba156c83f2d2c3ef15156",
+    "published_sha256": "903d3d24e56eada75071263b52465875370b9fb81fe88e85e2ee745295e7bdbc",
+    "bytes": 5865
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-SELECTION-UI-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-SELECTION-UI-REVIEW-20261111.md",
+    "source_sha256": "1b463497d79c1715ad8dd252e76e2b12f5f792c6dab965dc38144013da92a03e",
+    "published_sha256": "3f35f89205b875041920c3bdd6f6f064038d06adf3a6e4e82fb5f0b8a8a34bb1",
+    "bytes": 8794
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-STIX-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-STIX-ACCEPTANCE-20261111.md",
+    "source_sha256": "8848b71865a22509fff6427a4e87ba24dc70ee2b2faba982d07fcaec40c4d883",
+    "published_sha256": "99c76b5531f5f2d7a4271353236fe889a5c6badbefeecb81dcf84fb2a43db6bd",
+    "bytes": 3547
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-STIX-CODE-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-STIX-CODE-REVIEW-20261111.md",
+    "source_sha256": "0859b49ee9f0fcfac2eee9997ae8974efb2f475e3f0e05ea871298389013af43",
+    "published_sha256": "c01dac1a52dbde3cd761b4ee25603f6884d3826040d277eba2019be81023ec5f",
+    "bytes": 6506
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-STIX-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-STIX-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "89b7cf6e85693cb4009a8f02344120865c99f4fdbc79ff8268756af4641b1df7",
+    "published_sha256": "89b7cf6e85693cb4009a8f02344120865c99f4fdbc79ff8268756af4641b1df7",
+    "bytes": 7300
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-STIX-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-W05-STIX-LEADER-PLAN.md",
+    "source_sha256": "137002a8367bf01aecac6dd8a22620564d9f960f507a204425c18c211602edef",
+    "published_sha256": "6c983351387c39578e586f20d59b8662c2fc4b7ed0c561a6547f9abdc30544ff",
+    "bytes": 12917
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-STIX-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-W05-STIX-NEXT-BRIEF.md",
+    "source_sha256": "d47ef3c5317990f0158c2aefe34b66d6ef99252bc146dbcaaa6166bb899ba0ab",
+    "published_sha256": "1cb48de775e1c69e3fbf0cc89e68213b2290ac62e10192e0aaf9e18fc481b20f",
+    "bytes": 5923
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-STIX-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-W05-STIX-RESEARCH.md",
+    "source_sha256": "9e24a3335b2ce27ebb6ff079d77538326a049b2c5d81d45656b132d865b40a8d",
+    "published_sha256": "9e24a3335b2ce27ebb6ff079d77538326a049b2c5d81d45656b132d865b40a8d",
+    "bytes": 6277
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-STIX-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-W05-STIX-RESULT.md",
+    "source_sha256": "bcbdef2f3533db03d774bacc6a21d88f3204056e9a7bcf275d7e1c3a32138925",
+    "published_sha256": "bcbdef2f3533db03d774bacc6a21d88f3204056e9a7bcf275d7e1c3a32138925",
+    "bytes": 4271
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-W05-STIX-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-W05-STIX-REVIEW-20261111.md",
+    "source_sha256": "f68bc918467a3cf0593920bdd4d14b67af6f8f8217f5bbbf4f7b2a4a60974ebf",
+    "published_sha256": "669b98bdaf0339993dde7f57cbff545ef537fbc1c914b8b6d80dd25459d6fe77",
+    "bytes": 7033
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-WORKFLOW-GUARD-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-WORKFLOW-GUARD-BRIEF.md",
+    "source_sha256": "f3525e77685d86113ce75da5b2bcf17be99e2f2d57a7ca9cc89638990af919ce",
+    "published_sha256": "f3525e77685d86113ce75da5b2bcf17be99e2f2d57a7ca9cc89638990af919ce",
+    "bytes": 5385
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-WORKFLOW-GUARD-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-WORKFLOW-GUARD-RESULT.md",
+    "source_sha256": "ae99070112db91c0eecf1bd1e9043d818d140783b767d90eca52c36fbd700e5d",
+    "published_sha256": "ae99070112db91c0eecf1bd1e9043d818d140783b767d90eca52c36fbd700e5d",
+    "bytes": 5768
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-WORKFLOW-GUARD-REVIEW.md",
+    "published": "archive/workspace/PHONG-HOA-WORKFLOW-GUARD-REVIEW.md",
+    "source_sha256": "83d13049fdbe912168b34fcbcf3784392510ce7af215015a791c3325119ccbda",
+    "published_sha256": "83d13049fdbe912168b34fcbcf3784392510ce7af215015a791c3325119ccbda",
+    "bytes": 3489
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-WORKING-AGREEMENT.md",
+    "published": "archive/workspace/PHONG-HOA-WORKING-AGREEMENT.md",
+    "source_sha256": "2026175a84611b859cd30b61adb27adc412fb41ba0ca0891ed17d52a7ec89407",
+    "published_sha256": "2026175a84611b859cd30b61adb27adc412fb41ba0ca0891ed17d52a7ec89407",
+    "bytes": 24129
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-ACCEPTANCE-20261111.md",
+    "source_sha256": "ef59ab5afc210b241aad15545f990af722e6405b32ce408491056d38fbb9513c",
+    "published_sha256": "a5903188fc4fe46ab13eb1aeeb5217f7af84b97ea40392cb4f2e3cebf620b65d",
+    "bytes": 3164
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-CODE-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-CODE-REVIEW-20261111.md",
+    "source_sha256": "b511d006ab352a6546babb54ca77023a75fd2bde61b46a7840db44d6e4178f39",
+    "published_sha256": "9cd8eafcc630a5b76ebd969f9d4094f93cf9247d93aec6cd26f57b6c0bd2ea19",
+    "bytes": 5893
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "d60701a0b4254367639130c1d5b92a79d9150c1096dac3c717de61f0127435d8",
+    "published_sha256": "5e4f7750e9c5c94f5d4aa3ad4b51955274541df8ff595395f5d3931e3762e483",
+    "bytes": 6482
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-LEADER-PLAN.md",
+    "source_sha256": "9edba8ba5d4ac43fec1556a3e77cb35107e9ee682797a3565fe816946c75ea7d",
+    "published_sha256": "93462a8d175354f6c288df3dbd4c4e91a03e03b991f00d1318e5c1f33b063783",
+    "bytes": 9447
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-NEXT-BRIEF.md",
+    "source_sha256": "10ab4b792f8dad8c9412b3853508addfda45e7180aaf98c17a72a480d0029507",
+    "published_sha256": "471f2936c80d8699dfe9b8e40d681e022130f3d982e6c3cec27b1511087a98b4",
+    "bytes": 4261
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-REAL-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-REAL-ACCEPTANCE-20261111.md",
+    "source_sha256": "f65f08be724486ba3a499a8999c7437d9766c084e1595dcc745cfb372792bef3",
+    "published_sha256": "f65f08be724486ba3a499a8999c7437d9766c084e1595dcc745cfb372792bef3",
+    "bytes": 3305
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-REAL-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-REAL-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "da85d9b56567d0a9a67b79e74c2ccace3ba760449d021b086a096111493184d7",
+    "published_sha256": "f85eee6bcf73692a2266583e7aeafef1440874a64cd45a2f905fecaec5a31a94",
+    "bytes": 5786
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-REAL-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-REAL-LEADER-PLAN.md",
+    "source_sha256": "0128196e9ecfa7e615111574a4263424ba5fdb78bfea637addb86d1bed653eba",
+    "published_sha256": "a30bbca4ee95d7faf0bb2ff44dd439ef22f70837a825fdfe6caf0b9d51cfb8fa",
+    "bytes": 9977
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-REAL-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-REAL-RESEARCH-BRIEF.md",
+    "source_sha256": "1e37a784b5b9f202ce8b375de9585cda3b0249d328aae67828f73690fccadead",
+    "published_sha256": "7210be0aa01bd501f61278b377a97d352656744ff7f6b2e3283480f5361d93fa",
+    "bytes": 5162
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-REAL-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-REAL-RESEARCH.md",
+    "source_sha256": "899f9d9208a93f127efbf147307c6c946a927ba58f2a6d0de844471d901555fe",
+    "published_sha256": "899f9d9208a93f127efbf147307c6c946a927ba58f2a6d0de844471d901555fe",
+    "bytes": 5400
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-REAL-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-REAL-RESULT.md",
+    "source_sha256": "2a054f965c70630a1096a6a0ee1c51a1bb7d20525b39ad19d9f82962c70a6c26",
+    "published_sha256": "2a054f965c70630a1096a6a0ee1c51a1bb7d20525b39ad19d9f82962c70a6c26",
+    "bytes": 3728
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-RESEARCH.md",
+    "source_sha256": "06ed25c4bec9885d08a74a96a0c309be57c2cb93f6f9c6a9dbd68dfa20938342",
+    "published_sha256": "06ed25c4bec9885d08a74a96a0c309be57c2cb93f6f9c6a9dbd68dfa20938342",
+    "bytes": 7255
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-RESULT.md",
+    "source_sha256": "56c5cdf819e43bf50872cbaf4f115e598755e702d6d3dd446ac42b569004d231",
+    "published_sha256": "3bb8f1edc9bffd34357cac426cd0e753ff991de7ba7e4f7970b25ee7c752805e",
+    "bytes": 7822
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-ATTACK-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-ATTACK-REVIEW-20261111.md",
+    "source_sha256": "c6698cf064ad1c7a36c7465e7f9ed4d7c730dbc356f4046cde8e55eb6ff517e5",
+    "published_sha256": "b76b12a2f2bfeaf79f104353a77d5bbc2affe4a967228b8a7ad50e7040d2648a",
+    "bytes": 9583
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-BROWSER-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-BROWSER-REVIEW-20261111.md",
+    "source_sha256": "1264c1929ec92983baed043ea13a679d85adfda04ae81d46b77c5539e93c1988",
+    "published_sha256": "4c57e930af53c18b144fc8238ec9077280443ac1827f04e65f74dbd1e773a50b",
+    "bytes": 7642
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C1-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C1-PLAN.md",
+    "source_sha256": "0b98b39babee4f81d4bf425fd983aff2cbddab5d6bdfa0a58c7edb47d2a6830d",
+    "published_sha256": "0b98b39babee4f81d4bf425fd983aff2cbddab5d6bdfa0a58c7edb47d2a6830d",
+    "bytes": 4820
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C1-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C1-RESULT.md",
+    "source_sha256": "fcf3b6d55197586a9a27a8bd35a13f55d5de3fe1cebd6214a8879ff6d51ce436",
+    "published_sha256": "fcf3b6d55197586a9a27a8bd35a13f55d5de3fe1cebd6214a8879ff6d51ce436",
+    "bytes": 4112
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-ADAPTER-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-ADAPTER-ACCEPTANCE-20261111.md",
+    "source_sha256": "a8dba5a84e3c0e7e44754be8aacd1deae86741e0c5181f41730586f2b1831ba2",
+    "published_sha256": "a8dba5a84e3c0e7e44754be8aacd1deae86741e0c5181f41730586f2b1831ba2",
+    "bytes": 3575
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-ADAPTER-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-ADAPTER-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "f4ddd6adac856bf151ecf722d597cc4e3e8e043028bd1a440a5cceeabe1492ab",
+    "published_sha256": "5bffff854da7565358d96aa87f39443c5c889441cb388d43acd339615da1761d",
+    "bytes": 3459
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-ADAPTER-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-ADAPTER-LEADER-PLAN.md",
+    "source_sha256": "24533608ce7dfb9575c9cb63b75726203838dd725f3b7d91a12c5e775eb9a7df",
+    "published_sha256": "4f16bec8bfdf2e868c16c9f78e8932b8884cdae3ebd925be99e7d394ee447f44",
+    "bytes": 8374
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-ADAPTER-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-ADAPTER-RESEARCH-BRIEF.md",
+    "source_sha256": "8ab9b369b5bbf0c899454cbe7f9747e3169224a9fdbbf059feff852b9b433827",
+    "published_sha256": "8c4408cb55a4e0d1817d7415b55eb5ef83f8257291aea34aeebe9b2201f50350",
+    "bytes": 5642
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-ADAPTER-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-ADAPTER-RESEARCH.md",
+    "source_sha256": "d9a780b2f8946dc37486e0ee1b0ffc9ab2166cf77a4b7ed3a56e5be0ccbb92eb",
+    "published_sha256": "d9a780b2f8946dc37486e0ee1b0ffc9ab2166cf77a4b7ed3a56e5be0ccbb92eb",
+    "bytes": 5917
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-ADAPTER-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-ADAPTER-RESULT.md",
+    "source_sha256": "067b8bcaa619e0c475d9530f3572d7ea4fb82494844d0804455e1134744c02e1",
+    "published_sha256": "067b8bcaa619e0c475d9530f3572d7ea4fb82494844d0804455e1134744c02e1",
+    "bytes": 4245
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-ADAPTER-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-ADAPTER-REVIEW-20261111.md",
+    "source_sha256": "528454b63757982e69353ef2d5a28109d22a3e76ed6ef709ab7f442ca21d4a46",
+    "published_sha256": "528454b63757982e69353ef2d5a28109d22a3e76ed6ef709ab7f442ca21d4a46",
+    "bytes": 5533
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-EVAL-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-EVAL-ACCEPTANCE-20261111.md",
+    "source_sha256": "ae97d5ac76d576ddaddf6c1aafdb9147ffadfc78976e43e5eb216d754dbd98f1",
+    "published_sha256": "c1d7b25c58473541a4b5a6a95fc9572a97808199f4232a2d611b065e46c651ee",
+    "bytes": 3646
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-EVAL-CODE-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-EVAL-CODE-REVIEW-20261111.md",
+    "source_sha256": "3717e626bae94676d4cd5a43eb055a0dc86ba022a3c9ec55fbafe3c546c4b325",
+    "published_sha256": "d64fffff9f39bdcb991b657d557c3c549911ce4ab6ef86afbcc115f3c78e60b2",
+    "bytes": 7021
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-EVAL-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-EVAL-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "68ee38d3c86f749b588636d3ad364bf2f1e87c7bc9854ecdcf67ef9f2cd7ba92",
+    "published_sha256": "68ee38d3c86f749b588636d3ad364bf2f1e87c7bc9854ecdcf67ef9f2cd7ba92",
+    "bytes": 4543
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-EVAL-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-EVAL-LEADER-PLAN.md",
+    "source_sha256": "9b08812bd56f4c257c21e630bbf7c25caa06ae9b6cc2f9d46e2f1a1c56d5fefe",
+    "published_sha256": "f895ca11d45e89d3e39843009c693afd7aaebfc818637fe3c1cb0fc211e3540f",
+    "bytes": 7498
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-EVAL-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-EVAL-RESEARCH-BRIEF.md",
+    "source_sha256": "aa8c7cc22e68ee057670e6688763b9e477ae1293dbdd9466bba8ede117c7eb5e",
+    "published_sha256": "109dea1a6f9b7806f6cbc0b923fff73446c41c2ea5d0d21aa7254f84b724f4fd",
+    "bytes": 5119
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-EVAL-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-EVAL-RESEARCH.md",
+    "source_sha256": "e9441ed40cee2e112c3a669f4d443632bb570e848703aff01141886adf5c2027",
+    "published_sha256": "e9441ed40cee2e112c3a669f4d443632bb570e848703aff01141886adf5c2027",
+    "bytes": 8693
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-EVAL-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-EVAL-RESULT.md",
+    "source_sha256": "fded1a54db307ed17908292c2970fa583df51a684984d5a42c772e5405b37e90",
+    "published_sha256": "fded1a54db307ed17908292c2970fa583df51a684984d5a42c772e5405b37e90",
+    "bytes": 5353
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-EVAL-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-EVAL-REVIEW-20261111.md",
+    "source_sha256": "e9a9ffa7179d184f7a6167b28cd727eac9cc88e0312bc50ee7498c816014ad0f",
+    "published_sha256": "a59da611d65c22b626b2424c60ecf6be05791bd111e3510f9b256eebfc5d00dd",
+    "bytes": 9539
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-RETRIEVAL-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-RETRIEVAL-ACCEPTANCE-20261111.md",
+    "source_sha256": "a2e372c60e10a3d943df6499444b7f568e1f39bef4b96935a0e2ba1d120fbf9d",
+    "published_sha256": "d38c5c868d7bfd13db9aa9275e42576c8ac5a598c657f5121a57b5b667d2fe05",
+    "bytes": 4436
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-RETRIEVAL-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-RETRIEVAL-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "3584cf7c517149be47affbc46d5ab3e24afeb6b45ab96d241ea9a2effa5fdcc8",
+    "published_sha256": "817bc20ec49ee60f63a2da2fc6636358fcddb872a04fa33f5d8e4e44085e5932",
+    "bytes": 8746
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-RETRIEVAL-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-RETRIEVAL-LEADER-PLAN.md",
+    "source_sha256": "09982c6d37ee62d46da357a8936e58159cc329e668ae166d455f1050617852cb",
+    "published_sha256": "7c470e38a31210fa085cc00874f40e9983d8fbb4da2dbc4c08ad61e522126b07",
+    "bytes": 6353
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-RETRIEVAL-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-RETRIEVAL-RESEARCH-BRIEF.md",
+    "source_sha256": "b1256bb9dbc6d66d45f37b635710bcc16b28f420cbed516547db8e1d54654fcf",
+    "published_sha256": "38ef5a7b55bde50b2352c5a28a17e830076e19273086f8358e258514e1b665f8",
+    "bytes": 5284
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-RETRIEVAL-RESEARCH-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-RETRIEVAL-RESEARCH-REVIEW-20261111.md",
+    "source_sha256": "bcef4ad523e66dcea43848e862870dd7b4275f8b2e416d51f5b17c1dff268ffa",
+    "published_sha256": "bcef4ad523e66dcea43848e862870dd7b4275f8b2e416d51f5b17c1dff268ffa",
+    "bytes": 8614
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-RETRIEVAL-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-RETRIEVAL-RESEARCH.md",
+    "source_sha256": "01a015a31fd4da21705accd38e594d0730f0bb8b337ee32199bac117a42150ee",
+    "published_sha256": "01a015a31fd4da21705accd38e594d0730f0bb8b337ee32199bac117a42150ee",
+    "bytes": 8205
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-RETRIEVAL-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-RETRIEVAL-RESULT.md",
+    "source_sha256": "00c599b45970336f27705fed0151bac90fe87db1e235f66b829146e06132d425",
+    "published_sha256": "00c599b45970336f27705fed0151bac90fe87db1e235f66b829146e06132d425",
+    "bytes": 7769
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-C4-RETRIEVAL-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-C4-RETRIEVAL-REVIEW-20261111.md",
+    "source_sha256": "64ce7d1b968742f79491ae6ca35a88b567a2b87a5712ebb7375895d5898a7b87",
+    "published_sha256": "ec5bee7bf9cf9ab0bd287243b5ab84ed90b1a18dae62b424c7c9c07f7544d23c",
+    "bytes": 5645
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-DRAFT-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-DRAFT-RESULT.md",
+    "source_sha256": "b7e365ac7f4253c89ec46c6c70fac54ab24f0ebab05fe68cb83b9104bbf3b34f",
+    "published_sha256": "b7e365ac7f4253c89ec46c6c70fac54ab24f0ebab05fe68cb83b9104bbf3b34f",
+    "bytes": 5197
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-EVAL-REPORT-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-EVAL-REPORT-ACCEPTANCE-20261111.md",
+    "source_sha256": "4047aaddc448d3666a77c2c9efbeaf0db32c0a11ea4a0a14441ca5cec320a895",
+    "published_sha256": "4047aaddc448d3666a77c2c9efbeaf0db32c0a11ea4a0a14441ca5cec320a895",
+    "bytes": 3084
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-EVAL-REPORT-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-EVAL-REPORT-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "7d0632ad78802c5a2b094d49d2a7b4400beed31627ed5d3f8236f7d25f900e68",
+    "published_sha256": "c3d8933cc2b68b2483aca30c6c20f894d1c39d8532af41d59939be175e94aa53",
+    "bytes": 5647
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-EVAL-REPORT-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-EVAL-REPORT-LEADER-PLAN.md",
+    "source_sha256": "7103d51b56135e0ef60ef7e89eea92d75ac27c438125486ff3fd4c02d8ce6566",
+    "published_sha256": "ee21ef261e4fa8466f22b238aa95e3b23766b0cd420af603e041ea8163d5ca78",
+    "bytes": 9044
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-EVAL-REPORT-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-EVAL-REPORT-RESEARCH-BRIEF.md",
+    "source_sha256": "e3d4977507d4f68cfaa036904637f6848b72948814c03ecd909e2e8f99abe27a",
+    "published_sha256": "88fa1757b5f195022bd2cc751fc04d7a148c94d0c87bcc7286509406b61dd65b",
+    "bytes": 4966
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-EVAL-REPORT-RESEARCH-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-EVAL-REPORT-RESEARCH-REVIEW-20261111.md",
+    "source_sha256": "1c8eee83331e2d3f6229f69baf5a47a546b2addf338dfcab571d4249b58cfab3",
+    "published_sha256": "1c8eee83331e2d3f6229f69baf5a47a546b2addf338dfcab571d4249b58cfab3",
+    "bytes": 8733
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-EVAL-REPORT-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-EVAL-REPORT-RESEARCH.md",
+    "source_sha256": "07016952df0e0df66a19639e7701059afa2281a680860b26ce5659ec22108bdb",
+    "published_sha256": "07016952df0e0df66a19639e7701059afa2281a680860b26ce5659ec22108bdb",
+    "bytes": 8712
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-EVAL-REPORT-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-EVAL-REPORT-RESULT.md",
+    "source_sha256": "6f0b71283e3a88de949fdc789d316e8983e1dfe4029cd32107258d5f3e5cbd62",
+    "published_sha256": "6f0b71283e3a88de949fdc789d316e8983e1dfe4029cd32107258d5f3e5cbd62",
+    "bytes": 6268
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-EVAL-REPORT-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-EVAL-REPORT-REVIEW-20261111.md",
+    "source_sha256": "1af83b8fdcaf29cb437f74273f4265ea7b58f01695c0b57a6e995708628b583c",
+    "published_sha256": "bb5e957758334d7bf81bb7be08b493a33abba9aaba8ba6ea048a3b8531f83886",
+    "bytes": 4526
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-GOLD-DATASET-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-GOLD-DATASET-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "b54959ec60f76c2ab18fa2c9537ad3d0485896b6ebb7ea8fadce3da2799e6024",
+    "published_sha256": "1eb8ca6987d868d97faefdf4efeb8b81fb6756c3ab3b5298d079041735da274c",
+    "bytes": 5007
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-GOLD-DATASET-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-GOLD-DATASET-RESEARCH-BRIEF.md",
+    "source_sha256": "ae571564c06f126a2d852facadb4da6316413e64e9f7a60f5da775e800a760c5",
+    "published_sha256": "eab60ba714e70ad812cf341683fafb4d3425548c6d688517e2596e2d8e63cfae",
+    "bytes": 4353
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-GOLD-DATASET-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-GOLD-DATASET-RESEARCH.md",
+    "source_sha256": "6fcf48cd2b7833cfb4f4e066cbc155b8a2424da9453016ec6da6e5dffb97536a",
+    "published_sha256": "880dfe9807c3b984a6af19a488e205e0dd5ae0acb6828fecbb237068f645a784",
+    "bytes": 5997
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-GOLD-DATASET-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-GOLD-DATASET-REVIEW-20261111.md",
+    "source_sha256": "0589f8b02869076d4700d260939395983bbdcc068ff46cb0384d491b9e608c68",
+    "published_sha256": "2ea1b40e3c36bc1442f373e60c853af9864f37f77a2cae0ee66740a92337addf",
+    "bytes": 13624
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-GOLD-PILOT-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-GOLD-PILOT-ACCEPTANCE-20261111.md",
+    "source_sha256": "aaf8c57a7d2c7585af4fe537e54fd3b22c84abce310a5a527d109b4577ef2934",
+    "published_sha256": "aaf8c57a7d2c7585af4fe537e54fd3b22c84abce310a5a527d109b4577ef2934",
+    "bytes": 4092
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-GOLD-PILOT-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-GOLD-PILOT-LEADER-PLAN.md",
+    "source_sha256": "d596cd2ca65c074c94a598924d61d9b90f9d33d70e8323645ab0163acc621def",
+    "published_sha256": "577e22fe0cdc12630e80ec0c04394ac67a4165602d06ab0fdba1072dd4f7dbc8",
+    "bytes": 15613
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-GOLD-PILOT-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-GOLD-PILOT-RESULT.md",
+    "source_sha256": "8b4105ba3a96ea3ba0b8ade023c23392362b26eb66729cf8d9a8799948710991",
+    "published_sha256": "8b4105ba3a96ea3ba0b8ade023c23392362b26eb66729cf8d9a8799948710991",
+    "bytes": 2458
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-GOLD-PILOT-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-GOLD-PILOT-REVIEW-20261111.md",
+    "source_sha256": "946280dc6a2a89019e87684d2515247d2a1b8a0ee086110d8cf38a15b75492f1",
+    "published_sha256": "946280dc6a2a89019e87684d2515247d2a1b8a0ee086110d8cf38a15b75492f1",
+    "bytes": 7125
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-HUMAN-PILOT-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-HUMAN-PILOT-ACCEPTANCE-20261111.md",
+    "source_sha256": "bc06f0dd2ee8726659e0da8d9649ee17ecdcab698c8758330be8d2dacc1034b5",
+    "published_sha256": "bc06f0dd2ee8726659e0da8d9649ee17ecdcab698c8758330be8d2dacc1034b5",
+    "bytes": 3439
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-HUMAN-PILOT-PREP-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-HUMAN-PILOT-PREP-BRIEF.md",
+    "source_sha256": "600928026328be8752509c596014df386e36223534572b4e40a9af756bebbd2d",
+    "published_sha256": "d0752abb98e308f69a9541ba6e7e8ae267e1c2f1e1114a4f4a10a1c554c00095",
+    "bytes": 4894
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-HUMAN-PILOT-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-HUMAN-PILOT-REVIEW-20261111.md",
+    "source_sha256": "139ea36ae8c67e94ab8fe98779fdfa539e067d740ec82ce9f37c8b24d29c1da6",
+    "published_sha256": "139ea36ae8c67e94ab8fe98779fdfa539e067d740ec82ce9f37c8b24d29c1da6",
+    "bytes": 3758
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-HUMAN-PILOT-RUNBOOK.md",
+    "published": "archive/workspace/PHONG-HOA-X01-HUMAN-PILOT-RUNBOOK.md",
+    "source_sha256": "03600d589c6c98577be299302c722626825c4576730ae2c665a4d4c769c426d4",
+    "published_sha256": "45c1ef0c85b4912bd4a891d6d3dc0bd15071db847acd0a6d37b307129a5f5f28",
+    "bytes": 11278
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-HUMAN-PILOT-SOURCES.md",
+    "published": "archive/workspace/PHONG-HOA-X01-HUMAN-PILOT-SOURCES.md",
+    "source_sha256": "af2ce287b0f6685421162afdb7209c872e47afcda575bb8272f05c0164be303b",
+    "published_sha256": "af2ce287b0f6685421162afdb7209c872e47afcda575bb8272f05c0164be303b",
+    "bytes": 6432
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-BROWSER-HARNESS-QA-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-BROWSER-HARNESS-QA-RESULT.md",
+    "source_sha256": "e229c7a88136ab6edb8e0c024a2ba799455cc0b1f61b94de015d30a9304b249c",
+    "published_sha256": "e229c7a88136ab6edb8e0c024a2ba799455cc0b1f61b94de015d30a9304b249c",
+    "bytes": 9992
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-BROWSER-HARNESS-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-BROWSER-HARNESS-RESULT.md",
+    "source_sha256": "896731b357502e321784d5faa1f9856901bfb2c443ee4ddd946b7ffe7312e710",
+    "published_sha256": "896731b357502e321784d5faa1f9856901bfb2c443ee4ddd946b7ffe7312e710",
+    "bytes": 2901
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-BROWSER-INTEGRATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-BROWSER-INTEGRATION-BRIEF.md",
+    "source_sha256": "bc2665d8a8b6731950a7f0aaddb95b9072e885a012cff077efc934967736bfe2",
+    "published_sha256": "bc2665d8a8b6731950a7f0aaddb95b9072e885a012cff077efc934967736bfe2",
+    "bytes": 8172
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-BROWSER-INTEGRATION-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-BROWSER-INTEGRATION-RESULT.md",
+    "source_sha256": "4a0548f617cd91800c86aea9357157f68059cd4ccb978f1468bd948d81b34a7f",
+    "published_sha256": "37e530bf32913749857483e56519e6a4df85dd0d9592d158689a2e62572565a8",
+    "bytes": 4461
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-QUEUE-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-QUEUE-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "a506b0cb1c9234db520c2a3bec156b76c0c437f5d60ea38c2618c6c4f67c3b2c",
+    "published_sha256": "1e658adf96405c0cd38ef87850078d361baae49db7b78dc8fac32f0a26705dfb",
+    "bytes": 13408
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-QUEUE-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-QUEUE-LEADER-PLAN.md",
+    "source_sha256": "65c485f509aed641e61d0fc9efb3eb0faf79912d47f3692fc596e5236b6a25fc",
+    "published_sha256": "bc491d3302162ec7f5c4d99c8ec37776e2ee1b86810ee1019769c29a7d022ab1",
+    "bytes": 8578
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-QUEUE-QA-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-QUEUE-QA-RESULT.md",
+    "source_sha256": "1c9b64ae8ea3477b69379caff704bdf86cfc42d4ac13f5752bf92fca2a8e2bff",
+    "published_sha256": "1c9b64ae8ea3477b69379caff704bdf86cfc42d4ac13f5752bf92fca2a8e2bff",
+    "bytes": 4701
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-QUEUE-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-QUEUE-RESEARCH-BRIEF.md",
+    "source_sha256": "aee0b25a2f46d1551d76c4333b85dd938663b6c94f330de757b0f1fd004a628e",
+    "published_sha256": "42923f9bfdac8fddded167c11b60924b9aedfc31cd06cf15cfa1546b15587919",
+    "bytes": 5775
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-QUEUE-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-QUEUE-RESEARCH.md",
+    "source_sha256": "c4e9f8209f16bab3384c3ad60f0ce41e062b333255572239edf05530ff8eb3ed",
+    "published_sha256": "7a9179f88a074110b20c84a28b076e1119b943aa707bb821dfcd17c8d988b62e",
+    "bytes": 16471
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-QUEUE-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-QUEUE-RESULT.md",
+    "source_sha256": "dc8bf68706a9fa2da6500dccdc75bea3b118f6e9e4e24b6d404c6c508a9e4cc1",
+    "published_sha256": "dc8bf68706a9fa2da6500dccdc75bea3b118f6e9e4e24b6d404c6c508a9e4cc1",
+    "bytes": 5959
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-INGEST-QUEUE-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-INGEST-QUEUE-REVIEW-20261111.md",
+    "source_sha256": "1415f1095cf7b9b55fd31b4af036967b65f3479413ab3b100554a89b90dcba76",
+    "published_sha256": "3337b030304f05de87a2964477f989e9031c01e6baf46562e977993dd6faa369",
+    "bytes": 7749
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-ACCEPTANCE-20261111.md",
+    "source_sha256": "bce331e8579cc2e79420d40d16b8fbe26cc23f5483fe22f065b278d39f9f0c99",
+    "published_sha256": "bce331e8579cc2e79420d40d16b8fbe26cc23f5483fe22f065b278d39f9f0c99",
+    "bytes": 2678
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-IMPLEMENTATION-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-IMPLEMENTATION-ACCEPTANCE-20261111.md",
+    "source_sha256": "993679ab72ffa8ba092b79065c355c745ea2cc758aeca6077cf27da5c766529b",
+    "published_sha256": "993679ab72ffa8ba092b79065c355c745ea2cc758aeca6077cf27da5c766529b",
+    "bytes": 3810
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "38a4dab5b53122ea94166afc6c86faebc2abe48227a2722b878b7105962e5462",
+    "published_sha256": "f921f7d844eba71930d3d85301610a1505b486a5fc43fc068aff6b054eb4a9c8",
+    "bytes": 8417
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-IMPLEMENTATION-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-IMPLEMENTATION-REVIEW-20261111.md",
+    "source_sha256": "b159b9f814fea89680a48d2780b47e863059daa9470070d4541ef56dc09e3f70",
+    "published_sha256": "1f183808122faf9bf840b8ac8a229627b04dc2006066a20a3cfdc7e060d5db54",
+    "bytes": 6351
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-LEADER-PLAN.md",
+    "source_sha256": "3c6708a9d752deab9600e6ceb83949e791241bdfe7d44296b484f3edab4efb62",
+    "published_sha256": "e289f3542ac2af559952fcfe1dbb6003421b670d63fc04a8901fb62a121ee1d6",
+    "bytes": 10006
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-RESEARCH-BRIEF.md",
+    "source_sha256": "0ed6857c1585f78f18ddbe9539eec0219909fe3f3ab45ed3a86358d12c52a759",
+    "published_sha256": "e409d63c13d90b8d6ef3cb91b39c0c09cafd6307a6583aced73f2f22c791ce03",
+    "bytes": 4351
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-RESEARCH.md",
+    "source_sha256": "09c845f62cab64bf5babdeae8dd2ce5c8144cef902744344ec09417b57d2f237",
+    "published_sha256": "09c845f62cab64bf5babdeae8dd2ce5c8144cef902744344ec09417b57d2f237",
+    "bytes": 7298
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-RESULT.md",
+    "source_sha256": "0481f4942753a2a972ec980e1f4f2fcb5846ad34acdd94a924e4b467f9dd8201",
+    "published_sha256": "0481f4942753a2a972ec980e1f4f2fcb5846ad34acdd94a924e4b467f9dd8201",
+    "bytes": 6880
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-REVIEW-20261111.md",
+    "source_sha256": "5b07ac7c0526d4350394d878686ff425846da4d0a74b134a3b604db98893ed74",
+    "published_sha256": "3388a43196fe3ccec6a44609e4895842910318f64bd0551826cfd7f35243718b",
+    "bytes": 8921
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-LOCAL-INGEST-REWORK-R4-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-LOCAL-INGEST-REWORK-R4-20261111.md",
+    "source_sha256": "a7b6f123385dfb3ea6b9cd545f855a8a79b0a6a0231f2a40d077b9df2da6d18c",
+    "published_sha256": "c91884abef09a576de4f9212ec157cf90f24dded04da51920d44b1b0b3f63663",
+    "bytes": 4335
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-OFFLINE-QA-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-OFFLINE-QA-BRIEF.md",
+    "source_sha256": "06cbd79c09dd528dae9692414025a2e4972f23ff85ea2416b45e4127617c4d3b",
+    "published_sha256": "79fbb3c1a7f4259c74ad2e82265a0fab111fe3deea2c33293f083fdd2e2a56d3",
+    "bytes": 4927
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-OFFLINE-QA-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-OFFLINE-QA-RESULT.md",
+    "source_sha256": "b22b8f272ea01ab7b5e265476ff0bd29a3822f3ea2cc139931238428ee5f4f0a",
+    "published_sha256": "c8857e22b111ab5914b10a57d9147d58602a3987c17deeaafb00bd1a1ba2e6db",
+    "bytes": 8745
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-QA-FIX-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-QA-FIX-BRIEF.md",
+    "source_sha256": "889b1c59a94ac250e2d434040b1c25a1ddcc2d08138b76ade46dc14dd634b457",
+    "published_sha256": "a8af9f397a5a1ffa325889c44d5acb4f39979e7eb422f71cbe0b8fb9979f4032",
+    "bytes": 4223
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-QA-FIX-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-QA-FIX-RESULT.md",
+    "source_sha256": "c88d2cbe4f144ef7fb8d2c4585ee28962373f9e459277d5c1049c626c18b778d",
+    "published_sha256": "c88d2cbe4f144ef7fb8d2c4585ee28962373f9e459277d5c1049c626c18b778d",
+    "bytes": 4536
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-QA-RECHECK-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-QA-RECHECK-RESULT.md",
+    "source_sha256": "e9b5e5198edcbdd81e1760b6cf30bb781f1610dfa7b4e938813a30a6136720b7",
+    "published_sha256": "79311ee13e5b5633173ea002796b48deae1dbd3de1ab712dc626177f2d6fbc32",
+    "bytes": 5635
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-QUEUE-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-QUEUE-BRIEF.md",
+    "source_sha256": "7e284f159a0d0d57e11f6f12bf9bc763ee5d6428d154ca96d40df49cfdd2a678",
+    "published_sha256": "540412b845c5718a0bfaf23d8c8e14f9cb68f1fb8691063f216c86da25bcce0c",
+    "bytes": 6495
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-QUEUE-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-QUEUE-RESULT.md",
+    "source_sha256": "fd9e2547812794c6b2afa9c7a828d828750a518f40d7de59d0a19f91ec3fc97b",
+    "published_sha256": "fd9e2547812794c6b2afa9c7a828d828750a518f40d7de59d0a19f91ec3fc97b",
+    "bytes": 4455
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-STORE-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-STORE-RESULT.md",
+    "source_sha256": "f298e65092a99d09c67607e1fc6c7981fb8c6cbac6c3e55f16b2ad18999e1def",
+    "published_sha256": "f298e65092a99d09c67607e1fc6c7981fb8c6cbac6c3e55f16b2ad18999e1def",
+    "bytes": 4230
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-STORE-REVIEW.md",
+    "published": "archive/workspace/PHONG-HOA-X01-STORE-REVIEW.md",
+    "source_sha256": "5361cc6ed74fbeaa2c3348a69825f40e22e7cd884c08f17bd83ad2a9106b1379",
+    "published_sha256": "5361cc6ed74fbeaa2c3348a69825f40e22e7cd884c08f17bd83ad2a9106b1379",
+    "bytes": 7046
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-AUDIT-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-AUDIT-ACCEPTANCE-20261111.md",
+    "source_sha256": "c413bf303e3e64ee685fd17fac1b2d79992fd6608e79203b5d6b4eaba6426188",
+    "published_sha256": "2caef265b133673ad927ccf2b1524aff19543054a47ddd09b740304caec3ba71",
+    "bytes": 4454
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-AUDIT-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-AUDIT-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "16bff397c5ec30127bfc49f2ba42e8dbca17a57f13fa5131a33add3a90f221fd",
+    "published_sha256": "a6b0ffe89c77de30c79b570c391135b2cdb3ce675a26ddb06e7f582b277d9c2f",
+    "bytes": 8599
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-AUDIT-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-AUDIT-LEADER-PLAN.md",
+    "source_sha256": "0613e816ce92976f6d98fc6af34fef441cde09a240cd159de512d273abb9398a",
+    "published_sha256": "25e8861a2aa3d810c8e1417390dd3c18a7af7cf1523ae6ec34740e092a3f0416",
+    "bytes": 6018
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-AUDIT-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-AUDIT-RESEARCH-BRIEF.md",
+    "source_sha256": "6ad9f2fe761c7fa73a512a664662b77067788f6a4d013054420f74c400eada95",
+    "published_sha256": "10dda77e75d8cba0dc70399d926cabab5120c597f87ed266739e4cd6631722c2",
+    "bytes": 5731
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-AUDIT-RESEARCH-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-AUDIT-RESEARCH-REVIEW-20261111.md",
+    "source_sha256": "7586b30289137ffa53ce8e7fe187ab1caf9cc67c95ea29516f93fb72e7dd8bed",
+    "published_sha256": "0499100d833420e74f4cbcbfb70213ac003def53a4162fbe3c957c116be85056",
+    "bytes": 9515
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-AUDIT-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-AUDIT-RESEARCH.md",
+    "source_sha256": "35b8fe7c5ef144ce659fb3c922c603f7346f3b0b127e791999b3d19c667944cf",
+    "published_sha256": "56472ebe566d998aa78e1cffba0bdab01ec6a4da5d0437240cb5eb3c42b56a11",
+    "bytes": 9700
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-AUDIT-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-AUDIT-RESULT.md",
+    "source_sha256": "6edcc903e8d3834c11e38174539ea26360af7deae85b69774611c739a148a615",
+    "published_sha256": "9383afcaf94483cfd72a873eea137d2cc386a4ceb43b7c284b0ba992a74838c5",
+    "bytes": 5538
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-EVAL-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-EVAL-ACCEPTANCE-20261111.md",
+    "source_sha256": "bc4270e37aa3cbc697f895d6c4a7714ca3e830b81f71cfb347e244b79ae09038",
+    "published_sha256": "5a655537191f03e2b3ed8b8358c4b2ee7568221bc4fddef0b53ac7f41141f835",
+    "bytes": 4582
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-EVAL-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-EVAL-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "736273efdb884bc602edbab43e046f6bb0801efe0c81ba8f39c39df2b09be78d",
+    "published_sha256": "5114a3a4e29f1b642bf416c459d76e5767e2d910a7624b39813b2c2b05501f45",
+    "bytes": 9706
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-EVAL-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-EVAL-LEADER-PLAN.md",
+    "source_sha256": "695a14dcf68f8d307d049d70bdc7b5a2fd8341edf88cda7b8a2ebd5780aa3908",
+    "published_sha256": "87ec90e9774829a99d4d78d919f1b66882e44e1fc03264f450e8575d02831009",
+    "bytes": 7600
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-EVAL-RESEARCH-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-EVAL-RESEARCH-BRIEF.md",
+    "source_sha256": "af422e998a48875ed6d9ce5e9704a6b324be4591629c1bbd95dea1b971f81a10",
+    "published_sha256": "0dddeabb899f620bafb6cd728f277a370981e99987b6faf2740d7bd301c9a8e4",
+    "bytes": 4994
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-EVAL-RESEARCH-REVIEW-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-EVAL-RESEARCH-REVIEW-20261111.md",
+    "source_sha256": "e132e7a344457d3f99075fdf1ac8dd2fed8edd045efc844ea6911ff3cfbc4d48",
+    "published_sha256": "29b8387700c3b51f7da0884f636954275d9a66d6e6a6b8f6647c2f993c621737",
+    "bytes": 8508
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-EVAL-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-EVAL-RESEARCH.md",
+    "source_sha256": "d69532c609b6c40c943282df488bafac1a2f5fff282e71bc7db85d9ff97a97c3",
+    "published_sha256": "d69532c609b6c40c943282df488bafac1a2f5fff282e71bc7db85d9ff97a97c3",
+    "bytes": 11367
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-TTP-EVAL-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-TTP-EVAL-RESULT.md",
+    "source_sha256": "db0bfe42f1a0e4574c908953127cbea2ba5661d6fcb7766d6b7c445c81049c21",
+    "published_sha256": "db0bfe42f1a0e4574c908953127cbea2ba5661d6fcb7766d6b7c445c81049c21",
+    "bytes": 3467
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-W05-CONTRACT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-W05-CONTRACT-BRIEF.md",
+    "source_sha256": "332717280b319ca2ddf574dc29847e4c9c1e0e8e5c5be5ea13d1c089e036c1ca",
+    "published_sha256": "8ae7617cf076788e3a8671e29177c4cea91c88f38670f5c0ac287b0333479b18",
+    "bytes": 6978
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-W05-CONTRACT-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-W05-CONTRACT-RESULT.md",
+    "source_sha256": "7a6c40c13b52134db8504dc44f7f819cac54becc393e88b40a0ac2c79711a87c",
+    "published_sha256": "7a6c40c13b52134db8504dc44f7f819cac54becc393e88b40a0ac2c79711a87c",
+    "bytes": 4286
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-W05-STIX-E2E-ACCEPTANCE-20261111.md",
+    "published": "archive/workspace/PHONG-HOA-X01-W05-STIX-E2E-ACCEPTANCE-20261111.md",
+    "source_sha256": "e48f52c3d6966bf72462d627e85544fd307330f7a3c9fbd29ff139674c123351",
+    "published_sha256": "56b310172f465e7573c1e9ec4553af0e7480eeea5d9fe2d6621bb35955f05b92",
+    "bytes": 4247
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-W05-STIX-E2E-IMPLEMENTATION-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-W05-STIX-E2E-IMPLEMENTATION-BRIEF.md",
+    "source_sha256": "188d57719ab1295bec0f61b6751af307a370370170296da90c9868930102160a",
+    "published_sha256": "5328acee0bddcf4f8d192a28afa354506c4a882da9dc160f3eea42e17e4e5363",
+    "bytes": 14762
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-W05-STIX-E2E-LEADER-PLAN.md",
+    "published": "archive/workspace/PHONG-HOA-X01-W05-STIX-E2E-LEADER-PLAN.md",
+    "source_sha256": "fe081e887b8dfedb494e79a91b0511a006a3d47d1fd335ccef33383f5ef7ae6a",
+    "published_sha256": "348b41b455790b094770f258898fc339e0138efe70c53fd5982013bfa6105165",
+    "bytes": 7668
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-W05-STIX-E2E-NEXT-BRIEF.md",
+    "published": "archive/workspace/PHONG-HOA-X01-W05-STIX-E2E-NEXT-BRIEF.md",
+    "source_sha256": "4e797d2c1dc4d08eeb5c175cb4facbd375e4b248b4abceca96fb2518a5ab39cf",
+    "published_sha256": "bc94f2bbe5939bae7217fc846a282c3fb633fb3f22194b22f8917ff59d497c8d",
+    "bytes": 4620
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-W05-STIX-E2E-RESEARCH.md",
+    "published": "archive/workspace/PHONG-HOA-X01-W05-STIX-E2E-RESEARCH.md",
+    "source_sha256": "17c4227262264b01e305286aa1f9eaedd81ca87176711079566ab62a567ea154",
+    "published_sha256": "c67c019363346a0a6747494e8c8b0713a17561e6b06e31a7f33d791b8b78e23e",
+    "bytes": 11142
+  },
+  {
+    "source": "$WORKSPACE\\PHONG-HOA-X01-W05-STIX-E2E-RESULT.md",
+    "published": "archive/workspace/PHONG-HOA-X01-W05-STIX-E2E-RESULT.md",
+    "source_sha256": "d81703307fd94eb7695c030785de2241fb5e20c0d8fc5512c2f1b70fd67ec523",
+    "published_sha256": "d81703307fd94eb7695c030785de2241fb5e20c0d8fc5512c2f1b70fd67ec523",
+    "bytes": 5117
+  },
+  {
+    "source": "$WORKSPACE\\ai-adapter-evidence\\RED-GREEN.md",
+    "published": "archive/workspace/ai-adapter-evidence/RED-GREEN.md",
+    "source_sha256": "affd78b6ff746ce32f047c88520eee8e86321524b280d0f0d0ea65eae4b41a94",
+    "published_sha256": "affd78b6ff746ce32f047c88520eee8e86321524b280d0f0d0ea65eae4b41a94",
+    "bytes": 1255
+  },
+  {
+    "source": "$WORKSPACE\\ai-eval-evidence\\R1-RED-GREEN.md",
+    "published": "archive/workspace/ai-eval-evidence/R1-RED-GREEN.md",
+    "source_sha256": "f1da6d5a909b793f08758eaa9329bbac83d488824589ccb257cef6490f1be3a8",
+    "published_sha256": "f1da6d5a909b793f08758eaa9329bbac83d488824589ccb257cef6490f1be3a8",
+    "bytes": 1391
+  },
+  {
+    "source": "$WORKSPACE\\ai-eval-evidence\\WORK-LEDGER.md",
+    "published": "archive/workspace/ai-eval-evidence/WORK-LEDGER.md",
+    "source_sha256": "91190367d4fc80da84d75f7eaca6a886e50f3b0ee432ba70a3e89b85def64534",
+    "published_sha256": "91190367d4fc80da84d75f7eaca6a886e50f3b0ee432ba70a3e89b85def64534",
+    "bytes": 1620
+  },
+  {
+    "source": "$WORKSPACE\\leader-w03-backend-acceptance-20261112\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w03-backend-acceptance-20261112/ACCEPTANCE.md",
+    "source_sha256": "a838240594f2b6214439d367713e31189c08ce4076ed53a4f9e4b5635bc21f07",
+    "published_sha256": "abcd0d29d477436eaa7a17eabb44372aaa5a71c2449fcd762da0a5aa82627857",
+    "bytes": 2844
+  },
+  {
+    "source": "$WORKSPACE\\leader-w03-backend-review-20261112\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w03-backend-review-20261112/ACCEPTANCE.md",
+    "source_sha256": "22922b710aea02279191da2569b70ded6b4a3e9bd083663879f6b4e061fdf180",
+    "published_sha256": "22922b710aea02279191da2569b70ded6b4a3e9bd083663879f6b4e061fdf180",
+    "bytes": 1513
+  },
+  {
+    "source": "$WORKSPACE\\leader-w03-final-acceptance-20261112\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w03-final-acceptance-20261112/ACCEPTANCE.md",
+    "source_sha256": "c77d72bd28520d6d86bc5886f6740f966318b0788107e6ef0ec1d88e6ecbbb93",
+    "published_sha256": "c77d72bd28520d6d86bc5886f6740f966318b0788107e6ef0ec1d88e6ecbbb93",
+    "bytes": 3936
+  },
+  {
+    "source": "$WORKSPACE\\leader-w03-frontend-acceptance-20261112\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w03-frontend-acceptance-20261112/ACCEPTANCE.md",
+    "source_sha256": "4089e33288828c31e1fcf59832229810b89e030c8afb18c6ea0e232a4f1fd697",
+    "published_sha256": "ca7838dbcf358a24766a339120693d27bcc7c68dff63617812cb8fc901fc723b",
+    "bytes": 2770
+  },
+  {
+    "source": "$WORKSPACE\\leader-w03-integration-review-20261112\\REVIEW.md",
+    "published": "archive/workspace/leader-w03-integration-review-20261112/REVIEW.md",
+    "source_sha256": "85196441b5f02b44e93556a90e59b9a8863b4046d89d47698a163b8eac0606ee",
+    "published_sha256": "031a964dc1057fa10a17521e70159e933c1344ff6219f000895561f1902618d8",
+    "bytes": 3045
+  },
+  {
+    "source": "$WORKSPACE\\leader-w03-rework-acceptance-20261112\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w03-rework-acceptance-20261112/ACCEPTANCE.md",
+    "source_sha256": "c64ca448d1929af76f22378c322e80a5f37a326aee9b7617d2226d4405aa3b95",
+    "published_sha256": "76921bbe3dc6330e62c5460bb67f7ca3b526b24ab38f19fa9c30c0c35431961c",
+    "bytes": 2803
+  },
+  {
+    "source": "$WORKSPACE\\leader-w03-status-review-20261112\\RECHECK.md",
+    "published": "archive/workspace/leader-w03-status-review-20261112/RECHECK.md",
+    "source_sha256": "f82c107acec4516c8c31a8999227b57ff72b019898f13142ad47f32679912cd4",
+    "published_sha256": "f82c107acec4516c8c31a8999227b57ff72b019898f13142ad47f32679912cd4",
+    "bytes": 4675
+  },
+  {
+    "source": "$WORKSPACE\\leader-w03-status-review-20261112\\REVIEW.md",
+    "published": "archive/workspace/leader-w03-status-review-20261112/REVIEW.md",
+    "source_sha256": "93f7bbf36e0dccd8fd5279cbc55810cf4ca9f6232b43be4c2b2bf207e203782c",
+    "published_sha256": "93f7bbf36e0dccd8fd5279cbc55810cf4ca9f6232b43be4c2b2bf207e203782c",
+    "bytes": 4868
+  },
+  {
+    "source": "$WORKSPACE\\leader-w04-backend-acceptance-20261111\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w04-backend-acceptance-20261111/ACCEPTANCE.md",
+    "source_sha256": "96673c4cb37777adaf68094f1328767b81e817d46e1f6d16a7d6e0ee10a85795",
+    "published_sha256": "96673c4cb37777adaf68094f1328767b81e817d46e1f6d16a7d6e0ee10a85795",
+    "bytes": 3435
+  },
+  {
+    "source": "$WORKSPACE\\leader-w04-frontend-review-20261111\\REVIEW.md",
+    "published": "archive/workspace/leader-w04-frontend-review-20261111/REVIEW.md",
+    "source_sha256": "5ac651e22ade8cb0ab5567203d85bbbec3d1d64cdc086792b291e97502d9a306",
+    "published_sha256": "5ac651e22ade8cb0ab5567203d85bbbec3d1d64cdc086792b291e97502d9a306",
+    "bytes": 2777
+  },
+  {
+    "source": "$WORKSPACE\\leader-w04-inputs-acceptance-20261111\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w04-inputs-acceptance-20261111/ACCEPTANCE.md",
+    "source_sha256": "2b30f19d77491a0664fde16b7041f3b1644d8853d1f95ac343f4db49285d7895",
+    "published_sha256": "2b30f19d77491a0664fde16b7041f3b1644d8853d1f95ac343f4db49285d7895",
+    "bytes": 3501
+  },
+  {
+    "source": "$WORKSPACE\\leader-w04-integration-acceptance-20261111\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w04-integration-acceptance-20261111/ACCEPTANCE.md",
+    "source_sha256": "9390bbadf841c0739ccceec4b0bb9583a2c24435a6a527e79a1218912489a7ae",
+    "published_sha256": "9390bbadf841c0739ccceec4b0bb9583a2c24435a6a527e79a1218912489a7ae",
+    "bytes": 4130
+  },
+  {
+    "source": "$WORKSPACE\\leader-w04-rework-acceptance-20261111\\REVIEW.md",
+    "published": "archive/workspace/leader-w04-rework-acceptance-20261111/REVIEW.md",
+    "source_sha256": "985f8493f75abfb568d17c52d9d8240fb9a263db3003aa4a818039a4131225d0",
+    "published_sha256": "985f8493f75abfb568d17c52d9d8240fb9a263db3003aa4a818039a4131225d0",
+    "bytes": 2524
+  },
+  {
+    "source": "$WORKSPACE\\leader-w04-technology-acceptance-20261111\\ACCEPTANCE-20261112.md",
+    "published": "archive/workspace/leader-w04-technology-acceptance-20261111/ACCEPTANCE-20261112.md",
+    "source_sha256": "1b8a93069f782a2415796c6831cca0b6858f3b1d009f6360c3a1d30283ee58cf",
+    "published_sha256": "bd9e907412d85147ba23f55146013c8f66f5d65b9f222d9fe1d084fe1e566707",
+    "bytes": 4155
+  },
+  {
+    "source": "$WORKSPACE\\leader-w04-technology-integration-acceptance-20261112\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-w04-technology-integration-acceptance-20261112/ACCEPTANCE.md",
+    "source_sha256": "c0adcf8d99ffda8e1a870fdafd744702067bd008ee7fa5d3f75ab0b81706c2bd",
+    "published_sha256": "ae70ba2f4574c147bae35dd458abe99d8d20c07c200d64d4996ba1e37e7aaaf5",
+    "bytes": 5487
+  },
+  {
+    "source": "$WORKSPACE\\leader-w04-technology-review-20261111\\REVIEW.md",
+    "published": "archive/workspace/leader-w04-technology-review-20261111/REVIEW.md",
+    "source_sha256": "853e51f2ce59f2a3556c4b683a525ea54849f61cfc392bc362804e74f7f35fc9",
+    "published_sha256": "853e51f2ce59f2a3556c4b683a525ea54849f61cfc392bc362804e74f7f35fc9",
+    "bytes": 1982
+  },
+  {
+    "source": "$WORKSPACE\\leader-x01-recovery-acceptance-20261111\\ACCEPTANCE.md",
+    "published": "archive/workspace/leader-x01-recovery-acceptance-20261111/ACCEPTANCE.md",
+    "source_sha256": "8f61553be1c1b0ad8b5347b4d37ebc9cdaed5a742cc093467547807bb0c8337c",
+    "published_sha256": "8f61553be1c1b0ad8b5347b4d37ebc9cdaed5a742cc093467547807bb0c8337c",
+    "bytes": 5134
+  },
+  {
+    "source": "$WORKSPACE\\w02-local-integration-evidence\\browser-observations.md",
+    "published": "archive/workspace/w02-local-integration-evidence/browser-observations.md",
+    "source_sha256": "7d23457cfdbf7e190e7d66e0265f04d13ca492999b3332b65c37ee7bd4f240b2",
+    "published_sha256": "7d23457cfdbf7e190e7d66e0265f04d13ca492999b3332b65c37ee7bd4f240b2",
+    "bytes": 1361
+  },
+  {
+    "source": "$WORKSPACE\\w02-local-integration-evidence\\red-green.md",
+    "published": "archive/workspace/w02-local-integration-evidence/red-green.md",
+    "source_sha256": "15d805892ac259c1c08ab1dd4e858375d910197a03bf5e439663cc2ed2549a9f",
+    "published_sha256": "15d805892ac259c1c08ab1dd4e858375d910197a03bf5e439663cc2ed2549a9f",
+    "bytes": 1199
+  },
+  {
+    "source": "$WORKSPACE\\w02-local-integration-evidence\\rework-docs\\README.md",
+    "published": "archive/workspace/w02-local-integration-evidence/rework-docs/README.md",
+    "source_sha256": "7917a850b2086755e2e3e04f3fa4914ae05e4afbb7710378cb2a5cf066766e42",
+    "published_sha256": "7917a850b2086755e2e3e04f3fa4914ae05e4afbb7710378cb2a5cf066766e42",
+    "bytes": 1115
+  },
+  {
+    "source": "$WORKSPACE\\w02-local-integration-evidence\\rework-docs\\browser-provenance.md",
+    "published": "archive/workspace/w02-local-integration-evidence/rework-docs/browser-provenance.md",
+    "source_sha256": "0c13c60f2de1b75e381c77c443cdfa0af3e35be12ff37408308bb41cd9ff7214",
+    "published_sha256": "0c13c60f2de1b75e381c77c443cdfa0af3e35be12ff37408308bb41cd9ff7214",
+    "bytes": 868
+  },
+  {
+    "source": "$WORKSPACE\\w02-lookup-api-evidence\\implementation-plan.md",
+    "published": "archive/workspace/w02-lookup-api-evidence/implementation-plan.md",
+    "source_sha256": "05c0503eaaee2292fa22b4d62b86e5b73642946602a3ffb5d7f74620334a7ac5",
+    "published_sha256": "05c0503eaaee2292fa22b4d62b86e5b73642946602a3ffb5d7f74620334a7ac5",
+    "bytes": 3511
+  },
+  {
+    "source": "$WORKSPACE\\w03-backend-evidence\\readonly-sql-proof.md",
+    "published": "archive/workspace/w03-backend-evidence/readonly-sql-proof.md",
+    "source_sha256": "1f8f6be02a5f1d9f489ef033fdc6a9faca20c107277e61d7ac282dc3899f8419",
+    "published_sha256": "1f8f6be02a5f1d9f489ef033fdc6a9faca20c107277e61d7ac282dc3899f8419",
+    "bytes": 1060
+  },
+  {
+    "source": "$WORKSPACE\\w03-backend-rework-evidence\\05-sql-non-mutation.md",
+    "published": "archive/workspace/w03-backend-rework-evidence/05-sql-non-mutation.md",
+    "source_sha256": "8b372fb1fc4f5ec3d4fc033ff4e8119f5c218419d78108f00c718bd20425c8b5",
+    "published_sha256": "8b372fb1fc4f5ec3d4fc033ff4e8119f5c218419d78108f00c718bd20425c8b5",
+    "bytes": 875
+  },
+  {
+    "source": "$WORKSPACE\\w03-filter-fix-evidence\\README.md",
+    "published": "archive/workspace/w03-filter-fix-evidence/README.md",
+    "source_sha256": "e2cc290f061c138179c28b57dec82e2ff0f8285f50b2cae3c0a781aa7d4d9cd8",
+    "published_sha256": "419b2000659b2af282a1052f57f504aa25a3aaac183aba12ce4ea089dcade2a2",
+    "bytes": 1082
+  },
+  {
+    "source": "$WORKSPACE\\w03-frontend-evidence\\commands.md",
+    "published": "archive/workspace/w03-frontend-evidence/commands.md",
+    "source_sha256": "2d370efcc53738713de04b1a6ead688766bdf30036e45a7242f018cf1b181f86",
+    "published_sha256": "2d370efcc53738713de04b1a6ead688766bdf30036e45a7242f018cf1b181f86",
+    "bytes": 1533
+  },
+  {
+    "source": "$WORKSPACE\\w03-frontend-evidence\\red-green.md",
+    "published": "archive/workspace/w03-frontend-evidence/red-green.md",
+    "source_sha256": "7a31fd693e80ca4076a9620da7d28a1689afa525ee061fd07e0fa96d676200a9",
+    "published_sha256": "7a31fd693e80ca4076a9620da7d28a1689afa525ee061fd07e0fa96d676200a9",
+    "bytes": 1112
+  },
+  {
+    "source": "$WORKSPACE\\w03-product-fix-evidence\\FINAL-VERIFICATION.md",
+    "published": "archive/workspace/w03-product-fix-evidence/FINAL-VERIFICATION.md",
+    "source_sha256": "a977ad99156cc2a32c1aaafe348981de3cfb14dec0d81a698fbf88e342f845bd",
+    "published_sha256": "e1dd6853f5950cfc157c929fecd644877e37685f8e15585e27532899abbb98b2",
+    "bytes": 2333
+  },
+  {
+    "source": "$WORKSPACE\\w03-product-fix-evidence\\RED-GREEN.md",
+    "published": "archive/workspace/w03-product-fix-evidence/RED-GREEN.md",
+    "source_sha256": "43e48f30d2ef1bcf0678417e3c81ceb176d46a5e80bc379ee330fe55320abc97",
+    "published_sha256": "d9e7c0e929012c729bc8f3234740fdc1e9cefd6dcee9efe3e3571aecc40700c4",
+    "bytes": 1909
+  },
+  {
+    "source": "$WORKSPACE\\w03-status-backend-evidence\\README.md",
+    "published": "archive/workspace/w03-status-backend-evidence/README.md",
+    "source_sha256": "b8e8fa1fc26b71a7fdfae2697e189ea129a48b37bf0f5e7718aefb0347b5a996",
+    "published_sha256": "b8e8fa1fc26b71a7fdfae2697e189ea129a48b37bf0f5e7718aefb0347b5a996",
+    "bytes": 884
+  },
+  {
+    "source": "$WORKSPACE\\w03-status-backend-rework-evidence\\README.md",
+    "published": "archive/workspace/w03-status-backend-rework-evidence/README.md",
+    "source_sha256": "22283437842e36245cc213af8b71648ee0e3218f5b0d8bef982df106911803aa",
+    "published_sha256": "22283437842e36245cc213af8b71648ee0e3218f5b0d8bef982df106911803aa",
+    "bytes": 663
+  },
+  {
+    "source": "$WORKSPACE\\w03-status-frontend-evidence\\README.md",
+    "published": "archive/workspace/w03-status-frontend-evidence/README.md",
+    "source_sha256": "96c331301e1eb2c7b0e19687a43a468a322f9d59655e1b56088b703be98ae4d8",
+    "published_sha256": "2f35d71c84dde41b57e040dcdf857c073e802a26e6dc4b2a4d88fc2217299762",
+    "bytes": 429
+  },
+  {
+    "source": "$WORKSPACE\\w03-status-frontend-evidence\\commands.md",
+    "published": "archive/workspace/w03-status-frontend-evidence/commands.md",
+    "source_sha256": "f9b98f72c62708045d61186d678be92b40807f128d6c6809f5aafd66f03fde12",
+    "published_sha256": "36a876e10a9bd42bc09cf19a49496d443062f435ea5d9b0d0e50ea812251317a",
+    "bytes": 1330
+  },
+  {
+    "source": "$WORKSPACE\\w03-status-frontend-evidence\\fixtures-sha256.md",
+    "published": "archive/workspace/w03-status-frontend-evidence/fixtures-sha256.md",
+    "source_sha256": "20822597c7d32f760c13ac82332c75889b4a04156bc53a2b6234a0b3b6c7e14c",
+    "published_sha256": "6750ac531d81c28f5a22249ed9e437492f16bb2cb18b2b4426b790ec2801f38a",
+    "bytes": 477
+  },
+  {
+    "source": "$WORKSPACE\\w03-status-frontend-rework-evidence\\manifest.md",
+    "published": "archive/workspace/w03-status-frontend-rework-evidence/manifest.md",
+    "source_sha256": "903d4ed542846429829d063ecaa2b8092fe36c2d3c89cb1d4e6d310c7b862eed",
+    "published_sha256": "903d4ed542846429829d063ecaa2b8092fe36c2d3c89cb1d4e6d310c7b862eed",
+    "bytes": 849
+  },
+  {
+    "source": "$WORKSPACE\\w03-status-frontend-rework2-evidence\\manifest.md",
+    "published": "archive/workspace/w03-status-frontend-rework2-evidence/manifest.md",
+    "source_sha256": "34ce22c99012bc40060f26b108571983f58e78dcb9d0b32b1e3a9a5dfef887b5",
+    "published_sha256": "34ce22c99012bc40060f26b108571983f58e78dcb9d0b32b1e3a9a5dfef887b5",
+    "bytes": 1143
+  },
+  {
+    "source": "$WORKSPACE\\w04-local-integration-evidence\\browser-observations.md",
+    "published": "archive/workspace/w04-local-integration-evidence/browser-observations.md",
+    "source_sha256": "4cd7a630ed64e09ef1e693e18e6f90d23bf1f86310a3dabbb554f59df78e23f1",
+    "published_sha256": "4cd7a630ed64e09ef1e693e18e6f90d23bf1f86310a3dabbb554f59df78e23f1",
+    "bytes": 1653
+  },
+  {
+    "source": "$WORKSPACE\\w04-technology-backend-evidence\\verification.md",
+    "published": "archive/workspace/w04-technology-backend-evidence/verification.md",
+    "source_sha256": "343659dc0cb50e8d0db0cf69095131955b2f5130d2c8b63e398e1632e2364604",
+    "published_sha256": "96315b0d2afe2b25493d7688b8b1255ac5fe2fc167d009c3ed95237be34befd6",
+    "bytes": 2133
+  },
+  {
+    "source": "$WORKSPACE\\w04-technology-frontend-evidence\\RED-GREEN.md",
+    "published": "archive/workspace/w04-technology-frontend-evidence/RED-GREEN.md",
+    "source_sha256": "8e0f27d46061261cbaaa505eeec256961296348a4243652c65b6957d4ebd7ff0",
+    "published_sha256": "8e0f27d46061261cbaaa505eeec256961296348a4243652c65b6957d4ebd7ff0",
+    "bytes": 2339
+  },
+  {
+    "source": "$WORKSPACE\\w04-technology-frontend-evidence\\REWORK-VERIFICATION.md",
+    "published": "archive/workspace/w04-technology-frontend-evidence/REWORK-VERIFICATION.md",
+    "source_sha256": "efe096e0939cff78335ad2e96361d89bc5b45ef521617a5dc52b9323a52c2cb5",
+    "published_sha256": "efe096e0939cff78335ad2e96361d89bc5b45ef521617a5dc52b9323a52c2cb5",
+    "bytes": 1668
+  },
+  {
+    "source": "$WORKSPACE\\w04-technology-frontend-evidence\\VERIFICATION.md",
+    "published": "archive/workspace/w04-technology-frontend-evidence/VERIFICATION.md",
+    "source_sha256": "a9526f9c3adabbf0a813f6d99de28c2ca2d0ac95d7abb344c3ddbef90276bac3",
+    "published_sha256": "9ee48414359ee88f34df57089eaafd9499b8525fa3953b6c937d045b098765db",
+    "bytes": 1416
+  },
+  {
+    "source": "$WORKSPACE\\w05-api-evidence\\DEPENDENCIES.md",
+    "published": "archive/workspace/w05-api-evidence/DEPENDENCIES.md",
+    "source_sha256": "d994a7c9210240b55f7d7bc797951a59ba3ff6b79cab0f4c731b9e7462a1da6a",
+    "published_sha256": "795bed47617d4e6db99006585459a99bfcaf18d5e602868ab3cc0597aa3a892c",
+    "bytes": 720
+  },
+  {
+    "source": "$WORKSPACE\\w05-api-evidence\\GREEN.md",
+    "published": "archive/workspace/w05-api-evidence/GREEN.md",
+    "source_sha256": "c5b141ec4b92d7542a747b8249b1289e1d69333a532fd0ba5e88d71e3b181c80",
+    "published_sha256": "a9483afaac387913f1706489b2e57886b32343bfb9bf454f626bd3bc6e8c2dda",
+    "bytes": 1316
+  },
+  {
+    "source": "$WORKSPACE\\w05-api-evidence\\RED.md",
+    "published": "archive/workspace/w05-api-evidence/RED.md",
+    "source_sha256": "ba7648052b00fae86c483613fa6b6b09dbf675a50e6f46861dcadd8232cfb1bc",
+    "published_sha256": "ba7648052b00fae86c483613fa6b6b09dbf675a50e6f46861dcadd8232cfb1bc",
+    "bytes": 823
+  },
+  {
+    "source": "$WORKSPACE\\w05-api-evidence\\REWORK-GREEN.md",
+    "published": "archive/workspace/w05-api-evidence/REWORK-GREEN.md",
+    "source_sha256": "fa9cac30fc24ece29404ec71b6e7fc837f933d3f8ba1a187b491ccef52f5b293",
+    "published_sha256": "fa9cac30fc24ece29404ec71b6e7fc837f933d3f8ba1a187b491ccef52f5b293",
+    "bytes": 1061
+  },
+  {
+    "source": "$WORKSPACE\\w05-api-evidence\\REWORK-RED.md",
+    "published": "archive/workspace/w05-api-evidence/REWORK-RED.md",
+    "source_sha256": "3e047c502c1a4f1f0997316dd8af951ae835699b357fbd456910838910a599f9",
+    "published_sha256": "3e047c502c1a4f1f0997316dd8af951ae835699b357fbd456910838910a599f9",
+    "bytes": 792
+  },
+  {
+    "source": "$WORKSPACE\\w05-review-evidence\\RED.md",
+    "published": "archive/workspace/w05-review-evidence/RED.md",
+    "source_sha256": "95f64e3eaa2b1e4b917ff470b7da4f6492202e7bae99a5448d8c5be99408d42a",
+    "published_sha256": "8c5331f844a02cf038491cf9b6e387189b60227b639153f669d5626547836e95",
+    "bytes": 1988
+  },
+  {
+    "source": "$WORKSPACE\\w05-selection-api-evidence\\red-green.md",
+    "published": "archive/workspace/w05-selection-api-evidence/red-green.md",
+    "source_sha256": "6608c91c9cd7f6e1e753d05c0dda657b70b0b80d1a49278f0a6c99bf7a3f318f",
+    "published_sha256": "6608c91c9cd7f6e1e753d05c0dda657b70b0b80d1a49278f0a6c99bf7a3f318f",
+    "bytes": 1018
+  },
+  {
+    "source": "$WORKSPACE\\w05-selection-integration-evidence\\browser\\STEPS.md",
+    "published": "archive/workspace/w05-selection-integration-evidence/browser/STEPS.md",
+    "source_sha256": "318ea3a00b08d1b2ec377c931db2f5530182f00b3652541f989a7196dd2828bd",
+    "published_sha256": "318ea3a00b08d1b2ec377c931db2f5530182f00b3652541f989a7196dd2828bd",
+    "bytes": 3588
+  },
+  {
+    "source": "$WORKSPACE\\w05-selection-integration-evidence\\rework-evidence\\RESULT.md",
+    "published": "archive/workspace/w05-selection-integration-evidence/rework-evidence/RESULT.md",
+    "source_sha256": "7ebc8104ab8f6f8c15c8ce0ae9ad3be3b588b196eb656f13652a8127fb1845b0",
+    "published_sha256": "7ebc8104ab8f6f8c15c8ce0ae9ad3be3b588b196eb656f13652a8127fb1845b0",
+    "bytes": 2357
+  },
+  {
+    "source": "$WORKSPACE\\w05-selection-integration-evidence\\rework-evidence\\browser-observations.md",
+    "published": "archive/workspace/w05-selection-integration-evidence/rework-evidence/browser-observations.md",
+    "source_sha256": "96fea43825d7560fd605c82541d6fe696d6c6b078e370a817becfbcbf11fc58e",
+    "published_sha256": "96fea43825d7560fd605c82541d6fe696d6c6b078e370a817becfbcbf11fc58e",
+    "bytes": 1717
+  },
+  {
+    "source": "$WORKSPACE\\w05-selection-integration-evidence\\rework-evidence\\cleanup-correction.md",
+    "published": "archive/workspace/w05-selection-integration-evidence/rework-evidence/cleanup-correction.md",
+    "source_sha256": "2b6b39fdb13b1cc7d3ec9b170451498bf9a10693291710c4c51581db6501ef53",
+    "published_sha256": "2b6b39fdb13b1cc7d3ec9b170451498bf9a10693291710c4c51581db6501ef53",
+    "bytes": 879
+  },
+  {
+    "source": "$WORKSPACE\\w05-selection-ui-evidence\\rework-r1-r5\\verification.md",
+    "published": "archive/workspace/w05-selection-ui-evidence/rework-r1-r5/verification.md",
+    "source_sha256": "021c49341b829f1f7d56b95b298bee27eb32a43c2be154c397866962aa27d457",
+    "published_sha256": "021c49341b829f1f7d56b95b298bee27eb32a43c2be154c397866962aa27d457",
+    "bytes": 1527
+  },
+  {
+    "source": "$WORKSPACE\\w05-selection-ui-evidence\\rework-r6\\verification.md",
+    "published": "archive/workspace/w05-selection-ui-evidence/rework-r6/verification.md",
+    "source_sha256": "fb4e2ef982af1f59b142f62e0f6ddb5fed548bb018fc8e8715edf46469713a53",
+    "published_sha256": "fb4e2ef982af1f59b142f62e0f6ddb5fed548bb018fc8e8715edf46469713a53",
+    "bytes": 1495
+  },
+  {
+    "source": "$WORKSPACE\\w05-selection-ui-evidence\\verification.md",
+    "published": "archive/workspace/w05-selection-ui-evidence/verification.md",
+    "source_sha256": "fe6538e6a4a80294105d2ebff56e77af7279d11f1cee6284fcee743581641866",
+    "published_sha256": "fe6538e6a4a80294105d2ebff56e77af7279d11f1cee6284fcee743581641866",
+    "bytes": 1064
+  },
+  {
+    "source": "$WORKSPACE\\w05-stix-evidence\\README.md",
+    "published": "archive/workspace/w05-stix-evidence/README.md",
+    "source_sha256": "e6c4f51d42974960dc115313a0c90395f5bd731012571fa4a343376fa7d5ff9c",
+    "published_sha256": "e6c4f51d42974960dc115313a0c90395f5bd731012571fa4a343376fa7d5ff9c",
+    "bytes": 3568
+  },
+  {
+    "source": "$WORKSPACE\\workflow-evidence\\verification.md",
+    "published": "archive/workspace/workflow-evidence/verification.md",
+    "source_sha256": "ad84a9a374e298ad316b66af03cea128b2b47f55a2fa661b9337bcc30ba5f4a8",
+    "published_sha256": "ad84a9a374e298ad316b66af03cea128b2b47f55a2fa661b9337bcc30ba5f4a8",
+    "bytes": 3807
+  },
+  {
+    "source": "$WORKSPACE\\x01-attack-real-research-evidence\\manifest.md",
+    "published": "archive/workspace/x01-attack-real-research-evidence/manifest.md",
+    "source_sha256": "9b196fd132d46445e0af61609e4df5bebdda2341e7ce608255b2a4f25e1fb44a",
+    "published_sha256": "9b196fd132d46445e0af61609e4df5bebdda2341e7ce608255b2a4f25e1fb44a",
+    "bytes": 2590
+  },
+  {
+    "source": "$WORKSPACE\\x01-c1-evidence\\self-review.md",
+    "published": "archive/workspace/x01-c1-evidence/self-review.md",
+    "source_sha256": "92fbe795ea57243eb9f86517015e488f08c13443789f0d925b0f377cde5160a6",
+    "published_sha256": "92fbe795ea57243eb9f86517015e488f08c13443789f0d925b0f377cde5160a6",
+    "bytes": 509
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-adapter-evidence\\red-green.md",
+    "published": "archive/workspace/x01-c4-adapter-evidence/red-green.md",
+    "source_sha256": "e646fb4ebc4b5da984892d78264ac5c51d6556c42ac5c0160261883ac81baf3a",
+    "published_sha256": "e646fb4ebc4b5da984892d78264ac5c51d6556c42ac5c0160261883ac81baf3a",
+    "bytes": 593
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-adapter-evidence\\rework-r1\\verification.md",
+    "published": "archive/workspace/x01-c4-adapter-evidence/rework-r1/verification.md",
+    "source_sha256": "f3a8833a7bab262aee6eb72e431568dcc392e80c3de49aa181b1b1825da4fbab",
+    "published_sha256": "f3a8833a7bab262aee6eb72e431568dcc392e80c3de49aa181b1b1825da4fbab",
+    "bytes": 2025
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-adapter-evidence\\verification.md",
+    "published": "archive/workspace/x01-c4-adapter-evidence/verification.md",
+    "source_sha256": "ce066e584eaf2cb567ec1a90830783239b211e287fe2d004b048240cae72fcf1",
+    "published_sha256": "ce066e584eaf2cb567ec1a90830783239b211e287fe2d004b048240cae72fcf1",
+    "bytes": 1775
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\base-old-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/base-old-report.md",
+    "source_sha256": "5f8830d123094faab3942632306adf8bb60ce6ff435c19528d14d9821fb56e15",
+    "published_sha256": "5f8830d123094faab3942632306adf8bb60ce6ff435c19528d14d9821fb56e15",
+    "bytes": 3442
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\final-c3-c4-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/final-c3-c4-report.md",
+    "source_sha256": "a7acf3275c4f5b4def5ea75ea7a0aff5b4d000705cc7664861a1d5b6a3b4b85a",
+    "published_sha256": "a7acf3275c4f5b4def5ea75ea7a0aff5b4d000705cc7664861a1d5b6a3b4b85a",
+    "bytes": 3778
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\final-c4-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/final-c4-report.md",
+    "source_sha256": "9ec8057f092c142efbabe9cedce4cfd4b80134013b3bc68df926bc47ad9ccb1a",
+    "published_sha256": "9ec8057f092c142efbabe9cedce4cfd4b80134013b3bc68df926bc47ad9ccb1a",
+    "bytes": 2934
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\head-old-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/head-old-report.md",
+    "source_sha256": "5f8830d123094faab3942632306adf8bb60ce6ff435c19528d14d9821fb56e15",
+    "published_sha256": "5f8830d123094faab3942632306adf8bb60ce6ff435c19528d14d9821fb56e15",
+    "bytes": 3442
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\precommit-c3-c4-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/precommit-c3-c4-report.md",
+    "source_sha256": "bb095c37c8ca5e6ab77e2736cb3f8d4a4cf7e7e3f2fb1345c14eff5928f97b73",
+    "published_sha256": "bb095c37c8ca5e6ab77e2736cb3f8d4a4cf7e7e3f2fb1345c14eff5928f97b73",
+    "bytes": 3778
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\precommit-c4-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/precommit-c4-report.md",
+    "source_sha256": "4aa08354500ae04d6f1866ab631083ee9c08786abcec31f7be7b86aec33ca52b",
+    "published_sha256": "4aa08354500ae04d6f1866ab631083ee9c08786abcec31f7be7b86aec33ca52b",
+    "bytes": 2934
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\rework-r1-r4\\final-c3-c4-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/rework-r1-r4/final-c3-c4-report.md",
+    "source_sha256": "8e41c16ce1ceac6def5bd79e60a7c3701be87fcd448307e2a5e4010a493d2605",
+    "published_sha256": "8e41c16ce1ceac6def5bd79e60a7c3701be87fcd448307e2a5e4010a493d2605",
+    "bytes": 3778
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\rework-r1-r4\\final-c4-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/rework-r1-r4/final-c4-report.md",
+    "source_sha256": "e84c2dd3e8b35e9d4bbddda7fa82566ec041039f418c51131ec8cbe37c5b3fe7",
+    "published_sha256": "e84c2dd3e8b35e9d4bbddda7fa82566ec041039f418c51131ec8cbe37c5b3fe7",
+    "bytes": 2934
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\rework-r1-r4\\fixed-base-input-old-report.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/rework-r1-r4/fixed-base-input-old-report.md",
+    "source_sha256": "5f8830d123094faab3942632306adf8bb60ce6ff435c19528d14d9821fb56e15",
+    "published_sha256": "5f8830d123094faab3942632306adf8bb60ce6ff435c19528d14d9821fb56e15",
+    "bytes": 3442
+  },
+  {
+    "source": "$WORKSPACE\\x01-c4-eval-evidence\\tdd-red-green.md",
+    "published": "archive/workspace/x01-c4-eval-evidence/tdd-red-green.md",
+    "source_sha256": "4db6b818938d054be69c22615469aaacaf460ce1bd881fbd9ca9113f3502b056",
+    "published_sha256": "4db6b818938d054be69c22615469aaacaf460ce1bd881fbd9ca9113f3502b056",
+    "bytes": 1647
+  },
+  {
+    "source": "$WORKSPACE\\x01-eval-report-evidence\\00-preflight.md",
+    "published": "archive/workspace/x01-eval-report-evidence/00-preflight.md",
+    "source_sha256": "76b6568a488136001151ae42f099adb8cd9f751224980ccd6543d5099379e68d",
+    "published_sha256": "76b6568a488136001151ae42f099adb8cd9f751224980ccd6543d5099379e68d",
+    "bytes": 796
+  },
+  {
+    "source": "$WORKSPACE\\x01-eval-report-evidence\\commands.md",
+    "published": "archive/workspace/x01-eval-report-evidence/commands.md",
+    "source_sha256": "1b509eb30b738802741a77c4cdc695bda3e8c5bee04433567980a41b7eb6fff1",
+    "published_sha256": "1b509eb30b738802741a77c4cdc695bda3e8c5bee04433567980a41b7eb6fff1",
+    "bytes": 1068
+  },
+  {
+    "source": "$WORKSPACE\\x01-eval-report-evidence\\demo-c1.md",
+    "published": "archive/workspace/x01-eval-report-evidence/demo-c1.md",
+    "source_sha256": "f6441b2ebf0dacef24287f02bd2797d847d1575480541e2b22d88906467ee3f3",
+    "published_sha256": "f6441b2ebf0dacef24287f02bd2797d847d1575480541e2b22d88906467ee3f3",
+    "bytes": 1702
+  },
+  {
+    "source": "$WORKSPACE\\x01-eval-report-evidence\\demo-c23-audit.md",
+    "published": "archive/workspace/x01-eval-report-evidence/demo-c23-audit.md",
+    "source_sha256": "aa2df9a4525679a907386e245ee0ba6079b7204c14c5186c5eb475c97bb4e66a",
+    "published_sha256": "aa2df9a4525679a907386e245ee0ba6079b7204c14c5186c5eb475c97bb4e66a",
+    "bytes": 3328
+  },
+  {
+    "source": "$WORKSPACE\\x01-eval-report-evidence\\rework-r1\\00-preflight.md",
+    "published": "archive/workspace/x01-eval-report-evidence/rework-r1/00-preflight.md",
+    "source_sha256": "1f51dcd5a33e6c870aa9c4b2ed7e4210205da44ee15353347cb4ecd7e3e04bd9",
+    "published_sha256": "1f51dcd5a33e6c870aa9c4b2ed7e4210205da44ee15353347cb4ecd7e3e04bd9",
+    "bytes": 707
+  },
+  {
+    "source": "$WORKSPACE\\x01-eval-report-evidence\\rework-r1\\commands.md",
+    "published": "archive/workspace/x01-eval-report-evidence/rework-r1/commands.md",
+    "source_sha256": "dd2a5b3ad184ceb5310b88baf80868102a870f5cc6a04d1ea9954e26da176dd5",
+    "published_sha256": "dd2a5b3ad184ceb5310b88baf80868102a870f5cc6a04d1ea9954e26da176dd5",
+    "bytes": 708
+  },
+  {
+    "source": "$WORKSPACE\\x01-gold-pilot-evidence\\commands.md",
+    "published": "archive/workspace/x01-gold-pilot-evidence/commands.md",
+    "source_sha256": "9e1b4d85a4bfd80fc68a9429413198495f15b1bc9ad99d7f05bba888cd044f76",
+    "published_sha256": "9e1b4d85a4bfd80fc68a9429413198495f15b1bc9ad99d7f05bba888cd044f76",
+    "bytes": 963
+  },
+  {
+    "source": "$WORKSPACE\\x01-gold-pilot-evidence\\red-green.md",
+    "published": "archive/workspace/x01-gold-pilot-evidence/red-green.md",
+    "source_sha256": "f7a7f377631fa8ad917aa428fa07138063be1870850bbec564c8d9ce1fda8a37",
+    "published_sha256": "f7a7f377631fa8ad917aa428fa07138063be1870850bbec564c8d9ce1fda8a37",
+    "bytes": 684
+  },
+  {
+    "source": "$WORKSPACE\\x01-gold-pilot-evidence\\rework-r1-r5\\commands.md",
+    "published": "archive/workspace/x01-gold-pilot-evidence/rework-r1-r5/commands.md",
+    "source_sha256": "8230ec6d3395e17e1d672aee5e31a089aedff8d697f4130562c186112e6e94f4",
+    "published_sha256": "8230ec6d3395e17e1d672aee5e31a089aedff8d697f4130562c186112e6e94f4",
+    "bytes": 875
+  },
+  {
+    "source": "$WORKSPACE\\x01-gold-pilot-evidence\\rework-r1-r5\\red-green.md",
+    "published": "archive/workspace/x01-gold-pilot-evidence/rework-r1-r5/red-green.md",
+    "source_sha256": "b347f62d239374faad6c231148848707587b43bdeef6e4a372e798cfc504a11a",
+    "published_sha256": "b347f62d239374faad6c231148848707587b43bdeef6e4a372e798cfc504a11a",
+    "bytes": 709
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-browser-harness-evidence\\COMMANDS.md",
+    "published": "archive/workspace/x01-ingest-browser-harness-evidence/COMMANDS.md",
+    "source_sha256": "baa15d67d2157482a4063493a8891b7192fb5104566a9e30770268abd7fbf20f",
+    "published_sha256": "baa15d67d2157482a4063493a8891b7192fb5104566a9e30770268abd7fbf20f",
+    "bytes": 1434
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-browser-harness-evidence\\rework-f1-f3\\COMMANDS.md",
+    "published": "archive/workspace/x01-ingest-browser-harness-evidence/rework-f1-f3/COMMANDS.md",
+    "source_sha256": "0e56962e8b365daa2ab929e72fc20c7b8847c8a3cfcf9f498345f2b82e29fffa",
+    "published_sha256": "0e56962e8b365daa2ab929e72fc20c7b8847c8a3cfcf9f498345f2b82e29fffa",
+    "bytes": 1479
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-browser-harness-evidence\\rework-f3-semantic\\COMMANDS.md",
+    "published": "archive/workspace/x01-ingest-browser-harness-evidence/rework-f3-semantic/COMMANDS.md",
+    "source_sha256": "d0e6aad7bb8a4f7ee6ebe1ea97d2b1500dd57565951e1588c21387e04ba2e429",
+    "published_sha256": "d0e6aad7bb8a4f7ee6ebe1ea97d2b1500dd57565951e1588c21387e04ba2e429",
+    "bytes": 1554
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-browser-integration-evidence\\RESULT.md",
+    "published": "archive/workspace/x01-ingest-browser-integration-evidence/RESULT.md",
+    "source_sha256": "ce38d490ee368ef795fee10de9884fb57f69119ef562a79ee94041d44faf7e5f",
+    "published_sha256": "9c09c72fae5d8518950837d165ae0a1647736e2f574595b8ab68e504b5e0794f",
+    "bytes": 5443
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-browser-integration-evidence\\rework-recovery\\commands.md",
+    "published": "archive/workspace/x01-ingest-browser-integration-evidence/rework-recovery/commands.md",
+    "source_sha256": "55036d0a69573404b1de3cf959e4bd5b1f3f5a22e40566cb7c10c0e955f362ea",
+    "published_sha256": "b0ed10e33bb69a41f1d1ac663f44720d255a8436330df3c332316152dbdf454e",
+    "bytes": 1373
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-queue-evidence\\MANIFEST-VERIFY.md",
+    "published": "archive/workspace/x01-ingest-queue-evidence/MANIFEST-VERIFY.md",
+    "source_sha256": "9988639c5b592690eef24776b86f51c101251319a8ead96d3695ebe8f5dc3e67",
+    "published_sha256": "9988639c5b592690eef24776b86f51c101251319a8ead96d3695ebe8f5dc3e67",
+    "bytes": 552
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-queue-evidence\\cleanup.md",
+    "published": "archive/workspace/x01-ingest-queue-evidence/cleanup.md",
+    "source_sha256": "7de5320ad6ef87a2879ca36168e9ac442c316c63bcfbdd0455539c9084787866",
+    "published_sha256": "7de5320ad6ef87a2879ca36168e9ac442c316c63bcfbdd0455539c9084787866",
+    "bytes": 669
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-queue-evidence\\commands.md",
+    "published": "archive/workspace/x01-ingest-queue-evidence/commands.md",
+    "source_sha256": "c3aa9f5f4f8499d3fde72948be446d871fb18aa959be8e35d22abdea6125e770",
+    "published_sha256": "c3aa9f5f4f8499d3fde72948be446d871fb18aa959be8e35d22abdea6125e770",
+    "bytes": 1838
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-queue-evidence\\diff.md",
+    "published": "archive/workspace/x01-ingest-queue-evidence/diff.md",
+    "source_sha256": "519562b05a6ca13bdb2eaee2f4cea7d8504cd85adee388df91885638927c9c33",
+    "published_sha256": "519562b05a6ca13bdb2eaee2f4cea7d8504cd85adee388df91885638927c9c33",
+    "bytes": 868
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-queue-evidence\\rework-f1\\MANIFEST-VERIFY.md",
+    "published": "archive/workspace/x01-ingest-queue-evidence/rework-f1/MANIFEST-VERIFY.md",
+    "source_sha256": "926ac1b2e320f8843843c3558f5fef54adff9f13245ebbcaddabb21ede404595",
+    "published_sha256": "efdf1e6663ab8c80a535d986c5475927c3a26170beb877e40a6e7997e1f51ef5",
+    "bytes": 474
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-queue-evidence\\rework-f1\\commands.md",
+    "published": "archive/workspace/x01-ingest-queue-evidence/rework-f1/commands.md",
+    "source_sha256": "073b6a318a56d6a96f4d3d3642d2d8791eb36683a38a2848aa014807f7922a89",
+    "published_sha256": "d0f3a9d5a72a4f2f459451c5fef172a0314dba38e6bd26d2e95368ae8e5697a6",
+    "bytes": 1568
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-queue-evidence\\rework-f1\\source-state.md",
+    "published": "archive/workspace/x01-ingest-queue-evidence/rework-f1/source-state.md",
+    "source_sha256": "c0eec9b93fdfa70eec1f9b3a94b057505eb795490ceddd14d35bc61ab4fc7f79",
+    "published_sha256": "7ca8edf4e1d8cef2efde43588568540865c0234ca72a146ef0fff4d13a1b3cd8",
+    "bytes": 674
+  },
+  {
+    "source": "$WORKSPACE\\x01-ingest-queue-evidence\\source-state.md",
+    "published": "archive/workspace/x01-ingest-queue-evidence/source-state.md",
+    "source_sha256": "274736da0c8f7799975f6fd66869676d2a0e4100904dd504635910214bfe1e7c",
+    "published_sha256": "274736da0c8f7799975f6fd66869676d2a0e4100904dd504635910214bfe1e7c",
+    "bytes": 742
+  },
+  {
+    "source": "$WORKSPACE\\x01-local-ingest-evidence\\commands.md",
+    "published": "archive/workspace/x01-local-ingest-evidence/commands.md",
+    "source_sha256": "dbb56db585ebb38c1184018a162b50643841b6e84fe0d75854138c45f462e4c9",
+    "published_sha256": "e1e093c3edb30911b9bf61f3a81d2750f76df09a1162344a5b0b801ac254a6d0",
+    "bytes": 2188
+  },
+  {
+    "source": "$WORKSPACE\\x01-local-ingest-evidence\\dependency-provenance.md",
+    "published": "archive/workspace/x01-local-ingest-evidence/dependency-provenance.md",
+    "source_sha256": "e12a3ddbb0a9c1726a4e45a63561c73c433a3d0af0ff02d005f6cf58496c12ea",
+    "published_sha256": "168a706d64335a5308a0ee3fef1a3409476a6d7860c8019c418985befe1eaae5",
+    "bytes": 807
+  },
+  {
+    "source": "$WORKSPACE\\x01-local-ingest-evidence\\rework-r1-r3\\commands.md",
+    "published": "archive/workspace/x01-local-ingest-evidence/rework-r1-r3/commands.md",
+    "source_sha256": "28141ae8f58f6eb5ee5b43e9ddef2d30474d5639a809e6f51c4029c6b6b44bd5",
+    "published_sha256": "28141ae8f58f6eb5ee5b43e9ddef2d30474d5639a809e6f51c4029c6b6b44bd5",
+    "bytes": 1442
+  },
+  {
+    "source": "$WORKSPACE\\x01-local-ingest-evidence\\rework-r4\\commands.md",
+    "published": "archive/workspace/x01-local-ingest-evidence/rework-r4/commands.md",
+    "source_sha256": "c53684fddf679225ae922ab7ce8609dbfaafb8a5851f73f02cfa58bb4e9c42da",
+    "published_sha256": "c53684fddf679225ae922ab7ce8609dbfaafb8a5851f73f02cfa58bb4e9c42da",
+    "bytes": 957
+  },
+  {
+    "source": "$WORKSPACE\\x01-ttp-eval-evidence\\red.md",
+    "published": "archive/workspace/x01-ttp-eval-evidence/red.md",
+    "source_sha256": "d3c8bc52b24e0c506985f9a3a365a87c37d27707a3713cce77d3e2d262d85335",
+    "published_sha256": "0951b5dcc330deb107a42951901feeb37de673978a474400c637e17500cde30b",
+    "bytes": 503
+  },
+  {
+    "source": "$WORKSPACE\\x01-w05-stix-e2e-evidence\\README.md",
+    "published": "archive/workspace/x01-w05-stix-e2e-evidence/README.md",
+    "source_sha256": "06342164d78669949cc1ce232868171a3435e59fcea0b7276d4429188aa82d08",
+    "published_sha256": "06342164d78669949cc1ce232868171a3435e59fcea0b7276d4429188aa82d08",
+    "bytes": 1319
+  },
+  {
+    "source": "$WORKSPACE\\x01-w05-stix-e2e-evidence\\tdd-red-green.md",
+    "published": "archive/workspace/x01-w05-stix-e2e-evidence/tdd-red-green.md",
+    "source_sha256": "837d1e7989109c5450183d4e64ce6aef620722d5d02cf1b44b027940053e0127",
+    "published_sha256": "837d1e7989109c5450183d4e64ce6aef620722d5d02cf1b44b027940053e0127",
+    "bytes": 1259
+  }
+]

@@ -1,6 +1,13 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 11/11/2026
+Cập nhật lần cuối: 12/11/2026
+
+## 12/11/2026 — Chốt kết quả để công bố GitHub
+
+- [Báo cáo quá trình và kết quả hiện tại](reports/2026-11-12/README.md) ghi 52 nhánh kết quả, 133 commit sau nền PR #46, 89 đầu việc và 413 tài liệu nguồn. Có bảng SHA, phạm vi nghiệm thu, vòng sửa lỗi và phần chưa xác minh.
+- Nền portal hiện tại là `f5d2315e94b7f83e44360a04b67902cb5b0ba4bd`; các nhánh AI/ingest khác được lưu độc lập, chưa tự coi là đã ghép toàn bộ vào portal.
+- W03-R đã nghiệm thu cục bộ. W03-S1 có bằng chứng A/B và delta product256 đã kiểm nhưng toàn task còn chờ đóng báo cáo/cleanup; W03-S2 mới giao nghiên cứu. Các mô tả ở dưới thuộc thời điểm riêng, đọc báo cáo tổng hợp để biết trạng thái mới nhất.
+- Lần này chỉ công bố kết quả theo yêu cầu người dùng; chưa merge, deploy, chạy lab, gọi LLM/feed thật hoặc nâng mức nghiệm thu sản phẩm.
 
 ## 12/11/2026 — W03-S1 Frontend trạng thái theo quan hệ
 
