@@ -497,7 +497,8 @@ def test_invalid_dataset_fails_closed(tmp_path, rsa_keys, mutate):
 @pytest.mark.parametrize("case", ["product_too_long", "ambiguous_kev_source"])
 def test_w03_synthetic_product_and_source_contract_fails_closed(tmp_path, rsa_keys, case):
     data = _dataset()
-    product = "P" * 129 if case == "product_too_long" else "FortiOS"
+    product = "P" * 257 if case == "product_too_long" else "FortiOS"
+    stored_product = "FortiOS" if case == "product_too_long" else product
     data["candidates"][0]["affected_products"][0]["product"] = product
     if case == "ambiguous_kev_source":
         data["candidates"][0]["kev"]["source"] = "CISA KEV"
@@ -505,7 +506,56 @@ def test_w03_synthetic_product_and_source_contract_fails_closed(tmp_path, rsa_ke
         tmp_path,
         rsa_keys,
         port=StaticPort(data),
+        store=_store(tmp_path, ("Fortinet", stored_product, "7.2")),
+    )
+
+    response = _get(client, private_key)
+
+    assert (response.status_code, response.json()["error"]["code"]) == (503, "cves_unavailable")
+
+
+@pytest.mark.parametrize("product", ["P" * 128, "P" * 129, "P" * 256, "😀" * 256])
+def test_affected_product_boundary_uses_unicode_code_points(tmp_path, rsa_keys, product):
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        port=StaticPort(_dataset([_candidate(product=product)])),
         store=_store(tmp_path, ("Fortinet", product, "7.2")),
+    )
+
+    response = _get(client, private_key)
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["matches"][0]["product"] == product
+
+
+@pytest.mark.parametrize(
+    ("vendor", "expected_status"),
+    [("V" * 128, 200), ("V" * 129, 503)],
+)
+def test_affected_vendor_boundary_remains_128(tmp_path, rsa_keys, vendor, expected_status):
+    stored_vendor = vendor if len(vendor) == 128 else "Fortinet"
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        port=StaticPort(_dataset([_candidate(vendor=vendor)])),
+        store=_store(tmp_path, (stored_vendor, "FortiOS", "7.2")),
+    )
+
+    response = _get(client, private_key)
+
+    assert response.status_code == expected_status
+    if expected_status == 503:
+        assert response.json()["error"]["code"] == "cves_unavailable"
+
+
+@pytest.mark.parametrize("product", ["safe\u200bproduct", "safe\x00product"])
+def test_affected_product_controls_remain_rejected(tmp_path, rsa_keys, product):
+    client, private_key = _client(
+        tmp_path,
+        rsa_keys,
+        port=StaticPort(_dataset([_candidate(product=product)])),
+        store=_store(tmp_path, ("Fortinet", "FortiOS", "7.2")),
     )
 
     response = _get(client, private_key)

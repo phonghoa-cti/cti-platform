@@ -7,6 +7,10 @@ Cập nhật lần cuối: 11/11/2026
 - Đã thêm provider/parser HTTP riêng và panel trạng thái/note/history trong chi tiết một CVE/công nghệ; trang tóm tắt không gọi status API, trang mẫu chỉ lưu trong memory.
 - Đã khóa double-submit, stale callback, 409 re-entry, phân trang history và pending/unknown recovery bằng GET-only; không tự replay PUT.
 - Giới hạn: mới kiểm thử component/provider cục bộ; chưa kiểm browser với Backend thật, gateway, lab hoặc production.
+- W03 product boundary Backend: affected product trong dataset/read được nâng riêng từ 128 lên 256 Unicode code
+  point để khớp W04; vendor vẫn 128 và trim/control/policy không đổi. Test API cục bộ kiểm 128/129/256,
+  257 fail-closed, astral, vendor/control và chuỗi GET/PUT/history product256 có đúng một audit. Capture tích hợp
+  product256 hiện chưa được sửa/kiểm lại; gateway/browser/feed/OpenCTI/lab/production vẫn chưa được kiểm.
 
 ## Mốc
 | Mốc | Hạn | Trạng thái |

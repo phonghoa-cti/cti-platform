@@ -55,13 +55,14 @@ class StaticPort:
         return copy.deepcopy(self.dataset)
 
 
-def _setup(tmp_path, rsa_keys):
+def _setup(tmp_path, rsa_keys, *, product="FortiOS"):
     tech = TechnologyStore(tmp_path / "status.sqlite", timeout=0.2)
     tech.initialize()
-    technology = tech.create("Fortinet", "FortiOS", "7.2", "private", "seed")
+    technology = tech.create("Fortinet", product, "7.2", "private", "seed")
     status = CveStatusStore(tech.path, timeout=0.2)
     status.initialize()
     port = StaticPort()
+    port.dataset["candidates"][0]["affected_products"][0]["product"] = product
     settings = replace(
         _settings(tmp_path),
         roles_by_subject={
@@ -137,6 +138,35 @@ def test_unset_commit_history_and_stale_replay(tmp_path, rsa_keys):
     assert (replay.status_code, replay.json()["error"]["code"]) == (409, "status_version_conflict")
     assert history.json()["items"][0]["event"] == "created" and history.json()["items"][0]["before"] is None
     assert port.calls == 4 and len(_snapshot(status.path)[1]) == 1
+
+
+def test_product_256_get_put_history_has_exactly_one_audit(tmp_path, rsa_keys):
+    product = "😀" * 256
+    client, key, _tech, status, _port, technology = _setup(tmp_path, rsa_keys, product=product)
+
+    unset = client.get(_path(technology.id), headers=_auth(key))
+    context = unset.json()["context"]
+    committed = client.put(_path(technology.id), headers=_headers(key), json=_body(context))
+    read = client.get(_path(technology.id), headers=_auth(key))
+    history = client.get(_path(technology.id) + "-history?limit=25", headers=_auth(key))
+
+    assert unset.status_code == committed.status_code == read.status_code == history.status_code == 200
+    assert context["product"] == product
+    assert committed.json()["audit_id"] == 1
+    assert read.json()["record"]["context"]["product"] == product
+    assert [item["audit_id"] for item in history.json()["items"]] == [1]
+    assert tuple(map(len, _snapshot(status.path))) == (1, 1)
+
+
+def test_product_257_dataset_fails_closed_without_status_or_audit(tmp_path, rsa_keys):
+    client, key, _tech, status, port, technology = _setup(tmp_path, rsa_keys, product="P" * 256)
+    port.dataset["candidates"][0]["affected_products"][0]["product"] = "P" * 257
+    before = _snapshot(status.path)
+
+    response = client.get(_path(technology.id), headers=_auth(key))
+
+    assert (response.status_code, response.json()["error"]["code"]) == (503, "status_unavailable")
+    assert _snapshot(status.path) == before == ([], [])
 
 
 def test_context_drift_is_409_without_status_mutation_and_get_marks_review(tmp_path, rsa_keys):
