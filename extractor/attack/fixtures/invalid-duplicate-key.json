@@ -1,0 +1,14 @@
+{
+  "type": "bundle",
+  "type": "bundle",
+  "x_phonghoa_provenance": {
+    "kind": "synthetic",
+    "generator": "hand-authored-test-fixture",
+    "purpose": "restricted-catalog-test",
+    "mitre_release": null,
+    "source_url": null,
+    "release_tag": null,
+    "commit": null
+  },
+  "objects": []
+}
