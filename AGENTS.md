@@ -32,10 +32,11 @@ Người dùng repo là sinh viên mới bắt đầu, học trong lúc làm. V�
 7. Quyết định kiến trúc mới → ghi ADR trong `docs/adr/` (dùng TEMPLATE.md).
 
 ## 4. Lệnh thường dùng
-CHƯA CHỐT — cập nhật khi có code. Dự kiến:
-- `make test` → chạy pytest
-- `make lint` → ruff check + ruff format --check
-- `docker compose -f deploy/docker-compose.yml up -d` → chạy OpenCTI stack
+- `make test` → chạy toàn bộ test (pytest; cấu hình trong `pytest.ini`)
+- `make lint` → kiểm tra phong cách code (ruff; cấu hình trong `ruff.toml`)
+- `ruff format .` → tự định dạng code trước khi commit
+- Thư viện lõi dùng chung nằm ở `core/phonghoa_core` (chuẩn hóa IOC, trích IOC regex, chấm điểm, allowlist).
+  KHÔNG viết lại các chức năng này trong connector; import từ `phonghoa_core`.
 
 ## 5. Ranh giới an toàn (không bao giờ vi phạm)
 - KHÔNG commit `.env`, API key, token, mật khẩu. Secret chỉ đọc từ biến môi trường.

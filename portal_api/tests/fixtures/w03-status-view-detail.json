@@ -1,0 +1,69 @@
+{
+  "status": 200,
+  "headers": {"cache-control": "no-store", "vary": "Cf-Access-Jwt-Assertion"},
+  "body": {
+    "view": "detail",
+    "items": [
+      {
+        "cve_id": "CVE-2026-3001", "title": "Synthetic CVE-2026-3001", "kev": true,
+        "kev_due_date": "2026-11-11", "kev_as_of": "2026-11-01", "epss_score": 0.9,
+        "epss_percentile": 0.9, "epss_as_of": "2026-11-01", "cvss_base_score": 9.0,
+        "cvss_version": "3.1", "published_at": "2026-10-01T00:00:00Z",
+        "advisory_url": "https://example.invalid/CVE-2026-3001",
+        "matches": [
+          {"technology_id": 1, "vendor": "Fortinet", "product": "FortiOS", "software_version": "7.2",
+           "match_reason": "vendor_product_exact_casefold", "version_assessment": "not_performed",
+           "status": "patched", "status_version": 1, "status_updated_at": "2026-11-01T00:00:00Z",
+           "review_required": false},
+          {"technology_id": 2, "vendor": "Fortinet", "product": "FortiOS", "software_version": "7.4",
+           "match_reason": "vendor_product_exact_casefold", "version_assessment": "not_performed",
+           "status": "open", "status_version": 1, "status_updated_at": "2026-11-01T00:00:00Z",
+           "review_required": true}
+        ],
+        "priority": 1
+      },
+      {
+        "cve_id": "CVE-2026-3002", "title": "Synthetic CVE-2026-3002", "kev": true,
+        "kev_due_date": "2026-11-12", "kev_as_of": "2026-11-01", "epss_score": 0.8,
+        "epss_percentile": 0.8, "epss_as_of": "2026-11-01", "cvss_base_score": 9.0,
+        "cvss_version": "3.1", "published_at": "2026-10-01T00:00:00Z",
+        "advisory_url": "https://example.invalid/CVE-2026-3002",
+        "matches": [
+          {"technology_id": 1, "vendor": "Fortinet", "product": "FortiOS", "software_version": "7.2",
+           "match_reason": "vendor_product_exact_casefold", "version_assessment": "not_performed",
+           "status": null, "status_version": null, "status_updated_at": null, "review_required": false},
+          {"technology_id": 2, "vendor": "Fortinet", "product": "FortiOS", "software_version": "7.4",
+           "match_reason": "vendor_product_exact_casefold", "version_assessment": "not_performed",
+           "status": null, "status_version": null, "status_updated_at": null, "review_required": false}
+        ],
+        "priority": 2
+      },
+      {
+        "cve_id": "CVE-2026-3003", "title": "Synthetic CVE-2026-3003", "kev": false,
+        "kev_due_date": null, "kev_as_of": "2026-11-01", "epss_score": 0.7,
+        "epss_percentile": 0.7, "epss_as_of": "2026-11-01", "cvss_base_score": 9.0,
+        "cvss_version": "3.1", "published_at": "2026-10-01T00:00:00Z",
+        "advisory_url": "https://example.invalid/CVE-2026-3003",
+        "matches": [
+          {"technology_id": 1, "vendor": "Fortinet", "product": "FortiOS", "software_version": "7.2",
+           "match_reason": "vendor_product_exact_casefold", "version_assessment": "not_performed",
+           "status": null, "status_version": null, "status_updated_at": null, "review_required": false},
+          {"technology_id": 2, "vendor": "Fortinet", "product": "FortiOS", "software_version": "7.4",
+           "match_reason": "vendor_product_exact_casefold", "version_assessment": "not_performed",
+           "status": null, "status_version": null, "status_updated_at": null, "review_required": false}
+        ],
+        "priority": 3
+      }
+    ],
+    "summary": {
+      "matched_cves": 3, "kev_cves": 2, "actionable_cves": 3, "overdue_kev_cves": 1,
+      "as_of_date": "2026-11-12",
+      "status_relations": {"unset": 4, "open": 1, "patching": 0, "patched": 1, "not_affected": 0},
+      "review_required_relations": 1
+    },
+    "page": {"next_cursor": null, "limit": 100},
+    "source": {"kind": "synthetic", "dataset_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_as_of": "2026-11-01T00:00:00Z", "retrieved_at": "2026-11-01T01:00:00Z"},
+    "notice": "Liên quan theo tên sản phẩm; cần kiểm tra phiên bản/phạm vi bị ảnh hưởng trước khi vá."
+  }
+}

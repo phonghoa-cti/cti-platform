@@ -1,0 +1,291 @@
+{
+  "milestones": [
+    {
+      "key": "m0",
+      "title": "Đề cương",
+      "due": "2026-11-03"
+    },
+    {
+      "key": "m1",
+      "title": "v0.1 Lát cắt đầu",
+      "due": "2026-11-24"
+    },
+    {
+      "key": "m2",
+      "title": "v0.5 MVP",
+      "due": "2026-12-15"
+    },
+    {
+      "key": "m3",
+      "title": "AI và agent",
+      "due": "2027-01-12"
+    },
+    {
+      "key": "m4",
+      "title": "Đánh giá",
+      "due": "2027-01-31"
+    }
+  ],
+  "labels": [
+    {
+      "name": "vai:nhóm"
+    },
+    {
+      "name": "vai:hạ-tầng"
+    },
+    {
+      "name": "vai:web-red"
+    },
+    {
+      "name": "vai:ai-agent"
+    }
+  ],
+  "issues": [
+    {
+      "title": "Họp khởi động: chốt vai, kênh liên lạc, lịch họp",
+      "label": "vai:nhóm",
+      "milestone": "Đề cương",
+      "body": "Theo docs/tuan-1-checklist.md. Ghi biên bản vào docs/devlog/2026-W43.md."
+    },
+    {
+      "title": "Cài Docker và OpenCTI trên máy Ubuntu",
+      "label": "vai:hạ-tầng",
+      "milestone": "Đề cương",
+      "body": "Làm theo Việc 2 (2A, 2B). Ghi RAM từng dịch vụ vào devlog."
+    },
+    {
+      "title": "Tạo notebook NotebookLM tài liệu nền",
+      "label": "vai:ai-agent",
+      "milestone": "Đề cương",
+      "body": "Nạp: STIX 2.1 intro, NIST SP 800-150, docs OpenCTI, 4 paper LLM-CTI. Chia sẻ cho cả nhóm."
+    },
+    {
+      "title": "Chạy 5 prompt Gemini Deep Research",
+      "label": "vai:ai-agent",
+      "milestone": "Đề cương",
+      "body": "Prompt trong docs/prompts/deep-research.md; lưu kết quả vào docs/research/."
+    },
+    {
+      "title": "Khám phá giao diện OpenCTI, chụp các màn chính",
+      "label": "vai:web-red",
+      "milestone": "Đề cương",
+      "body": "Ghi chú: màn nào analyst dùng nhiều, màn nào khó hiểu."
+    },
+    {
+      "title": "Hoàn thiện đề cương và gửi giảng viên",
+      "label": "vai:nhóm",
+      "milestone": "Đề cương",
+      "body": "Dựa trên bản nháp đề cương. Mỗi người đọc và góp ý trước."
+    },
+    {
+      "title": "Cài skill tải về theo .agents/skills/README.md",
+      "label": "vai:ai-agent",
+      "milestone": "Đề cương",
+      "body": "Đọc SKILL.md trước khi cài; ghi vào nhật ký chỉnh sửa skill."
+    },
+    {
+      "title": "F01: liệt kê connector chính thức khớp bảng nguồn",
+      "label": "vai:hạ-tầng",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Spec: docs/specs/F01-thu-thap-feed.md"
+    },
+    {
+      "title": "F01: bật connector MITRE ATT&CK và AlienVault OTX",
+      "label": "vai:hạ-tầng",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Spec F01. Kiểm tra RAM sau khi bật."
+    },
+    {
+      "title": "F01: bật các connector abuse.ch, CISA KEV, CVE",
+      "label": "vai:hạ-tầng",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Spec F01."
+    },
+    {
+      "title": "F01: viết connector đầu tiên của nhóm (Feodo Tracker hoặc nguồn chưa có sẵn)",
+      "label": "vai:hạ-tầng",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Theo skill stix-connector; dùng phonghoa_core.normalize."
+    },
+    {
+      "title": "F02: thử nghiệm khử trùng lặp với 3 nguồn giả",
+      "label": "vai:hạ-tầng",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Spec: docs/specs/F02-chuan-hoa-khu-trung.md"
+    },
+    {
+      "title": "Lab: dựng VM Wazuh, Windows nạn nhân, Kali trên laptop",
+      "label": "vai:web-red",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Theo bảng máy ảo trong tài liệu khung."
+    },
+    {
+      "title": "Thu thập thô nguồn tiếng Việt (NCSC, VNCERT, blog bảo mật)",
+      "label": "vai:ai-agent",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Lưu văn bản + link vào extractor/dataset/raw/ (không commit nếu có bản quyền); ghi danh sách nguồn."
+    },
+    {
+      "title": "F03: bật enrichment VirusTotal, AbuseIPDB",
+      "label": "vai:hạ-tầng",
+      "milestone": "v0.5 MVP",
+      "body": "Spec: docs/specs/F03-lam-giau.md"
+    },
+    {
+      "title": "F04: dịch vụ scorer chấm điểm mỗi giờ",
+      "label": "vai:hạ-tầng",
+      "milestone": "v0.5 MVP",
+      "body": "Spec: docs/specs/F04-cham-diem.md"
+    },
+    {
+      "title": "F06: dashboard analyst trong OpenCTI",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec F06, phần 1."
+    },
+    {
+      "title": "F07: TAXII collection và blocklist.txt",
+      "label": "vai:hạ-tầng",
+      "milestone": "v0.5 MVP",
+      "body": "Spec: docs/specs/F07-xuat-du-lieu.md"
+    },
+    {
+      "title": "F07: Wazuh cảnh báo khi truy cập domain trong blocklist",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec F07, tiêu chí Wazuh."
+    },
+    {
+      "title": "F08: group, marking và kiểm thử vượt quyền",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec: docs/specs/F08-phan-quyen-tlp.md"
+    },
+    {
+      "title": "Dataset: gán nhãn 20 báo cáo đầu tiên",
+      "label": "vai:ai-agent",
+      "milestone": "v0.5 MVP",
+      "body": "Theo extractor/dataset/GUIDELINE.md."
+    },
+    {
+      "title": "Dataset: gán nhãn 20 báo cáo còn lại + đo độ đồng thuận",
+      "label": "vai:ai-agent",
+      "milestone": "AI và agent",
+      "body": "Hai người cùng gán 5 báo cáo để đo độ đồng thuận."
+    },
+    {
+      "title": "AI extractor: baseline regex + chạy đánh giá",
+      "label": "vai:ai-agent",
+      "milestone": "AI và agent",
+      "body": "Dùng phonghoa_core.extract_iocs làm baseline."
+    },
+    {
+      "title": "AI extractor: phiên bản LLM + so sánh",
+      "label": "vai:ai-agent",
+      "milestone": "AI và agent",
+      "body": "Gemini API; chỉ dữ liệu TLP:CLEAR/GREEN."
+    },
+    {
+      "title": "Kiểm thử prompt injection 10 báo cáo độc",
+      "label": "vai:web-red",
+      "milestone": "Đánh giá",
+      "body": "Đo tỉ lệ bị điều khiển trước/sau phòng thủ."
+    },
+    {
+      "title": "W00: duyệt spec portal và ADR 0002 (cả nhóm)",
+      "label": "vai:nhóm",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Đọc docs/specs/W00-portal-tong-the.md mục 0 và docs/adr/0002. Chốt 5 quyết định, cập nhật trạng thái ADR."
+    },
+    {
+      "title": "W00/P0: khung portal Next.js + FastAPI + docker, layout, VI/EN, vai trò giả lập",
+      "label": "vai:web-red",
+      "milestone": "v0.1 Lát cắt đầu",
+      "body": "Spec W00 mục 3–6. Frontend dùng mock theo api-portal.md."
+    },
+    {
+      "title": "W02 backend: GET /api/ioc và POST /api/ioc/batch",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec W02 + api-portal.md. Dùng phonghoa_core."
+    },
+    {
+      "title": "W02 frontend: trang Tra cứu IOC",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec W02. Playwright cho luồng chính."
+    },
+    {
+      "title": "W01 backend: GET /api/overview + quy tắc mức đe dọa có unit test",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec W01."
+    },
+    {
+      "title": "W01 frontend: trang Tổng quan 6 khối",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec W01."
+    },
+    {
+      "title": "W04: trang và API Tài sản (CRUD, CSV, tự thêm allowlist)",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec W04."
+    },
+    {
+      "title": "W03: trang và API Lỗ hổng ảnh hưởng (KEV, EPSS, trạng thái)",
+      "label": "vai:web-red",
+      "milestone": "v0.5 MVP",
+      "body": "Spec W03; phối hợp vai Hạ tầng về dữ liệu CVE."
+    },
+    {
+      "title": "W05 tab 1: duyệt bản nháp AI",
+      "label": "vai:ai-agent",
+      "milestone": "AI và agent",
+      "body": "Spec W05. Phối hợp Web & Red team phần giao diện."
+    },
+    {
+      "title": "W05 tab 2: hành động chờ duyệt, cấm tự duyệt",
+      "label": "vai:web-red",
+      "milestone": "AI và agent",
+      "body": "Spec W05."
+    },
+    {
+      "title": "Portal: Playwright e2e + kiểm thử vượt quyền theo ma trận quyền",
+      "label": "vai:web-red",
+      "milestone": "Đánh giá",
+      "body": "api-portal.md mục 2; F08."
+    },
+    {
+      "title": "A01: MCP server phonghoa (6 công cụ, có test)",
+      "label": "vai:ai-agent",
+      "milestone": "AI và agent",
+      "body": "Spec: docs/specs/A01-tro-ly-hermes.md"
+    },
+    {
+      "title": "A01: cài Hermes, nối Telegram, giới hạn người dùng",
+      "label": "vai:ai-agent",
+      "milestone": "AI và agent",
+      "body": "Spec A01, mục Cài đặt."
+    },
+    {
+      "title": "A01: skill phonghoa-analyst + bản tin 07:00",
+      "label": "vai:ai-agent",
+      "milestone": "AI và agent",
+      "body": "Spec A01."
+    },
+    {
+      "title": "A01: Red team thử điều khiển agent bằng nội dung chèn lệnh",
+      "label": "vai:web-red",
+      "milestone": "Đánh giá",
+      "body": "Spec A01, mục Đánh giá."
+    },
+    {
+      "title": "ADR 0003: thử Paperclip cho quy trình dev (chỉ khi MVP xong)",
+      "label": "vai:nhóm",
+      "milestone": "AI và agent",
+      "body": "docs/adr/0003-paperclip.md — đóng khung 1 ngày dựng + 1 tuần chạy."
+    }
+  ]
+}

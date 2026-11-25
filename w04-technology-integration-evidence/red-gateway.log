@@ -1,0 +1,42 @@
+✔ API proxy preserves status/body/security headers/cookies and replaces caller JWT (28.5488ms)
+✔ gateway does not synthesize Origin, rejects wrong Host and oversized body (8.0877ms)
+✔ gateway proxies only the four v1 draft routes and preserves query strings (9.3917ms)
+✔ gateway proxies only exact IOC route and replaces a caller-spoofed JWT (6.2309ms)
+✔ gateway proxies only exact asset collection and positive-id routes (7.2836ms)
+✖ gateway proxies exact technology routes, rejects traversal, and streams a response over 1 MiB (6.6239ms)
+✔ asset refresh fault fires once after a successful mutation then recovers (4.8241ms)
+✔ asset unknown-outcome fault commits once, hides success, and writes sanitized trace (8.9388ms)
+✔ v1 accepts chunked bodies through 65536 bytes without raising the legacy cap (6.7716ms)
+✔ gateway timeout returns sanitized 503 once without retry (38.7561ms)
+✔ malformed request target returns 400 and gateway serves the next request (4.3983ms)
+✔ headers then stall closes downstream by timeout and gateway remains usable (57.3187ms)
+✔ upstream abort closes downstream and gateway remains usable (5.3307ms)
+✔ client abort destroys upstream without retry and gateway remains usable (5.159ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 13
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 710.6308
+
+✖ failing tests:
+
+test at tools\local_integration\tests\test_gateway.mjs:191:1
+✖ gateway proxies exact technology routes, rejects traversal, and streams a response over 1 MiB (6.6239ms)
+  AssertionError [ERR_ASSERTION]: /api/assets/technologies
+  
+  404 !== 200
+  
+      at TestContext.<anonymous> (file:///C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-technology-integration/tools/local_integration/tests/test_gateway.mjs:204:14)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,16 @@
+{
+  "provider": {"name": "scripted", "destination": "fake_offline", "egress": false},
+  "responses": [{
+    "status": "completed",
+    "model_id": "scripted-v1",
+    "payload": {
+      "iocs": [
+        {"type": "md5", "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "role": "attacker", "evidence": "The attachment had MD5 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb and SHA-1"},
+        {"type": "sha1", "value": "cccccccccccccccccccccccccccccccccccccccc", "role": "attacker", "evidence": "cccccccccccccccccccccccccccccccccccccccc."}
+      ],
+      "techniques": [], "malware": [], "actors": []
+    },
+    "retryable": false,
+    "error_code": null
+  }]
+}

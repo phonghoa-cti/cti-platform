@@ -1,0 +1,39 @@
+{
+  "view": "detail",
+  "items": [
+    {
+      "cve_id": "CVE-2026-1001",
+      "title": "FortiOS synthetic advisory",
+      "kev": true,
+      "kev_due_date": "2026-12-01",
+      "kev_as_of": "2026-11-01",
+      "epss_score": 0,
+      "epss_percentile": 0,
+      "epss_as_of": "2026-11-01",
+      "cvss_base_score": 9.8,
+      "cvss_version": "3.1",
+      "published_at": "2026-10-01T12:00:00Z",
+      "advisory_url": "https://example.invalid/advisories/CVE-2026-1001",
+      "matches": [
+        {
+          "technology_id": 41,
+          "vendor": "Fortinet",
+          "product": "FortiOS",
+          "software_version": "7.2.1",
+          "match_reason": "vendor_product_exact_casefold",
+          "version_assessment": "not_performed"
+        }
+      ],
+      "priority": 1
+    }
+  ],
+  "summary": { "matched_cves": 1, "kev_cves": 1 },
+  "page": { "next_cursor": null, "limit": 10 },
+  "source": {
+    "kind": "synthetic",
+    "dataset_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_as_of": "2026-11-01T00:00:00Z",
+    "retrieved_at": "2026-11-01T01:00:00Z"
+  },
+  "notice": "Liên quan theo tên sản phẩm; cần kiểm tra phiên bản/phạm vi bị ảnh hưởng trước khi vá."
+}

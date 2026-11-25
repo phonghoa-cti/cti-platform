@@ -1,0 +1,474 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-technology-integration/portal/web
+
+ × tests/assets-http-client.test.tsx > route client uses stable same-origin asset and technology providers in local-api mode 74ms
+   → Unable to find an accessible element with the role "tab" and name "Công nghệ"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  [36m<main[39m
+    [33mclass[39m=[32m"assets-app"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"assets-app__topbar"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"assets-app__panel-header"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Tài sản doanh nghiệp":
+  [36m<h1 />[39m
+
+  Name "Tên miền":
+  [36m<h2 />[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p />[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"assets-app__sample-label"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p />[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Tiếng Việt":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "English":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Thêm tên miền":
+  [36m<button[39m
+    [33mclass[39m=[32m"assets-app__primary"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Quản lý tài sản":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Quản lý tài sản"[39m
+    [33mclass[39m=[32m"assets-app__workspace"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  tablist:
+
+  Name "Loại tài sản":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loại tài sản"[39m
+    [33mclass[39m=[32m"assets-app__tabs"[39m
+    [33mrole[39m=[32m"tablist"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  tab:
+
+  Name "Tên miền":
+  [36m<button[39m
+    [33maria-selected[39m=[32m"true"[39m
+    [33mrole[39m=[32m"tab"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Dải IP":
+  [36m<button[39m
+    [33maria-selected[39m=[32m"false"[39m
+    [33mrole[39m=[32m"tab"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<div[39m
+    [33mclass[39m=[32m"assets-app__state"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  contentinfo:
+
+  Name "":
+  [36m<footer[39m
+    [33mclass[39m=[32m"assets-app__boundary"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<main[39m
+      [33mclass[39m=[32m"assets-app"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"assets-app__topbar"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<h1>[39m
+            [0mTài sản doanh nghiệp[0m
+          [36m</h1>[39m
+          [36m<p>[39m
+            [0mKhai báo tên miền và dải IP để nhận biết IOC nào thuộc hạ tầng của bạn.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Ngôn ngữ giao diện"[39m
+          [33mclass[39m=[32m"assets-app__locale"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"true"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mTiếng Việt[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mEnglish[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<p[39m
+        [33mclass[39m=[32m"assets-app__sample-label"[39m
+      [36m>[39m
+        [0mBản thử kết nối API — quyền được kiểm tra ở dịch vụ dữ liệu[0m
+      [36m</p>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"Quản lý tài sản"[39m
+        [33mclass[39m=[32m"assets-app__workspace"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Loại tài sản"[39m
+          [33mclass[39m=[32m"assets-app__tabs"[39m
+          [33mrole[39m=[32m"tablist"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-selected[39m=[32m"true"[39m
+            [33mrole[39m=[32m"tab"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mTên miền[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-selected[39m=[32m"false"[39m
+            [33mrole[39m=[32m"tab"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mDải IP[0m
+          [36m</button>[39m
+        [36m</div>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"assets-app__panel-header"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h2>[39m
+              [0mTên miền[0m
+            [36m</h2>[39m
+            [36m<p>[39m
+              [0mTài sản đang hoạt động · dữ liệu được tải theo loại[0m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"assets-app__primary"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mThêm tên miền[0m
+          [36m</button>[39m
+        [36m</header>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"assets-app__state"[39m
+          [33mrole[39m=[32m"status"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"loading-bar"[39m
+          [36m/>[39m
+          [0mĐang tải tài sản…[0m
+        [36m</div>[39m
+        [36m<footer[39m
+          [33mclass[39m=[32m"assets-app__boundary"[39m
+        [36m>[39m
+          [0mKiểm tra phía trình duyệt chỉ hỗ trợ nhập liệu; API vẫn là thẩm quyền về định dạng, phiên bản và quyền.[0m
+        [36m</footer>[39m
+      [36m</section>[39m
+    [36m</main>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/assets-http-client.test.tsx > route client uses stable same-origin asset and technology providers in local-api mode
+TestingLibraryElementError: Unable to find an accessible element with the role "tab" and name "Công nghệ"
+
+Here are the accessible roles:
+
+  main:
+
+  Name "":
+  <main
+    class="assets-app"
+  />
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  <header
+    class="assets-app__topbar"
+  />
+
+  Name "":
+  <header
+    class="assets-app__panel-header"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Tài sản doanh nghiệp":
+  <h1 />
+
+  Name "Tên miền":
+  <h2 />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p />
+
+  Name "":
+  <p
+    class="assets-app__sample-label"
+  />
+
+  Name "":
+  <p />
+
+  --------------------------------------------------
+  button:
+
+  Name "Tiếng Việt":
+  <button
+    aria-pressed="true"
+    type="button"
+  />
+
+  Name "English":
+  <button
+    aria-pressed="false"
+    type="button"
+  />
+
+  Name "Thêm tên miền":
+  <button
+    class="assets-app__primary"
+    type="button"
+  />
+
+  --------------------------------------------------
+  region:
+
+  Name "Quản lý tài sản":
+  <section
+    aria-label="Quản lý tài sản"
+    class="assets-app__workspace"
+  />
+
+  --------------------------------------------------
+  tablist:
+
+  Name "Loại tài sản":
+  <div
+    aria-label="Loại tài sản"
+    class="assets-app__tabs"
+    role="tablist"
+  />
+
+  --------------------------------------------------
+  tab:
+
+  Name "Tên miền":
+  <button
+    aria-selected="true"
+    role="tab"
+    type="button"
+  />
+
+  Name "Dải IP":
+  <button
+    aria-selected="false"
+    role="tab"
+    type="button"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <div
+    class="assets-app__state"
+    role="status"
+  />
+
+  --------------------------------------------------
+  contentinfo:
+
+  Name "":
+  <footer
+    class="assets-app__boundary"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <main
+      class="assets-app"
+    >
+      <header
+        class="assets-app__topbar"
+      >
+        <div>
+          <h1>
+            Tài sản doanh nghiệp
+          </h1>
+          <p>
+            Khai báo tên miền và dải IP để nhận biết IOC nào thuộc hạ tầng của bạn.
+          </p>
+        </div>
+        <div
+          aria-label="Ngôn ngữ giao diện"
+          class="assets-app__locale"
+        >
+          <button
+            aria-pressed="true"
+            type="button"
+          >
+            Tiếng Việt
+          </button>
+          <button
+            aria-pressed="false"
+            type="button"
+          >
+            English
+          </button>
+        </div>
+      </header>
+      <p
+        class="assets-app__sample-label"
+      >
+        Bản thử kết nối API — quyền được kiểm tra ở dịch vụ dữ liệu
+      </p>
+      <section
+        aria-label="Quản lý tài sản"
+        class="assets-app__workspace"
+      >
+        <div
+          aria-label="Loại tài sản"
+          class="assets-app__tabs"
+          role="tablist"
+        >
+          <button
+            aria-selected="true"
+            role="tab"
+            type="button"
+          >
+            Tên miền
+          </button>
+          <button
+            aria-selected="false"
+            role="tab"
+            type="button"
+          >
+            Dải IP
+          </button>
+        </div>
+        <header
+          class="assets-app__panel-header"
+        >
+          <div>
+            <h2>
+              Tên miền
+            </h2>
+            <p>
+              Tài sản đang hoạt động · dữ liệu được tải theo loại
+            </p>
+          </div>
+          <button
+            class="assets-app__primary"
+            type="button"
+          >
+            Thêm tên miền
+          </button>
+        </header>
+        <div
+          class="assets-app__state"
+          role="status"
+        >
+          <span
+            class="loading-bar"
+          />
+          Đang tải tài sản…
+        </div>
+        <footer
+          class="assets-app__boundary"
+        >
+          Kiểm tra phía trình duyệt chỉ hỗ trợ nhập liệu; API vẫn là thẩm quyền về định dạng, phiên bản và quyền.
+        </footer>
+      </section>
+    </main>
+  </div>
+</body>
+ ❯ Object.getElementError ../../../cti-w04-technology-frontend/portal/web/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../../cti-w04-technology-frontend/portal/web/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../../cti-w04-technology-frontend/portal/web/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../../cti-w04-technology-frontend/portal/web/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/assets-http-client.test.tsx:20:17
+     18|
+     19|   expect(screen.getByText(/Bản thử kết nối API/)).toBeInTheDocument();
+     20|   expect(screen.getByRole("tab", { name: "Công nghệ" })).toBeInTheDocu…
+       |                 ^
+     21|   await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+     22|   expect(fetcher).toHaveBeenCalledWith("/api/assets?type=domain", expe…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  00:16:16
+   Duration  1.35s (environment 51%, setup 22%, transform 11%, import 10%, tests 6%)
+

@@ -1,0 +1,22 @@
+✔ API proxy preserves status/body/security headers/cookies and replaces caller JWT (28.9723ms)
+✔ gateway does not synthesize Origin, rejects wrong Host and oversized body (7.5988ms)
+✔ gateway proxies only the four v1 draft routes and preserves query strings (12.2894ms)
+✔ gateway proxies only exact IOC route and replaces a caller-spoofed JWT (6.0318ms)
+✔ gateway proxies only exact asset collection and positive-id routes (7.0234ms)
+✔ gateway proxies exact technology routes, rejects traversal, and streams a response over 1 MiB (22.4347ms)
+✔ asset refresh fault fires once after a successful mutation then recovers (6.1598ms)
+✔ asset unknown-outcome fault commits once, hides success, and writes sanitized trace (9.4166ms)
+✔ v1 accepts chunked bodies through 65536 bytes without raising the legacy cap (6.5033ms)
+✔ gateway timeout returns sanitized 503 once without retry (42.1162ms)
+✔ malformed request target returns 400 and gateway serves the next request (4.8443ms)
+✔ headers then stall closes downstream by timeout and gateway remains usable (55.6924ms)
+✔ upstream abort closes downstream and gateway remains usable (6.2376ms)
+✔ client abort destroys upstream without retry and gateway remains usable (5.6894ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 730.839

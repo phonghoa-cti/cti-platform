@@ -1,0 +1,16 @@
+{
+  "provider": {"name": "scripted", "destination": "fake_offline", "egress": false},
+  "responses": [{
+    "status": "completed",
+    "model_id": "scripted-v1",
+    "payload": {
+      "iocs": [
+        {"type": "domain", "value": "XAU[.]EXAMPLE", "role": "attacker", "evidence": "Nhóm thử nghiệm liên hệ tên miền XAU[.]EXAMPLE rồi lặp lại xau[.]example."},
+        {"type": "domain", "value": "ghost.example", "role": "attacker", "evidence": "IOC tổng hợp bịa ghost.example"}
+      ],
+      "techniques": [], "malware": [], "actors": []
+    },
+    "retryable": false,
+    "error_code": null
+  }]
+}

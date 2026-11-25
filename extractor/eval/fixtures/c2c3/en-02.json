@@ -1,0 +1,16 @@
+{
+  "provider": {"name": "scripted", "destination": "fake_offline", "egress": false},
+  "responses": [{
+    "status": "completed",
+    "model_id": "scripted-v1",
+    "payload": {
+      "iocs": [
+        {"type": "url", "value": "https://drop.example/payload", "role": "attacker", "evidence": "The sample downloaded hxxps://drop[.]example/payload and referenced SHA-256"},
+        {"type": "sha256", "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "role": "attacker", "evidence": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa."}
+      ],
+      "techniques": [], "malware": [], "actors": []
+    },
+    "retryable": false,
+    "error_code": null
+  }]
+}

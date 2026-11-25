@@ -1,0 +1,18 @@
+services:
+  connector-import-file-stix:
+    image: ghcr.io/opencti-platform/opencti/connector-import-file-stix:7.260811.0-lts.2@sha256:3feced71a5cea614bff5e3915b4d0896710c3c8a7f7aadf047461438b8442cb0
+    platform: linux/amd64
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      OPENCTI_URL: http://opencti:8080
+      OPENCTI_TOKEN: ${CONNECTOR_IMPORT_FILE_STIX_TOKEN:?CONNECTOR_IMPORT_FILE_STIX_TOKEN is required}
+      CONNECTOR_ID: ${CONNECTOR_IMPORT_FILE_STIX_ID:?CONNECTOR_IMPORT_FILE_STIX_ID is required}
+      CONNECTOR_NAME: ImportFileStix
+      CONNECTOR_VALIDATE_BEFORE_IMPORT: "true"
+      CONNECTOR_SCOPE: application/json,text/xml
+      CONNECTOR_AUTO: "false"
+      CONNECTOR_LOG_LEVEL: info
+    depends_on:
+      opencti:
+        condition: service_healthy

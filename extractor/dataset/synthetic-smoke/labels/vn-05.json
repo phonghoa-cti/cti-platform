@@ -1,0 +1,7 @@
+{
+  "id": "vn-05",
+  "iocs": [
+    {"type": "email", "value": "ops@mail.example", "role": "attacker"}
+  ],
+  "ttps": []
+}

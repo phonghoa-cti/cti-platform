@@ -1,0 +1,8 @@
+{
+  "created": "2026-01-01T00:00:00.000Z",
+  "id_namespace_uuid": "3f33d4f4-e1ac-4b20-b94d-44e2563f15ed",
+  "identity_class": "organization",
+  "name": "Phong Hoa synthetic offline exporter",
+  "schema_version": "1",
+  "tlp": "TLP:GREEN"
+}

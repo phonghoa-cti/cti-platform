@@ -22,6 +22,8 @@ echo "vm.max_map_count=1048575" | sudo tee -a /etc/sysctl.conf
 | Hermes + MCP server | 1 GB |
 | Hệ điều hành + dư phòng | khoảng 3 GB |
 
+Cấu hình giảm tải và connector: `deploy/docker-compose.override.yml` (hướng dẫn 03).
+
 Wazuh KHÔNG chạy trên máy này: dùng máy ảo trên laptop 32 GB (Wazuh 8 GB, Windows nạn nhân 4 GB, Kali 4 GB).
 
 ## Mở ra Internet cho demo

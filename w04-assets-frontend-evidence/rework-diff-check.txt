@@ -1,0 +1,7 @@
+warning: in the working copy of 'PHONG-HOA-W04-ASSETS-FRONTEND-RESULT.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/PROGRESS.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/components/assets-app.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/data/assets-http.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/tests/assets-app.test.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'portal/web/tests/assets-http.test.ts', LF will be replaced by CRLF the next time Git touches it
+EXIT_CODE=0

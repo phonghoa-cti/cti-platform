@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "headers": {"cache-control": "no-store", "vary": "Cf-Access-Jwt-Assertion"},
+  "body": {
+    "view": "summary",
+    "items": [
+      {"cve_id": "CVE-2026-3001", "title": "Synthetic CVE-2026-3001", "kev": true,
+       "epss_score": 0.9, "cvss_base_score": 9.0, "priority": 1, "match_count": 2},
+      {"cve_id": "CVE-2026-3002", "title": "Synthetic CVE-2026-3002", "kev": true,
+       "epss_score": 0.8, "cvss_base_score": 9.0, "priority": 2, "match_count": 2},
+      {"cve_id": "CVE-2026-3003", "title": "Synthetic CVE-2026-3003", "kev": false,
+       "epss_score": 0.7, "cvss_base_score": 9.0, "priority": 3, "match_count": 2}
+    ],
+    "summary": {"matched_cves": 3, "kev_cves": 2, "actionable_cves": 3,
+      "overdue_kev_cves": 1, "as_of_date": "2026-11-12"},
+    "page": {"next_cursor": null, "limit": 100},
+    "source": {"kind": "synthetic", "dataset_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_as_of": "2026-11-01T00:00:00Z", "retrieved_at": "2026-11-01T01:00:00Z"},
+    "notice": "Liên quan theo tên sản phẩm; cần kiểm tra phiên bản/phạm vi bị ảnh hưởng trước khi vá."
+  }
+}

@@ -1,0 +1,325 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import type { ComponentType } from "react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { IocLookup } from "@/components/ioc-lookup";
+import {
+  sampleLookupSource,
+  type LookupDataSource,
+  type LookupResponse,
+} from "@/data/ioc-lookup";
+
+const found: LookupResponse = {
+  state: "result",
+  input: "hxxp://Evil[.]COM/a",
+  ioc: {
+    type: "url",
+    value: "http://evil.com/a",
+    display: "hxxp://evil[.]com/a",
+  },
+  found: true,
+  allowlisted: false,
+  score: { value: 78, level: "high", reason: "Nguồn tổng hợp xác nhận IOC trong fixture." },
+  sources: [{ name: "Nguồn CTI tổng hợp", firstSeen: "2026-10-20T08:00:00+07:00" }],
+  related: { techniques: ["T1566.001"], malware: ["Họ mã độc mẫu"], actors: [] },
+  enrichment: { country: "NL", asn: "AS64500", detections: "12/90" },
+  tlp: "TLP:GREEN",
+};
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
+}
+
+function source(lookup: LookupDataSource["lookup"]): LookupDataSource {
+  return { lookup };
+}
+
+async function submit(value: string, dataSource: LookupDataSource) {
+  const user = userEvent.setup();
+  render(<IocLookup dataSource={dataSource} />);
+  await user.click(screen.getByRole("textbox", { name: "IOC cần tra cứu" }));
+  await user.paste(value);
+  await user.click(screen.getByRole("button", { name: "Tra cứu" }));
+  return user;
+}
+
+describe("IOC lookup interaction", () => {
+  it("labels the local API source accurately in both locales without fixture claims", async () => {
+    const HttpLookup = IocLookup as unknown as ComponentType<Record<string, unknown>>;
+    const user = userEvent.setup();
+    render(<HttpLookup dataSource={source(vi.fn().mockResolvedValue({ state: "not-found" }))} sourceMode="local-api" />);
+
+    expect(screen.getByText("Bản thử kết nối API · Dữ liệu tổng hợp cục bộ · Chưa kết nối OpenCTI")).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "IOC cần tra cứu" }), "unknown.example");
+    await user.click(screen.getByRole("button", { name: "Tra cứu" }));
+    expect(await screen.findByRole("alert")).not.toHaveTextContent(/fixture/i);
+
+    await user.click(screen.getByRole("button", { name: "English" }));
+    expect(screen.getByText("API connection preview · Local synthetic data · Not connected to OpenCTI")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/fixture/i);
+  });
+
+  it("starts idle, sends one exact value, and announces loading", async () => {
+    const pending = deferred<LookupResponse>();
+    const lookup = vi.fn().mockReturnValue(pending.promise);
+    await submit("  hxxp://Evil[.]COM/a  ", source(lookup));
+
+    expect(lookup).toHaveBeenCalledWith("  hxxp://Evil[.]COM/a  ");
+    expect(screen.getByRole("status")).toHaveTextContent("Đang tra cứu");
+    expect(screen.getByRole("button", { name: "Đang tra cứu…" })).toBeEnabled();
+  });
+
+  it("renders API-provided result fields as text without recalculating them", async () => {
+    await submit(found.input, source(vi.fn().mockResolvedValue(found)));
+
+    expect(await screen.findByRole("region", { name: "Kết quả tra cứu" })).toHaveFocus();
+    expect(screen.getByText(found.ioc.display)).toBeInTheDocument();
+    expect(screen.getByText("78 / 100")).toBeInTheDocument();
+    expect(screen.getByText(found.score!.reason)).toBeInTheDocument();
+    expect(screen.getByText("Nguồn CTI tổng hợp")).toBeInTheDocument();
+    expect(screen.getByText("T1566.001")).toBeInTheDocument();
+    expect(screen.getByText("NL")).toBeInTheDocument();
+    expect(screen.getByText(/TLP:GREEN/)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("shows asset membership for a found result without calling it safe", async () => {
+    await submit(found.input, source(vi.fn().mockResolvedValue({
+      ...found,
+      assetMatch: { matched: true, assets: ["congty.vn"] },
+    })));
+    expect(await screen.findByText("Thuộc tài sản của bạn")).toBeInTheDocument();
+    expect(screen.getByText("congty.vn")).toBeInTheDocument();
+    expect(screen.queryByText(/^An toàn$/i)).not.toBeInTheDocument();
+  });
+
+  it("shows asset membership for an allowlisted result without calling it blocked", async () => {
+    await submit("mail.congty.vn", source(vi.fn().mockResolvedValue({
+      ...found,
+      input: "mail.congty.vn",
+      ioc: { type: "domain", value: "mail.congty.vn", display: "mail[.]congty[.]vn" },
+      found: false,
+      allowlisted: true,
+      score: { value: 0, level: "low", reason: "IOC nằm trong allowlist." },
+      sources: [],
+      related: { techniques: [], malware: [], actors: [] },
+      enrichment: {},
+      assetMatch: { matched: true, assets: ["congty.vn"] },
+      tlp: "TLP:CLEAR",
+    })));
+    expect(await screen.findByText("Thuộc tài sản của bạn")).toBeInTheDocument();
+    expect(screen.getByText("Hạ tầng hợp pháp (allowlist)")).toBeInTheDocument();
+    expect(screen.queryByText(/đã chặn/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps asset membership visible for not-found results", async () => {
+    await submit("https://unknown.congty.vn/path", source(vi.fn().mockResolvedValue({
+      state: "not-found",
+      assetMatch: { matched: true, assets: ["congty.vn"] },
+    })));
+    expect(await screen.findByText("Thuộc tài sản của bạn")).toBeInTheDocument();
+    expect(screen.getByText("Chưa tìm thấy dữ liệu đe dọa")).toBeInTheDocument();
+    expect(screen.getByText("congty.vn")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["not-found", "Chưa có nguồn nào báo IOC này"],
+    ["invalid", "Không phải IOC hợp lệ"],
+    ["private-ip", "Đây là IP nội bộ"],
+    ["unavailable", "Tạm thời không thể tra cứu"],
+    ["forbidden", "Bạn không có quyền xem kết quả này"],
+    ["authentication-required", "Cần đăng nhập để tra cứu"],
+  ] as const)("renders the %s state without presenting it as safe", async (state, message) => {
+    await submit("unknown.example", source(vi.fn().mockResolvedValue({ state })));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.queryByText("Thấp")).not.toBeInTheDocument();
+    expect(screen.queryByText(/0 \/ 100/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["ipv4", "IPv4"], ["ipv6", "IPv6"], ["domain", "Tên miền"], ["url", "URL"],
+    ["email", "Email"], ["md5", "MD5"], ["sha1", "SHA-1"], ["sha256", "SHA-256"],
+  ] as const)("renders the exact %s type label", async (type, label) => {
+    await submit(type, source(vi.fn().mockResolvedValue({
+      ...found,
+      input: type,
+      ioc: { ...found.ioc, type, value: type, display: type },
+    })));
+    expect(await screen.findByText(new RegExp(`${label}.*TLP:GREEN`))).toBeInTheDocument();
+  });
+
+  it("renders server strings as text rather than markup", async () => {
+    await submit("evil.example", source(vi.fn().mockResolvedValue({
+      ...found,
+      ioc: { ...found.ioc, display: "<img src=x onerror=alert(1)>" },
+      score: { ...found.score!, reason: "<script>alert('x')</script>" },
+    })));
+    expect(await screen.findByText("<img src=x onerror=alert(1)>")).toBeInTheDocument();
+    expect(screen.getByText("<script>alert('x')</script>")).toBeInTheDocument();
+    expect(document.querySelector("img")).toBeNull();
+    expect(document.querySelector("script")).toBeNull();
+  });
+
+  it("ignores an older response that resolves after a newer lookup", async () => {
+    const first = deferred<LookupResponse>();
+    const second = deferred<LookupResponse>();
+    const lookup = vi.fn()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+    const user = userEvent.setup();
+    render(<IocLookup dataSource={source(lookup)} />);
+    const input = screen.getByRole("textbox", { name: "IOC cần tra cứu" });
+
+    await user.type(input, "a.example");
+    await user.click(screen.getByRole("button", { name: "Tra cứu" }));
+    await user.clear(input);
+    await user.type(input, "b.example");
+    await user.click(screen.getByRole("button", { name: "Đang tra cứu…" }));
+    second.resolve({ ...found, input: "b.example", ioc: { ...found.ioc, value: "b.example", display: "b[.]example" } });
+    expect(await screen.findByText("b[.]example")).toBeInTheDocument();
+    first.resolve({ ...found, input: "a.example", ioc: { ...found.ioc, value: "a.example", display: "a[.]example" } });
+
+    await waitFor(() => expect(screen.getByText("b[.]example")).toBeInTheDocument());
+    expect(screen.queryByText("a[.]example")).not.toBeInTheDocument();
+  });
+
+  it("clears an earlier result while a new request fails", async () => {
+    const lookup = vi.fn()
+      .mockResolvedValueOnce(found)
+      .mockRejectedValueOnce(new Error("offline"));
+    const user = userEvent.setup();
+    render(<IocLookup dataSource={source(lookup)} />);
+    const input = screen.getByRole("textbox", { name: "IOC cần tra cứu" });
+    await user.click(input);
+    await user.paste(found.input);
+    await user.click(screen.getByRole("button", { name: "Tra cứu" }));
+    expect(await screen.findByText(found.ioc.display)).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, "other.example");
+    await user.click(screen.getByRole("button", { name: "Tra cứu" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Tạm thời không thể tra cứu");
+    expect(screen.queryByText(found.ioc.display)).not.toBeInTheDocument();
+  });
+
+  it("copies the exact original value only after the clipboard Promise succeeds", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = await submit(found.input, source(vi.fn().mockResolvedValue(found)));
+    const copy = await screen.findByRole("button", { name: "Sao chép giá trị gốc" });
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    await user.click(copy);
+
+    expect(writeText).toHaveBeenCalledWith("http://evil.com/a");
+    expect(screen.getByRole("status")).toHaveTextContent("Đã sao chép giá trị gốc");
+  });
+
+  it.each(["resolve", "reject"] as const)(
+    "does not show a stale copy %s after a newer lookup is displayed",
+    async (completion) => {
+      const copyPending = deferred<void>();
+      const writeText = vi.fn().mockReturnValue(copyPending.promise);
+      const lookup = vi.fn()
+        .mockResolvedValueOnce(found)
+        .mockResolvedValueOnce({
+          ...found,
+          input: "b.example",
+          ioc: { ...found.ioc, value: "b.example", display: "b[.]example" },
+        });
+      const user = await submit(found.input, source(lookup));
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+      await user.click(await screen.findByRole("button", { name: "Sao chép giá trị gốc" }));
+
+      const input = screen.getByRole("textbox", { name: "IOC cần tra cứu" });
+      await user.clear(input);
+      await user.type(input, "b.example");
+      await user.click(screen.getByRole("button", { name: "Tra cứu" }));
+      expect(await screen.findByText("b[.]example")).toBeInTheDocument();
+
+      if (completion === "resolve") copyPending.resolve();
+      else copyPending.reject(new Error("denied"));
+
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(found.ioc.value));
+      await waitFor(() => {
+        expect(screen.queryByRole("status")).not.toBeInTheDocument();
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      });
+    },
+  );
+
+  it("lets only the latest copy attempt for one result report completion", async () => {
+    const firstCopy = deferred<void>();
+    const secondCopy = deferred<void>();
+    const writeText = vi.fn()
+      .mockReturnValueOnce(firstCopy.promise)
+      .mockReturnValueOnce(secondCopy.promise);
+    const user = await submit(found.input, source(vi.fn().mockResolvedValue(found)));
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    const copy = await screen.findByRole("button", { name: "Sao chép giá trị gốc" });
+
+    await user.click(copy);
+    await user.click(copy);
+    secondCopy.resolve();
+    expect(await screen.findByRole("status")).toHaveTextContent("Đã sao chép giá trị gốc");
+
+    firstCopy.reject(new Error("late denial"));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("status")).toHaveTextContent("Đã sao chép giá trị gốc");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it.each(["missing", "rejected"] as const)("reports copy failure when clipboard is %s", async (mode) => {
+    const user = await submit(found.input, source(vi.fn().mockResolvedValue(found)));
+    const copy = await screen.findByRole("button", { name: "Sao chép giá trị gốc" });
+    if (mode === "missing") Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
+    else Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
+    await user.click(copy);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Không thể sao chép");
+  });
+
+  it("switches all lookup controls to English without issuing another lookup", async () => {
+    const lookup = vi.fn().mockResolvedValue({ state: "not-found" });
+    const user = await submit("unknown.example", source(lookup));
+    await screen.findByText("Chưa có nguồn nào báo IOC này");
+    await user.click(screen.getByRole("button", { name: "English" }));
+
+    expect(screen.getByRole("heading", { name: "Look up one IOC" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "IOC to look up" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("No source has reported this IOC");
+    expect(lookup).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("offline sample data source", () => {
+  it("returns the declared fixture and treats every unmatched query as not found without network", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const known = await sampleLookupSource.lookup("hxxp://Evil[.]COM/a");
+    const unknown = await sampleLookupSource.lookup("unlisted.example");
+
+    expect(known).toMatchObject({ state: "result", found: true, allowlisted: false });
+    expect(unknown).toEqual({ state: "not-found" });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it.each(["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"])(
+    "treats inherited object key %s as unmatched",
+    async (value) => {
+      expect(await sampleLookupSource.lookup(value)).toEqual({ state: "not-found" });
+    },
+  );
+
+  it("keeps a declared fixture exact-match while rejecting an ordinary unmatched value", async () => {
+    expect(await sampleLookupSource.lookup("allowlisted.example")).toMatchObject({
+      state: "result",
+      input: "allowlisted.example",
+      allowlisted: true,
+    });
+    expect(await sampleLookupSource.lookup("Allowlisted.example")).toEqual({ state: "not-found" });
+  });
+});

@@ -1,0 +1,26 @@
+{
+  "archive_hashes_verified": 13,
+  "source_hashes_verified": 13,
+  "links_verified": 20,
+  "source_worktrees_clean": 44,
+  "user_paused": true,
+  "exit_code": 0,
+  "code_refs_verified": [
+    {
+      "branch": "feat/w03-status-integration-20261112",
+      "sha": "4a8f409fe50d861797c49d1c0a3bb48c30ac2fa7",
+      "old_remote_sha": "f5d2315e94b7f83e44360a04b67902cb5b0ba4bd"
+    },
+    {
+      "branch": "feat/w03-status-s2-backend-20261112",
+      "sha": "3e6934037879860c8abb5f6d797381dbe3225633",
+      "old_remote_sha": null
+    },
+    {
+      "branch": "feat/w03-status-s2-frontend-20261112",
+      "sha": "3e6934037879860c8abb5f6d797381dbe3225633",
+      "old_remote_sha": null
+    }
+  ],
+  "verified_at": "2026-11-12T04:17:00.312944+00:00"
+}

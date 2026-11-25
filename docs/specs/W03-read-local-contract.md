@@ -1,0 +1,59 @@
+# W03-R — hợp đồng đọc lỗ hổng cục bộ
+
+## Phạm vi
+
+Lát cắt này thêm đúng một endpoint `GET /api/cves`. Nguồn CVE là fixture tổng hợp được inject rõ ràng;
+`create_app(..., cve_port=None)` không tự bật fixture. Endpoint chỉ đối chiếu `vendor + product` bằng
+`casefold`, không kết luận phiên bản bị ảnh hưởng và không lưu trạng thái xử lý.
+
+Snapshot công nghệ dùng `TechnologyStore` hiện có nhưng adapter W03 mở SQLite bằng URI `mode=ro`. Request
+không gọi `initialize`, không migrate/seed và không tạo database khi path thiếu. Adapter mở một transaction đọc
+hoãn (`BEGIN`, không `BEGIN IMMEDIATE`) trên đúng một connection: kiểm schema/index/marker W04 trước, rồi chạy
+một `SELECT ... LIMIT 1001` và validation đầy đủ technology active trên cùng snapshot; kết thúc bằng rollback.
+
+## Quyền, query và lỗi
+
+Auth chạy trước query. `it`, `analyst`, `admin` hoặc role hỗn hợp có một trong ba role này nhận `view=detail`;
+leader-only nhận `view=summary`; role khác bị 403. Query chỉ gồm `kev=true|false`, `asset_id`, `q`, `limit`
+(1..100, mặc định 25) và `cursor`. Query lạ/lặp, control, số không phải decimal canonical hoặc cursor sai trả
+422 `invalid_cve_query` trước port/store. Leader-only dùng `asset_id` bị 403 trước port/store.
+
+Mã lỗi ổn định: 401 `authentication_required`, 403 `forbidden`, 404 `technology_not_found`, 409
+`cve_snapshot_changed`, 422 `invalid_cve_query`, 503 `cves_unavailable`. Mọi response có
+`Cache-Control: no-store` và `Vary: Cf-Access-Jwt-Assertion`; message tĩnh, không echo dữ liệu không tin cậy.
+
+## Dataset, wire và giới hạn
+
+Fixture tối đa 4 MiB, 0..1.000 candidate, mỗi candidate 1..20 product. Adapter tính `dataset_id` là
+`sha256:<64 hex>` từ chính bytes fixture. Service kiểm exact key/type, CVE ID uppercase, ngày/timestamp UTC,
+HTTPS URL (authority phải parse được, có hostname, port hợp lệ, không credential/whitespace/backslash/escape),
+bool không nhận số, số hữu hạn, quan hệ null và duplicate trước khi trả bất kỳ kết quả nào. Không có DNS/live
+request khi kiểm URL. KEV
+overlay phải đánh dấu đầy đủ; affected vendor là 1..128 và affected product là 1..256 Unicode code point;
+nguồn KEV fixture phải đúng nhãn `CISA KEV synthetic sample`. `false` chỉ có nghĩa không nằm trong snapshot mẫu.
+
+Detail item có CVE/source scores, `matches` tăng theo `technology_id` và `priority`. Summary item chỉ có
+`cve_id,title,kev,epss_score,cvss_base_score,priority,match_count`; không có metadata technology. Tổng kết được
+tính sau filter và trước paging. Rank là KEV trước, EPSS giảm, CVSS giảm, `published_at` giảm theo thời gian
+thực, CVE ID tăng; null đứng sau cả giá trị 0. JSON UTF-8 vượt 1 MiB trả 503, không truncate.
+
+## Cursor canonical v1
+
+Cursor là base64url không padding của JSON UTF-8 canonical (sort key, separator compact); JSON có whitespace
+hoặc thứ tự key khác bị từ chối dù base64url vẫn hợp lệ:
+`{"after":"CVE-...","context":"<sha256>","snapshot":"<sha256>","v":1}`. Tối đa 1.024 ASCII.
+`context` hash từ `view,kev,asset_id,q đã trim,limit`; `snapshot` hash từ dataset đã validation và toàn bộ
+technology snapshot theo ID. Cursor không chứa asset thô. Context sai trả 422 trước dependency; snapshot đổi
+sau khi đọc dependency trả 409. `after` phải tồn tại trong tập filter và rank được tính lại từ dữ liệu.
+
+## Tích hợp và mức kiểm chứng
+
+Harness W03 inject `FixtureCveReadPort` và `TechnologyStore` vào app thật trên cùng SQLite W04;
+schema/seed chỉ chạy trong setup trước listener. Gateway allowlist đúng `GET /api/cves`; mutation
+hoặc route gần đúng bị chặn. Fixture 16 CVE tổng hợp có provenance và `dataset_id` tính từ bytes.
+
+Ma trận loopback kiểm detail/summary, quyền, rank/filter/paging, cursor 409 sau W04 update thật,
+503→200, response gần/vượt cap và SQL bất biến cho W03 GET. Wire detail/summary/empty/error/409
+từ API thật được đưa qua parser frontend. Browser desktop dùng stack build thật và helper bounded;
+trace/DB phân biệt GET W03 với mutation W04 có kiểm soát. Feed/CISA/OpenCTI, Cloudflare/JWKS/HTTPS,
+mobile 360 px, lab và production không thuộc bằng chứng này.

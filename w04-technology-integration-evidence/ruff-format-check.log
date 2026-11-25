@@ -1,0 +1,18 @@
+unformatted: File would be reformatted
+   --> tools\local_integration\runner.py:545:53
+    |
+544 |                 try:
+    -                     if self.asset_store is not None:
+    -                         self.asset_store = None
+    -                     if self.technology_store is not None:
+    -                         self.technology_store = None
+    -                     gc.collect()
+545 +                     if self.asset_store is not None:
+546 +                         self.asset_store = None
+547 +                     if self.technology_store is not None:
+548 +                         self.technology_store = None
+549 +                     gc.collect()
+550 |                     self._temporary.cleanup()
+    |
+
+1 file would be reformatted, 5 files already formatted

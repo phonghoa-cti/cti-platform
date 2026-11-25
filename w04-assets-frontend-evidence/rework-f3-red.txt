@@ -1,0 +1,36 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-assets-frontend/portal/web
+
+ ❯ tests/assets-app.test.tsx (15 tests | 3 failed) 3331ms
+   ❯ W04 assets management (15)
+     × does not let a stale create refresh notice cross into a newer tab 341ms
+     × does not let a stale update refresh notice cross into a newer tab 195ms
+     × does not let a stale delete refresh notice cross into a newer tab 199ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/assets-app.test.tsx > W04 assets management > does not let a stale create refresh notice cross into a newer tab
+ FAIL  tests/assets-app.test.tsx > W04 assets management > does not let a stale update refresh notice cross into a newer tab
+ FAIL  tests/assets-app.test.tsx > W04 assets management > does not let a stale delete refresh notice cross into a newer tab
+Error: expect(element).not.toBeInTheDocument()
+
+expected document not to contain element, found <p>
+  Đã lưu nhưng chưa tải lại được danh sách. Chỉ tải lại danh sách; không gửi lại thao tác ghi.
+</p> instead
+ ❯ tests/assets-app.test.tsx:235:132
+    233|     expect(screen.getByText("203.0.113.0/24")).toBeInTheDocument();
+    234|     expect(screen.queryByText("congty.vn")).not.toBeInTheDocument();
+    235|     expect(screen.queryByText("Đã lưu nhưng chưa tải lại được danh sác…
+       |                                                                                                                                    ^
+    236|     expect(source[operation === "delete" ? "remove" : operation]).toHa…
+    237|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 12 passed (15)
+   Start at  22:15:19
+   Duration  5.27s (tests 66%, environment 25%, setup 6%, import 3%, transform 1%)
+
+EXIT_CODE=1

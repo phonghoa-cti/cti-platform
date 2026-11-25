@@ -1,0 +1,152 @@
+# Hợp đồng API của portal (`portal-api`, FastAPI)
+
+**Vì sao cần file này:** frontend và backend do hai người (hai agent) làm song song. Chốt trước hình dạng dữ liệu thì
+frontend dùng dữ liệu giả theo đúng hợp đồng, backend làm thật, ghép lại là chạy. Đổi hợp đồng phải sửa file này trước (qua PR).
+
+Quy ước: tiền tố `/api`; JSON; thời gian dạng ISO 8601 có múi giờ; lỗi trả `{"error": {"code": "...", "message": "câu tiếng Việt"}}`.
+
+## 1. Xác thực
+
+Ba endpoint W05 đã triển khai cục bộ chỉ nhận JWT từ `Cf-Access-Jwt-Assertion`: RS256, chữ ký JWKS HTTPS,
+`iss`/`aud` chính xác và bắt buộc `exp`/`iss`/`aud`/`sub`. Role được tra theo `sub` trong cấu hình server;
+claim role/email, email header trần, API key, query và dev user không tạo danh tính cho W05. Thiếu cấu hình làm
+app từ chối khởi tạo; lỗi JWKS tạm thời fail closed.
+
+Các endpoint ngoài W05 trong tài liệu này vẫn là đề xuất lịch sử và chưa được triển khai/xác minh auth.
+
+## 2. Ma trận quyền
+| Endpoint | Lãnh đạo | IT | Analyst | Admin |
+|---|---|---|---|---|
+| GET /me, /overview | ✓ | ✓ | ✓ | ✓ |
+| GET /ioc, POST /ioc/batch | — | ✓ (chỉ TLP CLEAR/GREEN) | ✓ | ✓ |
+| POST /ioc/false-positive | — | — | ✓ | ✓ |
+| GET /cves | ✓ (tóm tắt) | ✓ | ✓ | ✓ |
+| PATCH /cves/{id}/status | — | ✓ | ✓ | ✓ |
+| /assets (mọi phương thức) | — | ✓ | ✓ | ✓ |
+| POST /actions (đề xuất) | — | ✓ | ✓ | ✓ |
+| GET /actions, POST /actions/{id}/decision | — | — | ✓ | ✓ |
+| /drafts (mọi phương thức) | — | — | ✓ | ✓ |
+| GET /blocklist.txt | API key loại "export" | | | |
+
+## 3. Endpoint
+
+### GET /api/me
+```json
+{"email": "an@congty.vn", "role": "it", "language": "vi"}
+```
+
+### GET /api/overview?days=30
+```json
+{
+  "threat_level": {"level": "medium", "reason": "2 IOC liên quan tài sản trong 7 ngày"},
+  "kpis": {
+    "new_iocs_24h": {"value": 1248, "change_pct": 12.0},
+    "asset_related_iocs_7d": {"value": 2, "change_pct": null},
+    "kev_cves_affecting": {"value": 1, "change_pct": null},
+    "wazuh_alerts_7d": {"value": 3, "change_pct": -25.0}
+  },
+  "attention": [
+    {"severity": "high", "kind": "cve", "title": "CVE-xxxx-yyyy ảnh hưởng FortiOS", "link": "/lo-hong?cve=CVE-xxxx-yyyy", "id": "att-1"}
+  ],
+  "trend": [{"date": "2026-11-01", "ipv4": 120, "domain": 80, "url": 200, "hash": 40}],
+  "top_techniques": [{"id": "T1566.001", "name_vi": "Lừa đảo kèm tệp đính kèm", "count": 14}],
+  "top_threats": [{"name": "Tên họ mã độc", "type": "malware", "count": 9}],
+  "generated_at": "2026-11-10T07:00:00+07:00"
+}
+```
+
+### GET /api/ioc?value=hxxp://evil[.]com
+```json
+{
+  "input": "hxxp://evil[.]com",
+  "ioc": {"type": "url", "value": "http://evil.com/", "display": "hxxp://evil[.]com/"},
+  "found": true,
+  "allowlisted": false,
+  "asset_match": {"matched": false, "assets": []},
+  "score": {"value": 78, "level": "high", "reason": "Nguồn tin cậy 0.80 × ... = 78 điểm", "parts": {"reliability": 0.8, "confirmation": 0.88, "freshness": 0.96, "asset": 1.0}},
+  "recommendation": "block",
+  "sources": [{"name": "AlienVault OTX", "first_seen": "2026-10-20T08:00:00+07:00", "link": "https://..."}],
+  "related": {"techniques": ["T1566.001"], "malware": [], "actors": []},
+  "enrichment": {"country": "NL", "asn": "AS12345", "vt_detections": "12/90"},
+  "tlp": "TLP:GREEN",
+  "opencti_url": "http://<host>:8080/dashboard/observations/indicators/<id>"
+}
+```
+Lỗi: 422 `invalid_ioc` (không nhận diện được), 422 `private_ip`, 404 không bao giờ dùng (không tìm thấy vẫn trả 200 với `found: false`).
+
+### POST /api/ioc/batch
+Body `{"values": ["...", "..."]}` (tối đa 50) → `{"results": [<giống GET /ioc nhưng bỏ enrichment>]}`.
+
+### POST /api/ioc/false-positive
+Body `{"value": "...", "note": "Là IP của đối tác"}` → 204. Giảm độ tin cậy nguồn đã báo, ghi nhật ký.
+
+### GET /api/cves?kev=true&status=open&asset=<id>
+```json
+{"items": [{"id": "CVE-xxxx-yyyy", "title": "...", "kev": true, "kev_due": "2026-12-05", "epss": 0.94, "cvss": 9.8,
+            "assets": [{"id": 3, "name": "Fortinet FortiOS 7.2"}], "status": "open", "priority": 1}],
+ "summary": {"open": 3, "overdue": 1}}
+```
+### PATCH /api/cves/{id}/status
+Body `{"status": "patching|patched|not_affected|open", "note": "..."}` → 200 item mới.
+
+### /api/assets
+- GET `?type=domain|ip_range|technology|keyword` → `{"items": [{"id": 1, "type": "domain", "value": "congty.vn", "note": "", "created_by": "...", "created_at": "..."}]}`
+- POST `{"type": "technology", "vendor": "Fortinet", "product": "FortiOS", "version": "7.2"}` → 201
+- PUT `/api/assets/{id}`, DELETE `/api/assets/{id}` → 200/204
+- POST `/api/assets/import` (CSV) → `{"created": 12, "errors": [{"line": 5, "message": "CIDR không hợp lệ"}]}`
+
+### Hành động chờ duyệt
+- POST `/api/actions` `{"kind": "block", "target": "evil.com", "reason": "..."}` → 201 `{"id": 7, "status": "pending"}`
+- GET `/api/actions?status=pending`
+- POST `/api/actions/{id}/decision` `{"decision": "approve|reject", "note": "..."}` → 200. Người đề xuất không được tự duyệt (403 `self_approval`).
+
+### Bản nháp AI
+
+**Trạng thái:** ba endpoint dưới đây đã chạy/test in-process với SQLite và JWT RSA tổng hợp; chưa có listener,
+Cloudflare/lab hoặc browser thật. Lõi Python offline có approve/reject một lần, optimistic concurrency và audit
+SQLite nguyên tử theo
+[`W05-draft-offline-contract.md`](W05-draft-offline-contract.md). `Actor` trong lõi chỉ là policy testable do
+caller tin cậy cung cấp, không xác minh JWT và không được map trực tiếp từ email/header client tự khai.
+
+- `GET /api/drafts?limit=20&before_id=` trả summary pending-review và cursor, không có report content.
+- `GET /api/drafts/{id}` trả payload `status=pending` và object `review`; đọc được draft đã quyết định.
+- `POST /api/drafts/{id}/decision` nhận `decision`, `expected_version`, `reason` khi reject; yêu cầu Origin chính
+  xác và `application/json`, rồi gọi core đúng một lần. Approve là **đã duyệt cục bộ**, không tạo OpenCTI.
+- Mã ổn định: 401 `authentication_required`, 403 `forbidden`, 404 `draft_not_found`, 409 `draft_conflict`,
+  415 `unsupported_media_type`, 422 `invalid_request`, 503 `review_unavailable`.
+- Biên response từ chối schema/item status ngoài contract thay vì trả dữ liệu một phần. Mọi response W05 có
+  `Cache-Control: no-store`; không bật CORS wildcard.
+- JWT audience chấp nhận chuỗi exact hoặc mảng chuỗi không rỗng có exact member cấu hình; không dùng
+  substring/prefix/wildcard. ID/cursor vượt giới hạn SQLite trả 422 trước khi chạm store.
+- Span 1.0 là khoảng code point Python `[start,end)` trên nguyên `text`; JavaScript không được dùng trực tiếp
+  offset UTF-16 mà không chuyển đổi/test.
+
+#### Contract selection v1
+
+`/api/v1/drafts` là contract riêng cho selection; ba route `/api/drafts` legacy ở trên giữ nguyên để frontend
+hiện tại không nhận nhầm version/shape mới. Bốn thao tác v1 đều chỉ cho `analyst|admin` từ JWT đã xác minh:
+
+- `GET /api/v1/drafts` trả summary legacy cộng `selection_version`; chỉ pending, cursor giảm dần.
+- `GET /api/v1/drafts/{id}` trả payload bất biến, `review` và `selection` từ cùng một SQLite read transaction.
+- `POST /api/v1/drafts/{id}/selection` nhận đúng `expected_version` và tối đa 1.024 `selected_indices` duy nhất;
+  empty selection hợp lệ, index không eligible là 403, stale/terminal/version ceiling là 409.
+- `POST /api/v1/drafts/{id}/decision` trả quyết định cùng `selection_version`, `selected_indices` và
+  `selected_sha256` đã được ghi vào final audit trong cùng transaction; không đọc lại sau commit.
+
+Mọi integer public v1 nằm trong `0..9007199254740991` (ID bắt đầu từ 1), không nhận boolean/coercion. Hai POST
+đọc raw body theo stream tối đa 65.536 byte, yêu cầu exact Origin và JSON. Mọi success/error v1 có
+`Cache-Control: no-store` và `Vary: Cf-Access-Jwt-Assertion`. DB thiếu/chưa migrate/hỏng/future hoặc output vượt
+contract trả 503; draft ID không tồn tại trong DB hợp lệ trả 404. API v1 không tự migrate, không nhận subject/role
+từ client và chưa nối UI/OpenCTI.
+
+### GET /api/blocklist.txt?type=ipv4|domain|url&min_score=60
+Văn bản thuần, mỗi dòng một giá trị (không defang), đã loại allowlist. Header `X-Generated-At`.
+
+### GET /api/health
+`{"status": "ok", "opencti": "ok", "db": "ok"}` — dùng cho Docker healthcheck.
+
+## 4. Dữ liệu riêng của portal (SQLite)
+`users(email, role, language)`, `api_keys(id, hash, role, name, created_at, revoked)`, `assets(...)`,
+`cve_status(cve_id, status, note, updated_by, updated_at)`, `actions(...)`, `drafts(...)`,
+`audit_log(id, at, actor, action, target, before, after)`, `cache(key, value, expires_at)`.
+API key chỉ lưu **mã băm** (hash), không lưu bản rõ.

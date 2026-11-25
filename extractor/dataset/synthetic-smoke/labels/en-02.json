@@ -1,0 +1,9 @@
+{
+  "id": "en-02",
+  "iocs": [
+    {"type": "url", "value": "https://drop.example/payload", "role": "attacker"},
+    {"type": "sha256", "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "role": "attacker"},
+    {"type": "domain", "value": "docs.example", "role": "benign"}
+  ],
+  "ttps": []
+}

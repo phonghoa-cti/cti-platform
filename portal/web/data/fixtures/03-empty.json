@@ -1,0 +1,1 @@
+{"cost_tokens":0,"created_at":"2026-11-10T15:18:49.564135+00:00","findings":[],"id":3,"injection_warning":false,"items":[],"language":"vi","model":"regex-C1","schema_version":"1.0","source":{"name":"synthetic-empty.txt","sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},"status":"pending","text":"","tlp":"TLP:AMBER"}

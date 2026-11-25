@@ -1,0 +1,28 @@
+# Đặt file này cạnh docker-compose.yml chính thức của OpenCTI (thư mục ~/phonghoa/opencti trên máy chủ).
+# Docker Compose tự gộp file này vào file chính. Không chứa giá trị bí mật: mọi ${...} lấy từ .env.
+# Giải thích từng dòng: docs/huong-dan/03-viec-3-connector-dau-tien.md
+services:
+  worker:
+    deploy:
+      replicas: 1
+  xtm-one:
+    profiles: ["tat"]
+  xtm-one-worker:
+    profiles: ["tat"]
+  pgsql-xtm-one:
+    profiles: ["tat"]
+
+  connector-alienvault:
+    image: opencti/connector-alienvault:latest
+    environment:
+      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_TOKEN=${CONNECTOR_ALIENVAULT_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_ALIENVAULT_ID}
+      - CONNECTOR_NAME=AlienVault OTX
+      - CONNECTOR_SCOPE=alienvault
+      - CONNECTOR_LOG_LEVEL=info
+      - CONNECTOR_DURATION_PERIOD=PT30M
+      - ALIENVAULT_API_KEY=${OTX_API_KEY}
+      - ALIENVAULT_PULSE_START_TIMESTAMP=2026-10-01T00:00:00
+    restart: always
+    mem_limit: 256m

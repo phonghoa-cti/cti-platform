@@ -1,0 +1,10 @@
+{
+  "cleanup": {
+    "gateway_port_closed": true,
+    "temp_root_removed": true
+  },
+  "finished_at": "2026-11-11T17:39:37.242029+00:00",
+  "run_id": "714b036b57754c3480694c855b81007f",
+  "scenario": "w04-technology-unknown-outcome",
+  "status": "stopped"
+}

@@ -1,0 +1,10 @@
+
+ RUN  v5.1.0 C:/Users/ABC/.openmausbot/task-workspaces/0c356bb4-b9e0-4899-a6f5-232bc89b4048/7f8ce74d-7efd-4136-940a-c5fab132c149/cti-w04-technology-integration/portal/web
+
+························································································································
+
+ Test Files  6 passed (6)
+      Tests  120 passed (120)
+   Start at  00:22:18
+   Duration  15.01s (tests 63%, environment 25%, setup 9%, import 2%, transform 1%)
+

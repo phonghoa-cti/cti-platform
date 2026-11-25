@@ -1,0 +1,2 @@
+The attachment had MD5 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb and SHA-1
+cccccccccccccccccccccccccccccccccccccccc. The filename invoice.pdf is not an IOC.

@@ -1,0 +1,42 @@
+{
+  "provider": {
+    "name": "scripted",
+    "destination": "fake_offline",
+    "egress": false
+  },
+  "responses": [
+    {
+      "status": "completed",
+      "model_id": "scripted-v1",
+      "payload": {
+        "iocs": [
+          {
+            "type": "domain",
+            "value": "evil.example",
+            "role": "attacker",
+            "evidence": "😀 Máy trạm kết nối evil[.]example."
+          },
+          {
+            "type": "domain",
+            "value": "ghost.example",
+            "role": "attacker",
+            "evidence": "Máy trạm kết nối ghost.example."
+          }
+        ],
+        "techniques": [
+          {
+            "id": "T1566.002",
+            "evidence": "Đính kèm liên kết."
+          }
+        ],
+        "malware": [
+          {
+            "name": "Mẫu Thử",
+            "evidence": "Tên Mẫu Thử."
+          }
+        ],
+        "actors": []
+      }
+    }
+  ]
+}
