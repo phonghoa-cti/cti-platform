@@ -2,6 +2,19 @@
 
 Cập nhật lần cuối: 12/11/2026
 
+## 12/11/2026 11:10 — Người dùng yêu cầu tạm dừng
+
+- Đã tạm dừng hai lịch tiếp tục và ghi user_paused; Frontend đã dừng, chưa có thay đổi W03-S2. Không phát triển thêm.
+- [Bàn giao bổ sung](reports/2026-11-12-stop/README.md) ghi delta sau 09:07: W03-S1 docs `4a8f409`, Backend W03-S2 `3e693403`, 13 hồ sơ phát sinh và các việc chưa hoàn tất. Nhánh Frontend hiện chỉ trỏ tới cùng nền Backend.
+- W03-S2 Backend có nghiệm thu API cục bộ; Frontend/gateway/browser chưa triển khai/tích hợp. W03-S1 còn vướng cleanup dịch vụ thử cũ theo hồ sơ.
+
+## 12/11/2026 — Chốt kết quả để công bố GitHub
+
+- [Báo cáo quá trình và kết quả hiện tại](reports/2026-11-12/README.md) ghi 52 nhánh kết quả, 133 commit sau nền PR #46, 89 đầu việc và 413 tài liệu nguồn. Có bảng SHA, phạm vi nghiệm thu, vòng sửa lỗi và phần chưa xác minh.
+- Nền portal hiện tại là `f5d2315e94b7f83e44360a04b67902cb5b0ba4bd`; các nhánh AI/ingest khác được lưu độc lập, chưa tự coi là đã ghép toàn bộ vào portal.
+- W03-R đã nghiệm thu cục bộ. W03-S1 có bằng chứng A/B và delta product256 đã kiểm nhưng toàn task còn chờ đóng báo cáo/cleanup; W03-S2 mới giao nghiên cứu. Các mô tả ở dưới thuộc thời điểm riêng, đọc báo cáo tổng hợp để biết trạng thái mới nhất.
+- Lần này chỉ công bố kết quả theo yêu cầu người dùng; chưa merge, deploy, chạy lab, gọi LLM/feed thật hoặc nâng mức nghiệm thu sản phẩm.
+
 ## 12/11/2026 — W03-S2 Backend read model trạng thái
 
 - Thêm route opt-in `GET /api/cves/status-view`: detail ghép status theo relation, Leader nhận projection lược;
