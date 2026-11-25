@@ -417,7 +417,7 @@ def test_reparse_ancestor_is_rejected_before_use(tmp_path: Path, monkeypatch, ki
     class WithReparse:
         def __init__(self, info):
             self.info = info
-            self.st_file_attributes = info.st_file_attributes | gp.REPARSE
+            self.st_file_attributes = getattr(info, "st_file_attributes", 0) | gp.REPARSE
 
         def __getattr__(self, name):
             return getattr(self.info, name)

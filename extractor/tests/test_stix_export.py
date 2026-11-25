@@ -728,7 +728,8 @@ def test_export_validates_scalar_inputs_before_config_or_database_io(
 
 
 def _validator(path: Path, *options: str) -> subprocess.CompletedProcess[str]:
-    executable = Path(sys.executable).with_name("stix2_validator.exe")
+    name = "stix2_validator.exe" if sys.platform == "win32" else "stix2_validator"
+    executable = Path(sys.executable).with_name(name)
     return subprocess.run(
         [str(executable), "--version", "2.1", "--enforce-refs", *options, str(path)],
         capture_output=True,

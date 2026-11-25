@@ -116,7 +116,7 @@ def safe_ancestors(path: Path, code: str) -> None:
         current = path.absolute().parent
         while current != current.parent:
             info = current.lstat()
-            if not stat.S_ISDIR(info.st_mode) or info.st_file_attributes & REPARSE:
+            if not stat.S_ISDIR(info.st_mode) or getattr(info, "st_file_attributes", 0) & REPARSE:
                 fail(code)
             current = current.parent
     except GoldPilotError:
@@ -135,7 +135,11 @@ def safe_file(path: Path, code: str) -> os.stat_result:
         fail(code)
     except (OSError, ValueError):
         fail("io_failure")
-    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_file_attributes & REPARSE:
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_nlink != 1
+        or getattr(info, "st_file_attributes", 0) & REPARSE
+    ):
         fail(code)
     return info
 
@@ -148,7 +152,7 @@ def safe_dir(path: Path, code: str = "invalid_inventory") -> None:
         fail(code)
     except (OSError, ValueError):
         fail("io_failure")
-    if not stat.S_ISDIR(info.st_mode) or info.st_file_attributes & REPARSE:
+    if not stat.S_ISDIR(info.st_mode) or getattr(info, "st_file_attributes", 0) & REPARSE:
         fail(code)
 
 
@@ -253,7 +257,7 @@ def inventory(root: Path) -> list[Path]:
         entries = bounded_entries(root, 10)
         for entry in entries:
             info = entry.lstat()
-            if info.st_file_attributes & REPARSE:
+            if getattr(info, "st_file_attributes", 0) & REPARSE:
                 fail("invalid_inventory")
             if entry.is_dir():
                 if entry.name not in allowed:

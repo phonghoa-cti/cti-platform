@@ -1,0 +1,10 @@
+# False positives da duoc xac minh trong docs/reports/2026-11-12/VERIFICATION.md va 2026-11-12-stop/README.md
+extractor/eval/report.py:generic-api-key:103
+docs/reports/2026-11-12/VERIFICATION.md:generic-api-key:21
+docs/reports/2026-11-12/archive/workspace/PHONG-HOA-W02-LOCAL-INTEGRATION-RESULT.md:generic-api-key:12
+docs/reports/2026-11-12/ledger-snapshot.json:generic-api-key:2976
+docs/reports/2026-11-12-stop/ledger-paused.json:generic-api-key:2976
+docs/reports/2026-11-12-stop/git-snapshot.json:generic-api-key:476
+docs/reports/2026-11-12-stop/git-snapshot.json:generic-api-key:479
+docs/reports/2026-11-12-stop/git-snapshot.json:generic-api-key:495
+docs/reports/2026-11-12-stop/git-snapshot.json:generic-api-key:498

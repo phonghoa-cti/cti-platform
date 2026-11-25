@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0
       # Chạy gitleaks bằng Docker: gitleaks-action yêu cầu license riêng khi repo thuộc organization
       - name: Scan secrets
-        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest dir /repo -v
+        run: docker run --rm -v "$PWD:/repo" -w /repo ghcr.io/gitleaks/gitleaks:latest dir . -v
 
   python:
     runs-on: ubuntu-latest

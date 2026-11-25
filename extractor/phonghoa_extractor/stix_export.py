@@ -481,7 +481,9 @@ def publish_bytes(
     for _attempt in range(32):
         candidate = output.parent / f".{output.name}.{uuid.uuid4().hex}.tmp"
         try:
-            descriptor = os.open(candidate, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_BINARY, 0o600)
+            descriptor = os.open(
+                candidate, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600
+            )
             temp = candidate
             break
         except FileExistsError:

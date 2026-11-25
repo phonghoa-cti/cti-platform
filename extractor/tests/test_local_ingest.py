@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import stat
 import subprocess
@@ -479,7 +480,14 @@ def test_regular_ancestors_remain_supported(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "source",
-    [Path("input.txt"), Path("one") / ".." / "input.txt", Path(r"\one\input.txt")],
+    [
+        Path("input.txt"),
+        Path("one") / ".." / "input.txt",
+        pytest.param(
+            Path(r"\one\input.txt"),
+            marks=pytest.mark.skipif(os.name != "nt", reason="Windows drive-relative path"),
+        ),
+    ],
 )
 def test_cwd_dependent_input_under_unc_is_rejected_before_stat_or_read(
     monkeypatch: pytest.MonkeyPatch, source: Path
@@ -517,6 +525,7 @@ def test_absolute_local_input_does_not_consult_unc_cwd(
     assert ingest_local_file(source).canonical_text == "192.0.2.1"
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Windows UNC paths only apply on Windows")
 def test_explicit_unc_input_is_rejected_before_stat(monkeypatch: pytest.MonkeyPatch) -> None:
     def unexpected_lstat(_path: Path, *_args, **_kwargs):
         raise AssertionError("explicit UNC input must be rejected before lstat")
