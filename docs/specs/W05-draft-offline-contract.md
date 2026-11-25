@@ -1,8 +1,23 @@
 # Hợp đồng bản nháp ngoại tuyến X01 → W05
 
 Trạng thái: hợp đồng cho dữ liệu **đã chạy cục bộ**, chưa phải API HTTP đang hoạt động. Phiên bản payload hiện
-tại là `1.0`; schema kho SQLite selection là `PRAGMA user_version=2`. `drafts.py` tạo payload bất biến, còn
+tại là `1.0`; schema kho SQLite hiện tại là `PRAGMA user_version=3`. `drafts.py` tạo payload bất biến, còn
 `store.py` kiểm/lưu payload và ghi quyết định review tách riêng.
+
+## Import envelope X01 và provenance schema v3
+
+Lệnh `extractor/ingest_queue/run.py import` nhận đúng một envelope `x01-local-ingest/1.0` đã có, yêu cầu
+`--created-by-subject` do người vận hành cung cấp và lưu draft pending không thay đổi cùng một dòng provenance.
+Identity này là subject opaque tại biên CLI, chưa phải xác thực HTTP; policy hiện hữu vẫn cấm người tạo tự approve.
+
+Schema v3 thêm bảng `draft_ingest_provenance` quan hệ 1:1 với draft. Khóa idempotency là SHA-256 của JSON envelope
+canonical đã kiểm: retry cùng creator trả `duplicate`, còn creator khác trả conflict và không đổi owner/payload.
+Migration v2→v3 là transaction riêng; transaction sau đó mới ghi draft+provenance nguyên tử. Reader v2/v3 không
+tự migrate. Draft cũ hoặc draft tạo qua CLI legacy có thể không có provenance và vẫn hợp lệ.
+
+Với PDF, `raw_sha256` chỉ là provenance do envelope tự khai vì importer không mở lại byte PDF. Các kiểm tra hash,
+range và separator chỉ phát hiện bất nhất nội bộ; ai sửa envelope rồi tính lại mọi hash nhất quán đã tạo một input
+mới, không chứng minh được nguồn gốc hay tính xác thực. Importer không gọi model, mạng, OpenCTI hoặc tự approve.
 
 Mục tiêu của tài liệu này là để người làm W05 đọc đúng dữ liệu hiện có mà không làm mất bằng chứng, cảnh báo
 hoặc nguồn. Ba mẫu kết quả `get` thật nằm tại [`extractor/draft/examples/`](../../extractor/draft/examples/README.md).

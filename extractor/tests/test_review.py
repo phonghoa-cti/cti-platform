@@ -169,7 +169,8 @@ def test_legacy_read_is_read_only_and_migration_preserves_payload_then_is_idempo
             "SELECT payload_json, review_status, review_version, created_by_subject FROM drafts"
         ).fetchall()
         first_audit = connection.execute("SELECT * FROM draft_audit").fetchall()
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert connection.execute("SELECT * FROM draft_ingest_provenance").fetchall() == []
     finally:
         connection.close()
     first_hash = hashlib.sha256(db.read_bytes()).hexdigest()
@@ -561,7 +562,7 @@ def test_decision_requires_migrated_existing_database_and_rejects_future_schema(
     store.save_draft(current, make_draft(), created_by_subject="author")
     connection = sqlite3.connect(current)
     try:
-        connection.execute("PRAGMA user_version = 3")
+        connection.execute("PRAGMA user_version = 4")
         connection.commit()
     finally:
         connection.close()

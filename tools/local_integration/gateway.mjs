@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import http from "node:http";
+import { appendFileSync } from "node:fs";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
@@ -72,14 +73,18 @@ function readBody(request, limit) {
   });
 }
 
-export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, maxStatusBodyBytes = 16384, failRefreshAfterPost = false, failAssetRefreshOnce = false, failAssetMutationResponseOnce = false, failTechnologyRefreshCount = 0, failTechnologyMutationResponseOnce = false, failCveGetOnce = false, failStatusGetCount = 0, failStatusMutationResponseOnce = false, tracePath = null }) {
+export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutMs = 1000, maxBodyBytes = 8192, maxV1BodyBytes = 65536, maxStatusBodyBytes = 16384, failRefreshAfterPost = false, failRefreshAfterPostCount = 0, failAssetRefreshOnce = false, failAssetMutationResponseOnce = false, failTechnologyRefreshCount = 0, failTechnologyMutationResponseOnce = false, failCveGetOnce = false, failStatusGetCount = 0, failStatusMutationResponseOnce = false, tracePath = null, requestTracePath = null }) {
   for (const value of [apiPort, uiPort]) {
     if (!Number.isInteger(value) || value < 1 || value > 65535) throw new TypeError("upstream port không hợp lệ");
   }
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new TypeError("gateway port không hợp lệ");
   if (jwt !== null && typeof jwt !== "string") throw new TypeError("jwt phải là string hoặc null");
   if (tracePath !== null && typeof tracePath !== "string") throw new TypeError("trace path phải là string hoặc null");
+  if (!Number.isInteger(failRefreshAfterPostCount) || failRefreshAfterPostCount < 0) throw new TypeError("số refresh lỗi không hợp lệ");
+  if (requestTracePath !== null && (typeof requestTracePath !== "string" || !requestTracePath)) throw new TypeError("request trace path không hợp lệ");
   let postRecorded = false;
+  let remainingRefreshFailures = 0;
+  let boundedFailureArmed = false;
   let assetRefreshPending = false;
   let assetMutationFaultUsed = false;
   let technologyRefreshFailuresRemaining = 0;
@@ -88,6 +93,10 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
   const statusGetFailuresByPath = new Map();
   let statusMutationFaultUsed = false;
   let requestCounter = 0;
+  const traceRequest = (method, pathname, status) => {
+    if (requestTracePath === null) return;
+    appendFileSync(requestTracePath, `${JSON.stringify({ method, path: pathname, status })}\n`, "utf8");
+  };
   const server = http.createServer(async (request, response) => {
     const ownPort = server.address()?.port;
     if (request.headers.host !== `127.0.0.1:${ownPort}`) return safeError(response, 400, "invalid_host");
@@ -131,8 +140,10 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
       trace(503);
       return safeError(response, 503, "synthetic_refresh_failure");
     }
-    if (isApi && failRefreshAfterPost && postRecorded && request.method === "GET") {
+    if (isApi && postRecorded && request.method === "GET" && (failRefreshAfterPost || remainingRefreshFailures > 0)) {
+      if (!failRefreshAfterPost) remainingRefreshFailures -= 1;
       trace(503);
+      traceRequest(request.method, url.pathname, 503);
       return safeError(response, 503, "synthetic_refresh_failure");
     }
     if (isAsset && failAssetRefreshOnce && assetRefreshPending && request.method === "GET") {
@@ -163,12 +174,21 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
       if (responseComplete || failureHandled) return;
       failureHandled = true;
       trace(503);
+      if (isApi) traceRequest(request.method, url.pathname, 503);
       safeError(response, 503, "upstream_unavailable");
     };
     const upstream = http.request({ host: "127.0.0.1", port: targetPort, method: request.method, path: `${url.pathname}${url.search}`, headers, timeout: requestTimeoutMs }, (upstreamResponse) => {
-      if (isApi && failRefreshAfterPost && request.method === "POST" && (upstreamResponse.statusCode ?? 500) < 300) postRecorded = true;
-      if (isAsset && failAssetRefreshOnce && ["POST", "PUT", "DELETE"].includes(request.method ?? "") && (upstreamResponse.statusCode ?? 500) < 300) assetRefreshPending = true;
-      if (isTechnology && failTechnologyRefreshCount > 0 && ["POST", "PUT", "DELETE"].includes(request.method ?? "") && (upstreamResponse.statusCode ?? 500) < 300) technologyRefreshFailuresRemaining = failTechnologyRefreshCount;
+      const status = upstreamResponse.statusCode ?? 502;
+      if (isApi) traceRequest(request.method, url.pathname, status);
+      if (isApi && request.method === "POST" && status < 300) {
+        postRecorded = true;
+        if (!boundedFailureArmed && failRefreshAfterPostCount > 0) {
+          boundedFailureArmed = true;
+          remainingRefreshFailures = failRefreshAfterPostCount;
+        }
+      }
+      if (isAsset && failAssetRefreshOnce && ["POST", "PUT", "DELETE"].includes(request.method ?? "") && status < 300) assetRefreshPending = true;
+      if (isTechnology && failTechnologyRefreshCount > 0 && ["POST", "PUT", "DELETE"].includes(request.method ?? "") && status < 300) technologyRefreshFailuresRemaining = failTechnologyRefreshCount;
       upstreamResponse.once("end", () => { responseComplete = true; });
       upstreamResponse.once("aborted", failUpstream);
       upstreamResponse.once("error", failUpstream);
@@ -220,8 +240,8 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
         upstreamResponse.resume();
         return;
       }
-      trace(upstreamResponse.statusCode ?? 502);
-      response.writeHead(upstreamResponse.statusCode ?? 502, cleanResponseHeaders(upstreamResponse));
+      trace(status);
+      response.writeHead(status, cleanResponseHeaders(upstreamResponse));
       upstreamResponse.pipe(response);
     });
     upstream.on("timeout", () => upstream.destroy(new Error("timeout")));
@@ -247,6 +267,7 @@ async function main() {
     port: Number(process.env.W05_GATEWAY_PORT), jwt: process.env.W05_GATEWAY_JWT ?? null,
     requestTimeoutMs: Number(process.env.W05_REQUEST_TIMEOUT_MS ?? "1000"),
     failRefreshAfterPost: process.env.W05_FAIL_REFRESH === "1",
+    failRefreshAfterPostCount: Number(process.env.W05_FAIL_REFRESH_COUNT ?? "0"),
     failAssetRefreshOnce: process.env.W04_FAIL_ASSET_REFRESH_ONCE === "1",
     failAssetMutationResponseOnce: process.env.W04_FAIL_ASSET_MUTATION_RESPONSE_ONCE === "1",
     failTechnologyRefreshCount: process.env.W04_FAIL_TECHNOLOGY_REFRESH_TWICE === "1" ? 2 : 0,
@@ -255,6 +276,7 @@ async function main() {
     failStatusGetCount: Number(process.env.W03_FAIL_STATUS_GET_COUNT ?? "0"),
     failStatusMutationResponseOnce: process.env.W03_FAIL_STATUS_MUTATION_RESPONSE_ONCE === "1",
     tracePath: process.env.W04_TRACE_PATH ?? null,
+    requestTracePath: process.env.W05_REQUEST_TRACE_PATH ?? null,
   });
   const stop = () => server.close(() => process.exit(0));
   process.on("SIGINT", stop); process.on("SIGTERM", stop);
