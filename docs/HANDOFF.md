@@ -1,12 +1,10 @@
-# Bàn giao — trạng thái dự án Phong Hỏa (22/10/2026, 00:50)
+# Bàn giao — trạng thái dự án Phong Hỏa (cập nhật 25/11/2026)
 
-Agent nào tiếp quản: đọc file này, rồi `AGENTS.md`, `docs/LUONG-HE-THONG.md`, `docs/PROGRESS.md`.
+Agent hoặc thành viên tiếp quản: đọc file này, rồi `AGENTS.md`, `docs/LUONG-HE-THONG.md`, `docs/PROGRESS.md` và `docs/reports/2026-11-12-stop/README.md`.
 
-## Tài liệu ngoài repo (bản chính)
-- Tài liệu khung đồ án (định hướng, phản biện, phân vai, lộ trình): https://claude.ai/artifact/97QDxdinyj3f65gtcsoVao
-- Bản nháp đề cương (hạn gửi giảng viên 03/11): https://claude.ai/artifact/1BXC5NtUGXW9n37veBmkBp
-- Mockup 5 màn portal (SOC console): https://claude.ai/artifact/2ejJdxV3a1nUPrsmTaCwxm
-- Nếu tài liệu khung lệch với repo: **repo đúng hơn** (đặc biệt `docs/design/DESIGN.md`).
+## Tổng quan mốc hiện tại
+- **25/11/2026:** Toàn bộ 4 nhánh phát triển tính đến lúc tạm dừng 12/11/2026 đã được tích hợp và gộp vào nhánh `main` qua PR `#47` (`2e74d8d`), kèm sửa lỗi đồng thời trong `store.py` và tương thích Linux CI (CI GitHub Actions đã xanh cả `python` và `secrets`).
+- **Tình trạng sản phẩm:** Đã có nhiều luồng chạy và kiểm thử **cục bộ / ngoại tuyến** (dữ liệu tổng hợp); chưa hoàn thành toàn bộ MVP và chưa chạy trên lab OpenCTI / dữ liệu thật.
 
 ## Quyết định đã chốt
 | Chủ đề | Quyết định | Nguồn |
@@ -18,39 +16,28 @@ Agent nào tiếp quản: đọc file này, rồi `AGENTS.md`, `docs/LUONG-HE-TH
 | Paperclip | Chỉ thử cho quy trình dev sau MVP, không vào sản phẩm | ADR 0003 |
 | Hạ tầng | Ubuntu i3 16 GB chạy OpenCTI (1 worker, tắt XTM One); laptop 32 GB chạy lab Wazuh/Windows/Kali | deploy/, hướng dẫn 03–04 |
 
-## Đã xong
-- Repo + PR #1 (bộ khởi động đầy đủ, CI xanh: lint, 47 test, quét secret).
-- Thư viện `core/phonghoa_core`, spec F01–F08, W00–W05, A01, 6 hướng dẫn, wiki, backlog 41 issue.
+## Đã có trên `main` (kiểm thử cục bộ)
+- **Lõi (`core/phonghoa_core`):** chuẩn hóa IOC, trích regex, chấm điểm 0–100, allowlist.
+- **AI Extractor (`extractor/`):**
+  - Quét prompt injection, bọc dữ liệu (`wrap_as_data`), đối chiếu bằng chứng, kiểm mã ATT&CK, tính P/R/F1.
+  - Adapter C2–C4 ngoại tuyến, catalog MITRE ATT&CK (hỗ trợ snapshot v20.1 local), evaluator/reporter C1–C4, kiểm định gold-pilot.
+  - Nạp file TXT/PDF cục bộ (`local_ingest`) và hàng đợi SQLite có provenance (`ingest_queue`, schema v3).
+  - Xuất STIX 2.1 từ bản đã duyệt (`stix_export`), kiểm chuẩn `stix2-validator`.
+- **Portal (`portal/web/` & `portal_api/`):**
+  - W05: duyệt/từ chối nháp, chọn IOC, audit bất biến.
+  - W02: tra cứu IOC (`/tra-cuu`, `/tra-cuu/mau`).
+  - W04: quản lý tài sản domain/CIDR & công nghệ (`/tai-san`, `/tai-san/mau`).
+  - W03-R & W03-S1: danh sách CVE liên quan công nghệ, lọc KEV, cập nhật trạng thái/ghi chú/lịch sử (`/lo-hong`, `/lo-hong/mau`).
+  - W03-S2 (mới có Backend): `GET /api/cves/status-view` lọc trạng thái & bộ đếm tổng hợp.
+- **Tích hợp cục bộ (`tools/local_integration/`):** gateway Node.js + harness Python chạy các ma trận HTTP/SQLite/JWT giả lập.
+- **Chuẩn bị lab (`deploy/demo/`):** cấu hình compose ghim digest và fixture mẫu cho OpenCTI.
 
-## Việc tiếp theo (theo thứ tự)
-1. Merge PR #1 (cần 1 người khác duyệt).
-2. Bật cài đặt bảo mật repo: Secret scanning, Push protection, Dependabot, tự xóa nhánh sau merge (issue #43).
-3. Việc 2: cài OpenCTI (`docs/huong-dan/00-viec-2-cai-opencti.md`), rồi Việc 3 (`03-...`).
-4. Gửi đề cương trước 03/11.
-5. Dựng khung portal (P0) bằng prompt bên dưới.
-
-Đã xong 22/10: 42 issue + 5 milestone trên GitHub (chạy lại `scripts/create_issues.py` không tạo trùng).
-
-## Prompt sẵn cho opencode (agent planner, rồi implementer)
-**P0 — khung portal:**
-> Đọc AGENTS.md, docs/specs/W00-portal-tong-the.md, docs/specs/api-portal.md, docs/design/DESIGN.md.
-> Lập kế hoạch dựng khung `portal/web` (Next.js App Router, TypeScript, Tailwind, shadcn/ui, next-intl vi/en, font IBM Plex)
-> và `portal/api` (FastAPI, GET /api/health và GET /api/me với DEV_USER_EMAIL), kèm `portal/docker-compose.yml`.
-> Giao diện chỉ gồm khung: sidebar + thanh trên theo mockup, 5 trang rỗng có tiêu đề. Frontend dùng dữ liệu giả theo api-portal.md.
-> Chia task ≤ 2 giờ, mỗi task có cách kiểm tra. Hỏi tôi trước khi cài gói. Làm theo chế độ học.
-
-**X01 — AI extractor (tháng 12):**
-> Đọc docs/specs/X01-ai-extractor.md và extractor/dataset/GUIDELINE.md. Bắt đầu từ task 1–2 (tải văn bản, quét chèn lệnh), test trước.
-
-**F01 — connector đầu tiên:**
-> Đọc docs/specs/F01-thu-thap-feed.md và skill stix-connector. Liệt kê connector chính thức của OpenCTI khớp bảng nguồn,
-> chỉ ra nguồn nào phải tự viết. Chưa viết code; trình bày phương án để tôi duyệt.
-
-## Đã làm thêm (PR #2, nhánh feat/x01-nen-tang)
-- `extractor/phonghoa_extractor`: quét chèn lệnh (task 2), đối chiếu bằng chứng + kiểm mã ATT&CK + allowlist (task 4–5 phần kiểm tra), chấm P/R/F1 (task 7). 14 test mới, tổng 61.
-- Còn lại của X01: task 1 (tải văn bản), 3 (gọi LLM có schema), 6 (ghi bản nháp), và script chạy 4 cấu hình.
+## Việc tiếp theo khi tiếp tục phát triển
+1. **W03-S2 Frontend:** triển khai giao diện lọc theo trạng thái & số tổng hợp trên `/lo-hong` nối với `GET /api/cves/status-view`.
+2. **Hạ tầng & Lab:** dựng OpenCTI thật trên máy Ubuntu (`docs/huong-dan/00-viec-2-cai-opencti.md`), chạy thử connector MITRE / AlienVault OTX (`deploy/demo/`), đo RAM thực tế.
+3. **AI & Dataset thật:** gán nhãn corpus báo cáo thật bởi 2 người độc lập, nối LLM API thật (chặn TLP:AMBER/RED).
+4. **Còn chưa triển khai:** `connectors/` nguồn Việt Nam, `mcp-server/` + Hermes Telegram (A01), trang tổng quan W01, xuất CSV ở W04, Cloudflare Access/HTTPS thật, và quyển `thesis/`.
 
 ## Lưu ý kỹ thuật
-- Phiên Claude Code chỉ dùng được GitHub REST API (`gh api ...`), không dùng được GraphQL (`gh pr create` sẽ lỗi).
-- Mã CVE, điểm EPSS/CVSS, quốc gia/ASN trong mockup đều là dữ liệu minh họa.
-- Ví dụ điểm 84 trong spec/mockup đã được tính lại khớp công thức `phonghoa_core.scoring`.
+- Mã CVE, điểm EPSS/CVSS, quốc gia/ASN trong mockup và các ma trận cục bộ đều là dữ liệu minh họa tổng hợp.
+- Chi tiết lịch sử 52 nhánh trước khi gộp `main` xem tại `docs/reports/2026-11-12/README.md` và `docs/reports/2026-11-12-stop/README.md`.

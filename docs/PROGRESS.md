@@ -1,6 +1,13 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 12/11/2026
+Cập nhật lần cuối: 25/11/2026
+
+## 25/11/2026 — Gộp toàn bộ nhánh vào `main` (PR #47)
+
+- Đã gộp đầy đủ nhánh Portal (`3e69340`), AI X01 (`8a16758`), Ingest Queue (`4655d9a`) và hồ sơ bàn giao 12/11 (`9d87622`) về nhánh `main` (`2e74d8d`).
+- Đã sửa lỗi tranh chấp đồng thời trong `_validate_v3_schema` (`store.py`), tương thích Linux CI (`gold_pilot.py`, `stix_export.py`, `test_local_ingest.py`) và thêm `.gitleaksignore` cho 9 cảnh báo giả đã xác minh.
+- CI GitHub Actions (`python` và `secrets`) đã xanh; kiểm thử cục bộ trên Windows đạt 1,484 pytest passed (3 skipped), 406 Vitest passed (7 skipped), `tsc`/`eslint`/`next build` và `tools/local_integration` đạt.
+- Đã cập nhật lại `README.md`, `docs/HANDOFF.md` và `docs/PROGRESS.md` cho khớp trạng thái trên `main`.
 
 ## 12/11/2026 11:10 — Người dùng yêu cầu tạm dừng
 
@@ -50,9 +57,9 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
 | Nộp quyển | 27/02/2027 | Chưa |
 
 ## Đang làm
-- PR #1: bộ khởi động đầy đủ, chờ duyệt và merge
-- Việc 2: cài OpenCTI trên máy Ubuntu
-- F01/#9: gói demo MITRE + bundle STIX mẫu đã kiểm cấu hình ngoại tuyến; chờ chạy và đo trên lab
+- W03-S2 Frontend: chưa triển khai giao diện lọc trạng thái & số tổng hợp (Backend đã có trên `main`).
+- Việc 2: cài OpenCTI trên máy Ubuntu và đo RAM thực tế.
+- F01/#9: gói demo MITRE + bundle STIX mẫu đã kiểm cấu hình ngoại tuyến; chờ chạy và đo trên lab.
 
 ## Đã xong gần đây
 - W03-S1 Backend cục bộ: ba route status/history opt-in dùng cùng SQLite W04, migration explicit, GET read-only,
