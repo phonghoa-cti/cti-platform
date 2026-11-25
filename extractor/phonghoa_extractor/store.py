@@ -571,12 +571,11 @@ def _validate_v3_schema(connection: sqlite3.Connection) -> None:
         "SELECT p.draft_id,p.envelope_schema_version,p.envelope_sha256,p.input_format,"
         "p.display_name,p.raw_sha256,p.raw_bytes,p.canonical_text_sha256,p.page_count,"
         "p.page_text_ranges_json,d.payload_json FROM draft_ingest_provenance p "
-        "JOIN drafts d ON d.id=p.draft_id ORDER BY p.draft_id"
+        "LEFT JOIN drafts d ON d.id=p.draft_id ORDER BY p.draft_id"
     ).fetchall()
-    linked_count = connection.execute("SELECT COUNT(*) FROM draft_ingest_provenance").fetchone()[0]
-    if len(rows) != linked_count:
-        raise DraftSQLiteError("Provenance có draft_id mồ côi")
     for row in rows:
+        if row[10] is None:
+            raise DraftSQLiteError("Provenance có draft_id mồ côi")
         try:
             payload = json.loads(row[10])
         except (TypeError, json.JSONDecodeError) as exc:
