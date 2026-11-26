@@ -2,6 +2,14 @@
 
 Cập nhật lần cuối: 26/11/2026
 
+## 26/11/2026 — B24R1: NVD độc lập, KEV dự phòng chính thức
+
+- Sửa nguyên nhân B24: trước đây lỗi tải KEV phát sinh trước vòng phân trang NVD, khiến toàn bộ import hủy dù NVD có thể trả kết quả. B24R1 dùng User-Agent nhận diện repo và Accept JSON, thử CISA trực tiếp, rồi URL cố định CISAGov/kev-data nhánh main theo brief; nếu không thành công thử default branch develop của cùng repo (đã kiểm metadata GitHub). Không mở rộng tùy ý URL, không theo redirect, giữ TLS, không gửi NVD key sang KEV/mirror.
+- Nếu cả các nguồn KEV lỗi, cảnh báo và vẫn nhập NVD; snapshot imported có kev_snapshot_complete=false, trạng thái KEV và as_of của từng CVE là null (chưa xác minh), không phải false. Wire source.kev_catalog là cisa/github/unavailable; giữ contract synthetic cũ. UI ghi rõ nguồn, tự bỏ lọc Chỉ KEV khi unavailable, không hiển thị 0 như kết luận KEV. NVD có ngân sách fetch riêng 420 giây, page size 1.000 và cap 48 MiB/page; giữ pace 6,1 giây. NVD lỗi/phân trang không nhất quán vẫn không ghi snapshot dở.
+- Live Windows: CISA HTTP 403; mirror URL main trả dữ liệu hợp lệ. Nạp thành công 1.805 KEV + 3.987 NVD (cửa sổ công bố 7 ngày), 9 trùng giữa nguồn, tổng 5.783 CVE riêng biệt; 3.925 chưa có cặp tên sản phẩm, không tạo match. CLI 21,0 giây; snapshot 5.136.578 byte, thu nhận 2026-11-26T15:23:56Z; không commit file data/cve-feed.json (đã gitignore).
+- Kiểm stack loopback với snapshot thật: /lo-hong HTTP 200, /api/cves?kev=true&limit=10 HTTP 200, kind imported, kev_catalog github; 9 CVE khớp tài sản demo. Chromium headless dump DOM xác nhận nhãn CISA KEV (GitHub) + NVD và cả 9 mã trong bảng. Ví dụ thấy trên trang: CVE-2018-13379 (KEV 2021-11-03), CVE-2019-5591 (2021-11-03), CVE-2019-6693 (2025-06-25). Tài sản/role vẫn giả lập; chưa kiểm OpenCTI, dữ liệu doanh nghiệp hoặc production.
+- Test offline thêm nhánh KEV mất/NVD vẫn nạp, mirror provenance và UI tự bỏ lọc khi KEV mất; không gọi mạng trong test. Kết quả live này thay cho blocker ở mục B24 lịch sử bên dưới.
+
 ## 26/11/2026 — B24: Nguồn CVE thật trực tiếp, không cần OpenCTI
 
 - Nhánh riêng: feat/b24-real-cve-feed. CLI nạp toàn bộ catalog CISA KEV và NVD API 2.0 theo ngày công bố (7–30 ngày), phân trang, giới hạn kích thước/thời gian, pace NVD 6,1 giây giữa các request, retry có backoff, TLS và không redirect. Key NVD tùy chọn từ biến môi trường, không ghi log.

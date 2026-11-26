@@ -189,3 +189,54 @@ def test_inconsistent_nvd_paging_fails_closed(tmp_path):
     with pytest.raises(FeedError):
         import_snapshot(path, 7, inconsistent, NOW)
     assert not path.exists()
+
+
+def test_kev_unavailable_still_imports_nvd(tmp_path):
+    from portal_api.feeds.import_cves import FeedError
+
+    def missing(url, params=None):
+        if url != NVD_URL:
+            raise FeedError("HTTP 403")
+        return fetch(url, params)
+
+    path = tmp_path / "cves.json"
+    result = import_snapshot(path, 7, missing, NOW)
+    assert result["kev"] == 0 and result["nvd"] == 2
+    assert result["kev_catalog"] == "unavailable"
+    dataset = ImportedCveReadPort(path).list_candidates()
+    assert dataset.kev_snapshot_complete is False
+    assert all(x["kev"]["known_exploited"] is None for x in dataset.candidates)
+    store = TechnologyStore(tmp_path / "assets.sqlite")
+    store.initialize()
+    store.create("Fortinet", "FortiOS", "7.4", "fixture", "test")
+    service = CveReadService(ImportedCveReadPort(path), store)
+    response = service.read(CveQuery(None, None, None, 25, None), "detail")
+    assert response["source"]["kev_catalog"] == "unavailable"
+    assert response["summary"]["matched_cves"] == 2
+    assert response["items"][0]["kev"] is None
+    assert response["items"][0]["kev_as_of"] is None
+    for kev in (True, False):
+        assert service.read(CveQuery(kev, None, None, 25, None), "detail")["items"] == []
+
+
+def test_official_mirror_provenance(tmp_path):
+    from portal_api.feeds.import_cves import KEV_MIRROR_URL, FeedError
+
+    calls = []
+
+    def fallback(url, params=None):
+        calls.append(url)
+        if url == KEV_URL:
+            raise FeedError("HTTP 403")
+        if url == KEV_MIRROR_URL:
+            return KEV
+        return fetch(url, params)
+
+    path = tmp_path / "cves.json"
+    result = import_snapshot(path, 7, fallback, NOW)
+    assert result["kev_catalog"] == "github"
+    assert calls[:2] == [KEV_URL, KEV_MIRROR_URL]
+    dataset = ImportedCveReadPort(path).list_candidates()
+    assert dataset.kev_snapshot_complete is True
+    assert dataset.candidates[0]["provenance"]["sources"][0]["url"] == KEV_MIRROR_URL
+    assert dataset.candidates[0]["kev"]["known_exploited"] is True

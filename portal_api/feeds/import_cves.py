@@ -17,17 +17,26 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from portal_api.cves import CVE_ID, CveDataset, CvesUnavailable, _validate_dataset
+from portal_api.cves import (
+    CVE_ID,
+    KEV_MIRROR_DEFAULT_URL,
+    KEV_MIRROR_URL,
+    KEV_SOURCE_URLS,
+    KEV_URL,
+    NVD_URL,
+    CveDataset,
+    CvesUnavailable,
+    _candidate,
+    _validate_dataset,
+)
 
-KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
-NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "cve-feed.json"
 MAX_BYTES = 64 * 1024 * 1024
-MAX_PAGE_BYTES = 24 * 1024 * 1024
+MAX_PAGE_BYTES = 48 * 1024 * 1024
 MAX_RECORDS = 20000
 MAX_PAGES = 40
-PAGE_SIZE = 500
-KEV_SOURCE = "CISA KEV"
+PAGE_SIZE = 1000
+USER_AGENT = "phonghoa-cti/0.1 (+https://github.com/phonghoa-cti/cti-platform)"
 NVD_NOTICE = "This product uses data from the NVD API but is not endorsed or certified by the NVD."
 
 
@@ -64,12 +73,13 @@ def _retry_delay(header: str | None, attempt: int) -> float:
 
 
 class Fetcher:
-    """Chỉ hai endpoint cố định; TLS mặc định, không redirect, key không vào URL/log."""
+    """Chỉ endpoint chính thức cố định; TLS, không redirect, key không vào URL/log."""
 
     def __init__(self, client: httpx.Client) -> None:
         self.client = client
         self.deadline = time.monotonic() + 420
         self.next_nvd = 0.0
+        self.nvd_started = False
 
     def _wait(self, seconds: float) -> None:
         seconds = max(0, seconds)
@@ -93,9 +103,16 @@ class Fetcher:
         return data
 
     def __call__(self, url: str, params: dict | None = None) -> dict:
-        if url not in {KEV_URL, NVD_URL} or urlsplit(url).scheme != "https":
+        if (
+            url not in {KEV_URL, KEV_MIRROR_URL, KEV_MIRROR_DEFAULT_URL, NVD_URL}
+            or urlsplit(url).scheme != "https"
+        ):
             raise FeedError("Endpoint không được phép")
-        headers = {"User-Agent": "PhongHoaCTI/0.1 (academic)", "Accept": "application/json"}
+        if url == NVD_URL and not self.nvd_started:
+            # KEV timeout hoặc retry dài không được làm hết ngân sách NVD.
+            self.deadline = time.monotonic() + 420
+            self.nvd_started = True
+        headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
         if url == NVD_URL and os.environ.get("NVD_API_KEY"):
             headers["apiKey"] = os.environ["NVD_API_KEY"]
         for attempt in range(3):
@@ -149,14 +166,19 @@ def _nvd_pages(fetch: Callable, now: datetime, days: int):
     raise FeedError("Vượt giới hạn trang NVD")
 
 
-def _base(cve_id: str, title: str, as_of: str) -> dict:
+def _base(cve_id: str, title: str, as_of: str | None, kev_source: str | None) -> dict:
     if not CVE_ID.fullmatch(cve_id):
         raise FeedError("CVE ID không hợp lệ")
     return {
         "cve_id": cve_id,
         "title": _clean(title, 300) or cve_id,
         "affected_products": [],
-        "kev": {"known_exploited": False, "source": KEV_SOURCE, "as_of": as_of, "due_date": None},
+        "kev": {
+            "known_exploited": False if kev_source is not None else None,
+            "source": kev_source,
+            "as_of": as_of,
+            "due_date": None,
+        },
         "epss": {"score": None, "percentile": None, "as_of": None},
         "cvss": {"base_score": None, "version": None},
         "published_at": None,
@@ -174,26 +196,31 @@ def _add_product(record: dict, vendor: str, product: str) -> None:
         record["affected_products"].append({"vendor": vendor, "product": product})
 
 
-def _source(name: str, now: str) -> dict:
-    if name == KEV_SOURCE:
-        return {"name": name, "url": KEV_URL, "retrieved_at": now, "attribution": "CISA KEV (CC0 1.0)"}
+def _source(name: str, now: str, url: str = NVD_URL) -> dict:
+    if name in KEV_SOURCE_URLS:
+        return {"name": name, "url": url, "retrieved_at": now, "attribution": "CISA KEV (CC0 1.0)"}
     return {"name": "NVD", "url": NVD_URL, "retrieved_at": now, "attribution": NVD_NOTICE}
 
 
-def _kev_records(feed: dict, stamp: str) -> tuple[str, dict]:
+def _kev_records(feed: dict, stamp: str, url: str) -> tuple[str, dict]:
+    kev_source = "CISA KEV" if url == KEV_URL else "CISA KEV (GitHub)"
     released = _timestamp(feed["dateReleased"])
     rows = feed["vulnerabilities"]
     if not isinstance(rows, list) or not 0 < len(rows) == feed["count"] <= MAX_RECORDS:
         raise FeedError("Catalog KEV không đầy đủ")
     result = {}
     for row in rows:
-        record = _base(row["cveID"], row["vulnerabilityName"], released[:10])
+        record = _base(row["cveID"], row["vulnerabilityName"], released[:10], kev_source)
         if record["cve_id"] in result:
             raise FeedError("CVE trùng trong KEV")
         _add_product(record, row["vendorProject"], row["product"])
         record["kev"].update(known_exploited=True, due_date=row["dueDate"])
         record["advisory_url"] = "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
-        record["provenance"] = {"sources": [_source(KEV_SOURCE, stamp)], "kev_date_added": row["dateAdded"]}
+        record["provenance"] = {
+            "sources": [_source(kev_source, stamp, url)],
+            "kev_date_added": row["dateAdded"],
+        }
+        _candidate(record, imported=True)
         result[record["cve_id"]] = record
     return released, result
 
@@ -245,7 +272,7 @@ def _cvss(cve: dict) -> dict:
     return {"base_score": None, "version": None}
 
 
-def _merge_nvd(records: dict, rows, released: str, stamp: str) -> int:
+def _merge_nvd(records: dict, rows, released: str | None, stamp: str, kev_source: str | None) -> int:
     seen = set()
     for row in rows:
         cve = row["cve"]
@@ -254,7 +281,9 @@ def _merge_nvd(records: dict, rows, released: str, stamp: str) -> int:
             raise FeedError("CVE trùng giữa các trang NVD")
         seen.add(cve_id)
         description = next((x["value"] for x in cve.get("descriptions", []) if x["lang"] == "en"), cve_id)
-        record = records.setdefault(cve_id, _base(cve_id, description, released[:10]))
+        record = records.setdefault(
+            cve_id, _base(cve_id, description, released[:10] if released else None, kev_source)
+        )
         record["published_at"] = _timestamp(cve["published"])
         record["cvss"] = _cvss(cve)
         record["provenance"]["sources"].append(_source("NVD", stamp))
@@ -303,17 +332,34 @@ def _atomic_write(path: Path, raw: bytes) -> None:
             temp.unlink(missing_ok=True)
 
 
+def _fetch_kev(fetch: Callable, stamp: str) -> tuple[str | None, dict, str | None, list[str]]:
+    warnings = []
+    # main là URL brief cung cấp; develop là default branch của chính repo CISAGov/kev-data.
+    for url in (KEV_URL, KEV_MIRROR_URL, KEV_MIRROR_DEFAULT_URL):
+        try:
+            released, records = _kev_records(fetch(url), stamp, url)
+        except (FeedError, CvesUnavailable, ValueError, KeyError, TypeError, OSError) as exc:
+            warning = f"KEV {url}: {exc if isinstance(exc, FeedError) else type(exc).__name__}"
+            warnings.append(warning)
+            continue
+        return released, records, url, warnings
+    return None, {}, None, warnings
+
+
 def import_snapshot(path: Path, days: int, fetch: Callable, now: datetime) -> dict:
     if not 7 <= days <= 30:
         raise FeedError("Chọn khoảng NVD 7–30 ngày")
     stamp = _stamp(now)
-    released, records = _kev_records(fetch(KEV_URL), stamp)
+    released, records, kev_url, warnings = _fetch_kev(fetch, stamp)
     kev_count = len(records)
-    nvd_count = _merge_nvd(records, _nvd_pages(fetch, now, days), released, stamp)
+    kev_source = ("CISA KEV" if kev_url == KEV_URL else "CISA KEV (GitHub)") if kev_url else None
+    for warning in warnings:
+        print(f"Warning: {warning}", flush=True)
+    nvd_count = _merge_nvd(records, _nvd_pages(fetch, now, days), released, stamp, kev_source)
     snapshot = {
         "kind": "imported",
-        "kev_snapshot_complete": True,
-        "source_as_of": released,
+        "kev_snapshot_complete": kev_url is not None,
+        "source_as_of": released or stamp,
         "retrieved_at": stamp,
         "candidates": [records[key] for key in sorted(records)],
     }
@@ -333,6 +379,9 @@ def import_snapshot(path: Path, days: int, fetch: Callable, now: datetime) -> di
     )[:3]
     return {
         "kev": kev_count,
+        "kev_catalog": "cisa" if kev_url == KEV_URL else ("github" if kev_url else "unavailable"),
+        "kev_url": kev_url,
+        "warnings": warnings,
         "nvd": nvd_count,
         "unique": len(records),
         "retrieved_at": stamp,
