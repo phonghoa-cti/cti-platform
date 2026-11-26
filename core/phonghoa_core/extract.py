@@ -94,6 +94,14 @@ def extract_iocs(text: str) -> list[Ioc]:
     return list(dict.fromkeys(found))  # khử trùng lặp nhưng giữ thứ tự
 
 
+_CVE = re.compile(r"\bCVE-[0-9]{4}-[0-9]{4,}\b", re.IGNORECASE)
+
+
+def extract_cves(text: str) -> list[str]:
+    """Trích mã CVE chuẩn, viết hoa và bỏ trùng; không xác minh CVE có tồn tại."""
+    return list(dict.fromkeys(match.group(0).upper() for match in _CVE.finditer(text)))
+
+
 def _looks_like_filename(candidate: str) -> bool:
     return candidate.rsplit(".", 1)[-1].lower() in _FILE_EXTENSIONS
 

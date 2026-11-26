@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Mẫu tái dựng rút gọn từ metadata bài công khai, KHÔNG phải RSS raw tải từ nguồn.
+     Chỉ giữ tiêu đề, URL, ngày công bố, hai mã CVE có trong bài. -->
+<rss version="2.0"><channel><title>Mẫu rút gọn MST</title>
+<item><title>Phát hiện thêm 7 lỗ hổng bảo mật trên hệ thống thông tin Việt Nam</title>
+<link>https://mst.gov.vn/phat-hien-them-7-lo-hong-bao-mat-tren-he-thong-tin-viet-nam-197240702145439592.htm</link>
+<pubDate>Sat, 22 Jun 2024 13:51:00 +0700</pubDate>
+<description>CVE-2024-30080; CVE-2024-30103</description></item>
+</channel></rss>

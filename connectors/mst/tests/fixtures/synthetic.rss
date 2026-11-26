@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Mẫu GIẢ LẬP B03</title>
+<item><title>Cảnh báo lỗ hổng và IOC (GIẢ LẬP)</title>
+<link>https://mst.gov.vn/b03-fixture-a.htm</link>
+<pubDate>Thu, 26 Nov 2026 09:00:00 +0700</pubDate>
+<description><![CDATA[<p>IOC: Demo[.]example; demo.example; hxxps://sample[.]example/path;
+CVE-2099-12345 và cve-2099-12345. IP nội bộ 192.168.1.1; user@example.org.
+<script>hidden.example</script><a href="https://hidden.example/">liên kết</a></p>]]></description></item>
+<item><title>Cảnh báo mã độc (GIẢ LẬP)</title><link>https://mst.gov.vn/b03-fixture-b.htm</link>
+<pubDate>Thu, 26 Nov 2026 10:00:00 +0700</pubDate><description>demo.example, CVE-2099-12345</description></item>
+<item><title>Hội nghị khoa học</title><link>https://mst.gov.vn/b03-fixture-c.htm</link>
+<pubDate>Thu, 26 Nov 2026 10:00:00 +0700</pubDate><description>noise.example</description></item>
+<item><title>Cảnh báo thiếu ngày</title><link>https://mst.gov.vn/b03-fixture-d.htm</link><description>demo.example</description></item>
+<item><title>Cảnh báo nguồn ngoài</title><link>https://outside.example/a.htm</link>
+<pubDate>Thu, 26 Nov 2026 10:00:00 +0700</pubDate><description>demo.example</description></item>
+</channel></rss>

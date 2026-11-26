@@ -74,3 +74,9 @@ connector một; đo RSS/CPU peak, RAM trống, queue, 429/timeout/retry và s�
 - [OTX README](https://github.com/OpenCTI-Platform/connectors/blob/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/alienvault/README.md)
 - [CISA KEV README](https://github.com/OpenCTI-Platform/connectors/blob/a19618a5d92c369ba6b1893888caeec5c52bf6b2/external-import/cisa-known-exploited-vulnerabilities/README.md)
 - [ImportFileStix README](https://github.com/OpenCTI-Platform/connectors/blob/a19618a5d92c369ba6b1893888caeec5c52bf6b2/internal-import-file/import-file-stix/README.md)
+
+## B03 — nguồn tiếng Việt bổ sung (26/11/2026)
+
+| Nguồn | Connector | Quyền | Giới hạn/chu kỳ | Trạng thái |
+|---|---|---|---|---|
+| Cổng TTĐT Bộ KH&CN (MST) | [MST RSS](../../connectors/mst/SOURCE.md) tự viết | RSS công khai, phải ghi nguồn; quyền phân phối và điều khoản đầy đủ [CẦN KIỂM] | Quota chưa xác minh; đề xuất mỗi giờ, ≥ 5 giây/request, robots, retry/backoff | Mẫu giả lập và mẫu tái dựng rút gọn; chưa chạy feed/OpenCTI thật, chưa kiểm RAM/dedupe trên lab |
