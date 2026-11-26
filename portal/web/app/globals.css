@@ -619,3 +619,11 @@ button:focus-visible, input:focus-visible, [tabindex="-1"]:focus-visible {
   .cve-status__context { grid-template-columns: 1fr; }
   .cve-status__context span { grid-column: auto; }
 }
+
+/* W03-S2: bốn KPI trước phân trang; ghi chú chiếm cả hàng. */
+.cve-app__summary--status { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cve-app__summary--status > p { grid-column: 1 / -1; border-top: 1px solid var(--border-subtle); }
+@media (max-width: 760px) { .cve-app__summary--status { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 360px) { .cve-app__summary--status { grid-template-columns: 1fr; } }
+.cve-app__summary--status button { min-height: 32px; padding: 0 12px; margin-left: 8px; border: 1px solid var(--border-strong); color: var(--text-primary); background: var(--layer-02); cursor: pointer; }
+@media (min-width: 901px) { .cve-app__filters { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } .cve-app__heading { flex-wrap: wrap; } }

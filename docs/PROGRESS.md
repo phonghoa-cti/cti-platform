@@ -57,7 +57,7 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
 | Nộp quyển | 27/02/2027 | Chưa |
 
 ## Đang làm
-- W03-S2 Frontend: chưa triển khai giao diện lọc trạng thái & số tổng hợp (Backend đã có trên `main`).
+- W03-S2 Frontend (B12): đã triển khai trên nhánh `feat/b12-w03-s2-frontend` từ `origin/main`; chờ nghiệm thu độc lập và ghép. `/lo-hong` dùng GET `/api/cves/status-view`, `/lo-hong/mau` dùng fixture và trạng thái trong memory. Lọc trạng thái chỉ cho detail; bộ đếm CVE cần xử lý/KEV quá hạn theo phạm vi lọc cơ sở và ngày UTC, không phải số dòng trang hiện tại. Gateway chỉ mở đúng GET; adapter giữ kiểm schema detail/summary, giới hạn 1 MiB và xử lý lỗi/cursor. Giao diện danh sách VI/EN; nút Làm mới đọc lại snapshot sau khi cập nhật S1. Cổng cục bộ: Python 1484 pass/3 skip có sẵn, gateway 19/19, Vitest 432/432 (2 worker, đủ fixture wire), Ruff/typecheck/lint/build đạt. Chưa kiểm browser/viewport, nguồn CVE thật, OpenCTI, Cloudflare hoặc production.
 - Việc 2: cài OpenCTI trên máy Ubuntu và đo RAM thực tế.
 - F01/#9: gói demo MITRE + bundle STIX mẫu đã kiểm cấu hình ngoại tuyến; chờ chạy và đo trên lab.
 
