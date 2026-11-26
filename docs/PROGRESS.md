@@ -338,3 +338,8 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
   semantic TTP, corpus gold/model quality, hostile mutation, crash/power-loss và production chưa xác minh.
 - Local ingest chưa kiểm hostile filesystem mutation, hard RAM/network isolation trên Windows, PDF đối kháng/thật,
   OCR, chất lượng text đa ngôn ngữ, corpus/model, lab hoặc production.
+
+## B10 — Hermes MCP server chỉ đọc (26/11/2026)
+- Đã triển khai `mcp-server/` với FastMCP chính thức, transport stdio, 8 công cụ đọc IOC/CVE/bản nháp/báo cáo/tổng quan/sự kiện. Tái dùng logic chuẩn hóa và tính điểm của portal/core; mặc định fixture tổng hợp, không gọi mạng trong test.
+- Adapter OpenCTI qua pycti bật bằng env, chỉ list; portal GET tùy chọn để đọc tài sản/CVE và hàng chờ W05. Dữ liệu ngoài được bao trong `tai_lieu`, escape ký tự phân tách; lọc TLP:CLEAR/GREEN; không có tool ghi, duyệt, chặn, chạy lệnh hoặc xóa.
+- Còn lại/vướng: chưa kết nối lab/OpenCTI thật, chưa nghiệm thu role agent portal, chưa có stream sự kiện live, chưa tích hợp Hermes/Telegram/cron. Lock MCP tách riêng; CI cần nạp lock ở việc được phép sửa workflow. Lock tạo trên Windows; Ubuntu và tương thích phiên bản OpenCTI chưa kiểm. Fixture/test chỉ chứng minh hợp đồng và ranh giới đọc cục bộ, không chứng minh chất lượng CTI hoặc chống prompt injection của model thật.
