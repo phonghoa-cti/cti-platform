@@ -1,6 +1,16 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 25/11/2026
+Cập nhật lần cuối: 26/11/2026
+
+## 26/11/2026 — B24: Nguồn CVE thật trực tiếp, không cần OpenCTI
+
+- Nhánh riêng: feat/b24-real-cve-feed. CLI nạp toàn bộ catalog CISA KEV và NVD API 2.0 theo ngày công bố (7–30 ngày), phân trang, giới hạn kích thước/thời gian, pace NVD 6,1 giây giữa các request, retry có backoff, TLS và không redirect. Key NVD tùy chọn từ biến môi trường, không ghi log.
+- Kho snapshot JSON chuẩn hóa độc lập, mặc định data/cve-feed.json (data/ đã gitignore). Một dòng logic mỗi CVE ID; ghi nguồn/URL, thời gian bắt đầu lượt thu nhận UTC, ghi công/notice và ngày KEV thêm. Chỉ thay file atomically khi cả hai nguồn hợp lệ; không đánh dấu KEV false nếu thiếu catalog. Snapshot được thay theo cửa sổ ngày, không phải lịch sử tích lũy.
+- W03 giữ fixture và giới hạn cũ mặc định; mode imported có giới hạn riêng (20.000 bản ghi, 512 cặp sản phẩm/bản ghi, 64 MiB). Response/cursor/quyền và cap wire 1 MiB giữ nguyên; metadata nguồn kind=imported trên /lo-hong. Không đổi /lo-hong/mau. Ghép exact casefold vendor + product; CPE NVD chỉ lấy vulnerable=true và tên, đổi dấu gạch dưới thành khoảng trắng; không có mapping alias, suy luận AND/OR hoặc kiểm phiên bản. NVD chưa enrich CPE vẫn lưu nhưng không tạo match; EPSS không thu thập, CVSS 3.1/4.0 nếu có. Thiếu điểm hiển thị thiếu, không suy đoán.
+- Chạy từ root (PowerShell): đặt $env:PYTHONPATH='core;extractor;.'; dùng .venv/Scripts/python.exe -m portal_api.feeds.import_cves --kev --nvd-days 7. NVD_API_KEY không bắt buộc. Build portal/web, chạy .venv/Scripts/python.exe -m tools.local_integration.runner --scenario w03-it --cve-feed data/cve-feed.json rồi mở URL loopback + /lo-hong. Tài sản/role của harness vẫn tổng hợp. Chế độ API cấu hình W03_CVE_PROVIDER=imported và W03_CVE_FEED_PATH; mặc định synthetic (fixture vẫn opt-in bằng injection, không có fallback âm thầm).
+- Kiểm offline: fixture dạng nguồn thật, test phân trang/dedup, nguồn/metadata, lỗi giữa lượt, redirect/domain/key/size, cấu hình; stack loopback HTTP 200 /lo-hong và /api/cves với một CVE fixture khớp. Không gọi mạng trong test.
+- **Chưa nghiệm thu LIVE:** lượt nạp trên Windows trả HTTP 403 từ www.cisa.gov (exit 1, không tạo snapshot). NVD kiểm riêng trả HTTP 200, totalResults=4254 cho 7 ngày, 1 bản ghi trả về trong trang kiểm kết nối; KHÔNG phải số nhập. 0 bản ghi thật được nạp; chưa có 3 ví dụ KEV thật hoặc portal CVE thật. Không dùng mirror ngoài danh sách host hoặc bỏ TLS; chờ nguồn CISA truy cập hợp lệ rồi chạy lại CLI và demo lựa chọn 6. Không kết luận doanh nghiệp đã bị tấn công từ CVE trùng tên.
+
 
 ## 25/11/2026 — Gộp toàn bộ nhánh vào `main` (PR #47)
 

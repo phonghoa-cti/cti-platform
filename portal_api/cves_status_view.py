@@ -148,7 +148,7 @@ class CveStatusViewService:
             "summary": summary,
             "page": {"next_cursor": next_cursor, "limit": query.limit},
             "source": {
-                "kind": "synthetic",
+                "kind": dataset["kind"],
                 "dataset_id": dataset_id,
                 "source_as_of": dataset["source_as_of"],
                 "retrieved_at": dataset["retrieved_at"],

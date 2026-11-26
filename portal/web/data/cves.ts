@@ -22,7 +22,7 @@ export type CveQuery = {
 };
 
 export type CveSource = {
-  kind: "synthetic";
+  kind: "synthetic" | "imported";
   datasetId: string;
   sourceAsOf: string;
   retrievedAt: string;

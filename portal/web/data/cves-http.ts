@@ -185,11 +185,11 @@ function envelope(raw: Record<string, unknown>) {
   if (cursor !== null && !/^[\x20-\x7e]+$/.test(cursor)) throw new InvalidCveResponse();
   const sourceRaw = object(raw.source);
   exact(sourceRaw, ["kind", "dataset_id", "source_as_of", "retrieved_at"]);
-  if (sourceRaw.kind !== "synthetic") throw new InvalidCveResponse();
+  if (sourceRaw.kind !== "synthetic" && sourceRaw.kind !== "imported") throw new InvalidCveResponse();
   const datasetId = text(sourceRaw.dataset_id, 71, 71);
   if (!/^sha256:[0-9a-f]{64}$/.test(datasetId)) throw new InvalidCveResponse();
   const source: CveSource = {
-    kind: "synthetic",
+    kind: sourceRaw.kind,
     datasetId,
     sourceAsOf: timestamp(sourceRaw.source_as_of),
     retrievedAt: timestamp(sourceRaw.retrieved_at),
