@@ -1,6 +1,14 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 25/11/2026
+Cập nhật lần cuối: 26/11/2026
+
+## 26/11/2026 — B13: W01 Tổng quan và W04 xuất CSV
+
+- Thêm `/tong-quan` và `/tong-quan/mau`, nối từ Hàng chờ duyệt; giao diện SOC VI/EN, bốn KPI, ứng viên cần chú ý, CVE ưu tiên, IOC khớp tài sản và tình trạng nguồn. Chỉ đọc GET `/api/cves` theo quyền hiện hành; trang mẫu dùng provider CVE và fixture IOC W04 có sẵn, loại IOC allowlist. Không dùng fixture thay API khi lỗi.
+- W01 chưa đủ tiêu chí toàn phần: chưa có API tổng quan/nguồn thống kê IOC theo thời gian, cảnh báo Wazuh, top ATT&CK/mã độc hoặc trạng thái xử lý tổng hợp; hiển thị chưa có nguồn/chưa xác định thay vì số 0, không tự suy ra mức đe dọa hay tạo cảnh báo thật. CVE chỉ khớp tên sản phẩm, chưa đánh giá phiên bản. Không có hành động ghi, không thay API hoặc quyền.
+- W04 thêm nút CSV gộp tên miền, dải IP, công nghệ từ ba phép đọc hiện hành; không tải nếu thiếu một nhóm do lỗi. UTF-8 BOM, CRLF, escape dấu nháy kép và tiền tố apostrophe cho ô nguy hiểm (= + - @, kể cả khoảng trắng đầu). Không thêm dependency, không ghi DB, không xuất trường định danh người tạo.
+- Cổng cục bộ: Ruff check/format đạt; pytest 1.484 pass, 3 skip sẵn có; Vitest 427/427 pass (14 test mới, 7 wire test cũ được kích hoạt bằng 12 fixture capture), typecheck/lint/build đều đạt. Browser headless qua gateway + API/SQLite giả lập: W01 desktop 1440 và mobile 360 không tràn, mẫu không gọi API; CSV mẫu 3 dòng và CSV API 2 dòng đúng dữ liệu fixture/BOM, chỉ GET, bộ đếm DB/audit không đổi.
+- Chờ nghiệm thu độc lập. Chưa có nguồn OpenCTI/Wazuh/feed thật, chưa đo cache <2 giây hoặc kiểm lab/production; còn thiếu các tiêu chí W01 phụ thuộc nguồn nêu trên.
 
 ## 25/11/2026 — Gộp toàn bộ nhánh vào `main` (PR #47)
 
