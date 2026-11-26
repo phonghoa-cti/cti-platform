@@ -1,6 +1,12 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 25/11/2026
+Cập nhật lần cuối: 26/11/2026
+
+## 26/11/2026 — B14 Connector nguồn tiếng Việt thứ hai (nhánh riêng)
+
+- Thêm VSEC: đọc một trang danh mục HTML, trích tiêu đề/mô tả IOC/CVE qua core; xuất STIX 2.1 dạng ứng viên chưa duyệt, TLP:GREEN. Live mặc định tắt, không có publish trực tiếp.
+- Tách kiểu dữ liệu, tải HTTP/robots/cache và bộ dựng STIX dùng chung với MST, giữ profile/ID MST. Kiểm thử fixture/mock và validator STIX; không dùng feed thật trong test.
+- Kiểm tra nguồn: robots HTTP 200 rỗng; hai RSS ứng viên HTTP 520; danh mục HTML HTTP 200. [CẦN KIỂM] quyền thu thập/tái sử dụng, quota, độ ổn định layout; chưa chạy CLI live hoặc OpenCTI lab, chưa đo RAM hay chất lượng trích thật.
 
 ## 25/11/2026 — Gộp toàn bộ nhánh vào `main` (PR #47)
 
