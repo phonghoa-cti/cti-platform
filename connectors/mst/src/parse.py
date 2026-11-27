@@ -1,34 +1,16 @@
 """Đọc RSS 2.0 công khai của MST; văn bản nguồn luôn là dữ liệu không tin cậy."""
 
-from dataclasses import dataclass
 from datetime import UTC
 from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 from xml.etree import ElementTree
 
+from connectors.common.articles import MAX_BYTES, MAX_ITEMS, Article, ParseResult
 from phonghoa_core import Ioc, IocType, extract_cves, extract_iocs
 
-MAX_BYTES = 2 * 1024 * 1024
-MAX_ITEMS = 100
 SOURCE_HOST = "mst.gov.vn"
 TOPICS = ("cảnh báo", "lỗ hổng", "mã độc", "an toàn thông tin", "an ninh mạng")
-
-
-@dataclass(frozen=True)
-class Article:
-    title: str
-    url: str
-    published: str
-    iocs: tuple[Ioc, ...]
-    cves: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class ParseResult:
-    articles: tuple[Article, ...]
-    total: int
-    skipped: int
 
 
 class VisibleText(HTMLParser):
