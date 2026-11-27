@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import Any
@@ -10,6 +11,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse
 
+from portal_api.audit_log import AuditLog
 from portal_api.auth import AccessJwtVerifier, AuthenticationError, AuthenticationUnavailable, Principal
 from portal_api.cves import CveReadService, CvesUnavailable
 from portal_api.dissemination import (
@@ -36,6 +38,7 @@ REPORT_CSP = (
     "default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; base-uri 'none'; form-action 'none'"
 )
 UNAVAILABLE = ("reports_unavailable", "Dịch vụ báo cáo tạm thời không sẵn sàng")
+LOGGER = logging.getLogger(__name__)
 
 
 def is_reports_path(path: str) -> bool:
@@ -92,8 +95,18 @@ def register_report_routes(
     senders: Mapping[str, MessageSender],
     tenant_name: str,
     clock: Callable[[], datetime] | None = None,
+    audit_log: AuditLog | None = None,
 ) -> None:
     """Gắn route F21 vào app hiện có; thiếu phụ thuộc thì trả 503 (fail-closed)."""
+
+    def audit(principal: Principal, action: str, batch_id: str, result: str, detail: dict) -> None:
+        """Ghi nhật ký F22 nếu được cấu hình; lỗi ghi chỉ log, không đảo ngược thao tác đã xong."""
+        if audit_log is None:
+            return
+        try:
+            audit_log.record(principal.subject, action, f"outbox:{batch_id}"[:256], result, detail)
+        except Exception:
+            LOGGER.exception("F22 audit write failed for %s", action)
 
     def role_dependency(roles: frozenset[str]) -> Callable[[Request], Principal]:
         def require(request: Request) -> Principal:
@@ -193,12 +206,22 @@ def register_report_routes(
         body = await _json_body(request, settings)
         if set(body) != {"decision", "content_hash"} or not all(isinstance(v, str) for v in body.values()):
             raise ApiFailure(422, "invalid_request", "Yêu cầu không hợp lệ")
+        detail = {"decision": body["decision"][:32], "content_hash": body["content_hash"][:64]}
         try:
-            return configured_store().decide(
+            decided = configured_store().decide(
                 _parse_id(batch_id), principal.subject, body["decision"], body["content_hash"]
             )
         except (OutboxNotFound, OutboxPolicyError, OutboxStateError) as exc:
+            audit(
+                principal,
+                "dissemination.decide",
+                batch_id,
+                "failure",
+                {**detail, "error": type(exc).__name__},
+            )
             raise _outbox_failure(exc) from exc
+        audit(principal, "dissemination.decide", batch_id, "success", detail)
+        return decided
 
     @app.post("/api/dissemination/outbox/{batch_id}/send")
     async def send_outbox(batch_id: str, request: Request, principal: Principal = admin_role):
@@ -206,6 +229,9 @@ def register_report_routes(
         if body != {"confirm": True}:
             raise ApiFailure(422, "confirmation_required", "Cần xác nhận gửi")
         try:
-            return configured_store().send_batch(_parse_id(batch_id), principal.subject, senders)
+            sent = configured_store().send_batch(_parse_id(batch_id), principal.subject, senders)
         except (OutboxNotFound, OutboxStateError) as exc:
+            audit(principal, "dissemination.send", batch_id, "failure", {"error": type(exc).__name__})
             raise _outbox_failure(exc) from exc
+        audit(principal, "dissemination.send", batch_id, "success", {"status": sent.get("status")})
+        return sent

@@ -168,7 +168,7 @@ class ReadOnlyTechnologyStore(TechnologyStore):
 def parse_cve_query(request, view: str) -> CveQuery:
     if len(request.scope.get("query_string", b"")) > 4096:
         raise InvalidCveQuery("query too large")
-    allowed = {"kev", "asset_id", "q", "limit", "cursor"}
+    allowed = {"kev", "asset_id", "q", "limit", "cursor", "pir"}
     if set(request.query_params) - allowed:
         raise InvalidCveQuery("unknown query")
     if any(len(request.query_params.getlist(key)) != 1 for key in request.query_params):
