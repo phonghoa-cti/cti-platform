@@ -1,3 +1,10 @@
+import type { CveStatus, CveStatusProvider } from "@/data/cve-status";
+
+export const STATUS_FILTERS = ["unset", "open", "patching", "patched", "not_affected", "review_required"] as const;
+export type CveStatusFilter = typeof STATUS_FILTERS[number];
+export type CveRelationStatus = { status: CveStatus | null; statusVersion: number | null; statusUpdatedAt: string | null; reviewRequired: boolean };
+export type CveStatusSummary = { actionableCves: number; overdueKevCves: number; asOfDate: string; statusRelations?: Record<Exclude<CveStatusFilter, "review_required">, number>; reviewRequiredRelations?: number };
+
 export type CveErrorKind =
   | "authentication-required"
   | "forbidden"
@@ -19,6 +26,7 @@ export type CveQuery = {
   q: string;
   limit: number;
   cursor: string | null;
+  status?: CveStatusFilter;
 };
 
 export type CveSource = {
@@ -36,7 +44,7 @@ export type CveMatch = {
   softwareVersion: string;
   matchReason: "vendor_product_exact_casefold";
   versionAssessment: "not_performed";
-};
+} & Partial<CveRelationStatus>;
 
 export type CveDetailItem = {
   cveId: string;
@@ -66,7 +74,7 @@ export type CveSummaryItem = {
 };
 
 type CveEnvelope = {
-  summary: { matchedCves: number; kevCves: number };
+  summary: { matchedCves: number; kevCves: number } & Partial<CveStatusSummary>;
   page: { nextCursor: string | null; limit: number };
   source: CveSource;
   notice: string;
@@ -144,6 +152,52 @@ export function createSampleCveProvider(): CveProvider {
         source,
         notice,
       });
+    },
+  };
+}
+
+
+// Cùng nguồn trạng thái trong memory với panel S1; không gọi HTTP.
+export function createSampleCveStatusViewProvider(statusProvider: CveStatusProvider): CveProvider {
+  const asOfDate = "2026-12-05";
+  return {
+    async list(query) {
+      let base = sampleItems.filter((item) => !query.kev || item.kev);
+      if (query.technologyId !== null) base = base.filter((item) => item.matches.some((match) => match.technologyId === query.technologyId));
+      const needle = query.q.trim().toLocaleLowerCase("en-US");
+      if (needle) base = base.filter((item) => `${item.cveId}\n${item.title}`.toLocaleLowerCase("en-US").includes(needle));
+      const items = await Promise.all(base.map(async (item, index) => ({
+        ...item, priority: index + 1,
+        matches: await Promise.all(item.matches.map(async (match) => {
+          const result = await statusProvider.read(item.cveId, match.technologyId);
+          return { ...match, status: result.record?.status ?? null, statusVersion: result.record?.statusVersion ?? null,
+            statusUpdatedAt: result.record?.updatedAt ?? null, reviewRequired: result.reviewRequired };
+        })),
+      })));
+      const relations = items.flatMap((item) => item.matches);
+      const actionable = items.filter((item) => item.matches.some((match) => match.status === null || match.status === "open" || match.status === "patching" || match.reviewRequired));
+      const statusRelations = { unset: 0, open: 0, patching: 0, patched: 0, not_affected: 0 };
+      for (const relation of relations) statusRelations[relation.status ?? "unset"]++;
+      const summary = { matchedCves: items.length, kevCves: items.filter((item) => item.kev).length,
+        actionableCves: actionable.length, overdueKevCves: actionable.filter((item) => item.kev && item.kevDueDate !== null && item.kevDueDate < asOfDate).length,
+        asOfDate, statusRelations, reviewRequiredRelations: relations.filter((match) => match.reviewRequired).length };
+      const filtered = items.filter((item) => !query.status || item.matches.some((match) =>
+        query.status === "review_required" ? match.reviewRequired : (match.status ?? "unset") === query.status));
+      const context = JSON.stringify([query.kev, query.technologyId, query.q, query.status ?? null, query.limit]);
+      const snapshot = JSON.stringify(items.map((item) => [item.cveId, item.matches.map((match) => [match.status, match.statusVersion, match.reviewRequired])]));
+      let offset = 0;
+      if (query.cursor !== null) {
+        let decoded: unknown;
+        try { decoded = JSON.parse(query.cursor); } catch { throw new CveDataError("invalid"); }
+        if (!Array.isArray(decoded) || decoded.length !== 3 || decoded[0] !== context || !Number.isSafeInteger(decoded[2]) || decoded[2] < 1) throw new CveDataError("invalid");
+        if (decoded[1] !== snapshot) throw new CveDataError("snapshot-changed");
+        offset = decoded[2];
+        if (offset >= filtered.length) throw new CveDataError("invalid");
+      }
+      const nextOffset = offset + query.limit;
+      return structuredClone({ view: "detail" as const, items: filtered.slice(offset, nextOffset), summary,
+        page: { nextCursor: nextOffset < filtered.length ? JSON.stringify([context, snapshot, nextOffset]) : null, limit: query.limit },
+        source, notice });
     },
   };
 }

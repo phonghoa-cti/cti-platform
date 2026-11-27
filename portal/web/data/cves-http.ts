@@ -1,5 +1,7 @@
 import {
   CveDataError,
+  type CveRelationStatus,
+  type CveStatusSummary,
   type CveDetailItem,
   type CveDetailResponse,
   type CveErrorKind,
@@ -110,9 +112,21 @@ function advisory(value: unknown) {
   return parsed;
 }
 
-function match(value: unknown): CveMatch {
+function relationStatus(raw: Record<string, unknown>): CveRelationStatus {
+  const status = raw.status;
+  if (status !== null && status !== "open" && status !== "patching" && status !== "patched" && status !== "not_affected") throw new InvalidCveResponse();
+  if (typeof raw.review_required !== "boolean") throw new InvalidCveResponse();
+  if (status === null) {
+    if (raw.status_version !== null || raw.status_updated_at !== null || raw.review_required) throw new InvalidCveResponse();
+    return { status, statusVersion: null, statusUpdatedAt: null, reviewRequired: false };
+  }
+  return { status, statusVersion: integer(raw.status_version), statusUpdatedAt: timestamp(raw.status_updated_at), reviewRequired: raw.review_required };
+}
+
+function match(value: unknown, statusView: boolean): CveMatch {
   const raw = object(value);
-  exact(raw, ["technology_id", "vendor", "product", "software_version", "match_reason", "version_assessment"]);
+  exact(raw, ["technology_id", "vendor", "product", "software_version", "match_reason", "version_assessment",
+    ...(statusView ? ["status", "status_version", "status_updated_at", "review_required"] : [])]);
   if (raw.match_reason !== "vendor_product_exact_casefold" || raw.version_assessment !== "not_performed") {
     throw new InvalidCveResponse();
   }
@@ -123,6 +137,7 @@ function match(value: unknown): CveMatch {
     softwareVersion: technologyText(raw.software_version, 128),
     matchReason: raw.match_reason,
     versionAssessment: raw.version_assessment,
+    ...(statusView ? relationStatus(raw) : {}),
   };
 }
 
@@ -137,7 +152,7 @@ function commonItem(raw: Record<string, unknown>, unknownKev: boolean) {
   };
 }
 
-function detailItem(value: unknown, unknownKev: boolean): CveDetailItem {
+function detailItem(value: unknown, statusView: boolean, unknownKev: boolean): CveDetailItem {
   const raw = object(value);
   exact(raw, [
     "cve_id", "title", "kev", "kev_due_date", "kev_as_of", "epss_score", "epss_percentile", "epss_as_of",
@@ -153,7 +168,7 @@ function detailItem(value: unknown, unknownKev: boolean): CveDetailItem {
   if (cvssVersion !== null && cvssVersion !== "3.1" && cvssVersion !== "4.0") throw new InvalidCveResponse();
   if ((common.cvssBaseScore === null) !== (cvssVersion === null)) throw new InvalidCveResponse();
   if (!Array.isArray(raw.matches) || raw.matches.length < 1 || raw.matches.length > 1000) throw new InvalidCveResponse();
-  const matches = raw.matches.map(match);
+  const matches = raw.matches.map((entry) => match(entry, statusView));
   if (matches.some((entry, index) => index > 0 && entry.technologyId <= matches[index - 1].technologyId)) {
     throw new InvalidCveResponse();
   }
@@ -176,9 +191,25 @@ function summaryItem(value: unknown, unknownKev: boolean): CveSummaryItem {
   return { ...commonItem(raw, unknownKev), matchCount: integer(raw.match_count) };
 }
 
-function envelope(raw: Record<string, unknown>) {
+function statusSummary(raw: Record<string, unknown>, detail: boolean): CveStatusSummary {
+  const actionableCves = integer(raw.actionable_cves, 0);
+  const overdueKevCves = integer(raw.overdue_kev_cves, 0);
+  if (actionableCves > integer(raw.matched_cves, 0) || overdueKevCves > actionableCves || overdueKevCves > integer(raw.kev_cves, 0)) throw new InvalidCveResponse();
+  const common = { actionableCves, overdueKevCves, asOfDate: date(raw.as_of_date) };
+  if (!detail) return common;
+  const relations = object(raw.status_relations);
+  exact(relations, ["unset", "open", "patching", "patched", "not_affected"]);
+  const statusRelations = { unset: integer(relations.unset, 0), open: integer(relations.open, 0), patching: integer(relations.patching, 0), patched: integer(relations.patched, 0), not_affected: integer(relations.not_affected, 0) };
+  const reviewRequiredRelations = integer(raw.review_required_relations, 0);
+  const total = Object.values(statusRelations).reduce((sum, count) => sum + count, 0);
+  if (!Number.isSafeInteger(total) || total < integer(raw.matched_cves, 0) || reviewRequiredRelations > total - statusRelations.unset) throw new InvalidCveResponse();
+  return { ...common, statusRelations, reviewRequiredRelations };
+}
+
+function envelope(raw: Record<string, unknown>, statusView: boolean) {
   const summary = object(raw.summary);
-  exact(summary, ["matched_cves", "kev_cves"]);
+  exact(summary, ["matched_cves", "kev_cves", ...(statusView ? ["actionable_cves", "overdue_kev_cves", "as_of_date", ...(raw.view === "detail" ? ["status_relations", "review_required_relations"] : [])] : [])]);
+  if (statusView && integer(summary.kev_cves, 0) > integer(summary.matched_cves, 0)) throw new InvalidCveResponse();
   const page = object(raw.page);
   exact(page, ["next_cursor", "limit"]);
   const cursor = page.next_cursor === null ? null : text(page.next_cursor, 1, 1024);
@@ -202,7 +233,7 @@ function envelope(raw: Record<string, unknown>) {
   const notice = text(raw.notice, 1, 1000, true);
   if (notice !== NOTICE) throw new InvalidCveResponse();
   return {
-    summary: { matchedCves: integer(summary.matched_cves, 0), kevCves: integer(summary.kev_cves, 0) },
+    summary: { matchedCves: integer(summary.matched_cves, 0), kevCves: integer(summary.kev_cves, 0), ...(statusView ? statusSummary(summary, raw.view === "detail") : {}) },
     page: { nextCursor: cursor, limit: integer(page.limit, 1, 100) },
     source,
     notice,
@@ -214,20 +245,23 @@ function uniqueCves<T extends { cveId: string }>(items: T[]) {
   return items;
 }
 
-export function parseCveResponse(value: unknown): CveResponse {
+function parseResponse(value: unknown, statusView: boolean): CveResponse {
   const raw = object(value);
   exact(raw, ["view", "items", "summary", "page", "source", "notice"]);
   if (!Array.isArray(raw.items) || raw.items.length > 100) throw new InvalidCveResponse();
-  const common = envelope(raw);
+  const common = envelope(raw, statusView);
   const unknownKev = common.source.kevCatalog === "unavailable";
   if (raw.view === "detail") {
-    return { view: "detail", items: uniqueCves(raw.items.map((item) => detailItem(item, unknownKev))), ...common } satisfies CveDetailResponse;
+    return { view: "detail", items: uniqueCves(raw.items.map((entry) => detailItem(entry, statusView, unknownKev))), ...common } satisfies CveDetailResponse;
   }
   if (raw.view === "summary") {
     return { view: "summary", items: uniqueCves(raw.items.map((item) => summaryItem(item, unknownKev))), ...common } satisfies CveSummaryResponse;
   }
   throw new InvalidCveResponse();
 }
+
+export function parseCveResponse(value: unknown): CveResponse { return parseResponse(value, false); }
+export function parseCveStatusViewResponse(value: unknown): CveResponse { return parseResponse(value, true); }
 
 async function readChunk(reader: ReadableStreamDefaultReader<Uint8Array>, signal: AbortSignal) {
   if (signal.aborted) throw new DOMException("aborted", "AbortError");
@@ -282,17 +316,17 @@ function parseError(value: unknown) {
   return { code: text(error.code, 1, 64), message: text(error.message, 1, 160) };
 }
 
-function knownError(status: number, code: string): CveErrorKind | null {
+function knownError(status: number, code: string, statusView: boolean): CveErrorKind | null {
   if (status === 401 && code === "authentication_required") return "authentication-required";
   if (status === 403 && code === "forbidden") return "forbidden";
   if (status === 404 && code === "technology_not_found") return "not-found";
-  if (status === 422 && code === "invalid_cve_query") return "invalid";
-  if (status === 409 && code === "cve_snapshot_changed") return "snapshot-changed";
+  if (status === 422 && code === (statusView ? "invalid_cve_status_query" : "invalid_cve_query")) return "invalid";
+  if (status === 409 && code === (statusView ? "status_snapshot_changed" : "cve_snapshot_changed")) return "snapshot-changed";
   if (status === 503 && code === "cves_unavailable") return "unavailable";
   return null;
 }
 
-export function createCvesHttpProvider({ fetcher = globalThis.fetch.bind(globalThis) }: { fetcher?: Fetcher } = {}): CveProvider {
+function createProvider(statusView: boolean, { fetcher = globalThis.fetch.bind(globalThis) }: { fetcher?: Fetcher } = {}): CveProvider {
   return {
     async list(query) {
       const parameters = new URLSearchParams();
@@ -301,10 +335,11 @@ export function createCvesHttpProvider({ fetcher = globalThis.fetch.bind(globalT
       if (query.q) parameters.set("q", query.q);
       parameters.set("limit", String(query.limit));
       if (query.cursor !== null) parameters.set("cursor", query.cursor);
+      if (statusView && query.status !== undefined) parameters.set("status", query.status);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
-        const response = await fetcher(`/api/cves?${parameters.toString()}`, {
+        const response = await fetcher(`/api/cves${statusView ? "/status-view" : ""}?${parameters.toString()}`, {
           method: "GET",
           credentials: "same-origin",
           cache: "no-store",
@@ -313,9 +348,9 @@ export function createCvesHttpProvider({ fetcher = globalThis.fetch.bind(globalT
           signal: controller.signal,
         });
         const value = await readJson(response, controller.signal);
-        if (response.status === 200) return parseCveResponse(value);
+        if (response.status === 200) return parseResponse(value, statusView);
         const error = parseError(value);
-        throw new CveDataError(knownError(response.status, error.code) ?? "unavailable");
+        throw new CveDataError(knownError(response.status, error.code, statusView) ?? "unavailable");
       } catch (error) {
         if (error instanceof CveDataError) throw error;
         throw new CveDataError("unavailable");
@@ -325,3 +360,6 @@ export function createCvesHttpProvider({ fetcher = globalThis.fetch.bind(globalT
     },
   };
 }
+
+export function createCvesHttpProvider(options: { fetcher?: Fetcher } = {}): CveProvider { return createProvider(false, options); }
+export function createCveStatusViewHttpProvider(options: { fetcher?: Fetcher } = {}): CveProvider { return createProvider(true, options); }
