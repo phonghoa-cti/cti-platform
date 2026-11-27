@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
-        run: pip install -r requirements-api.lock -r requirements-stix-test.lock -r extractor/requirements-local-ingest.lock
+        run: pip install -r requirements-api.lock -r requirements-stix-test.lock -r extractor/requirements-local-ingest.lock -r mcp-server/requirements.lock
       - name: Lint
         run: ruff check . && ruff format --check .
       - name: Test

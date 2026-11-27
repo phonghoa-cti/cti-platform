@@ -10,6 +10,13 @@ Cập nhật lần cuối: 26/11/2026
 - Cổng cục bộ: Ruff check/format đạt; pytest 1.484 pass, 3 skip sẵn có; Vitest 427/427 pass (14 test mới, 7 wire test cũ được kích hoạt bằng 12 fixture capture), typecheck/lint/build đều đạt. Browser headless qua gateway + API/SQLite giả lập: W01 desktop 1440 và mobile 360 không tràn, mẫu không gọi API; CSV mẫu 3 dòng và CSV API 2 dòng đúng dữ liệu fixture/BOM, chỉ GET, bộ đếm DB/audit không đổi.
 - Chờ nghiệm thu độc lập. Chưa có nguồn OpenCTI/Wazuh/feed thật, chưa đo cache <2 giây hoặc kiểm lab/production; còn thiếu các tiêu chí W01 phụ thuộc nguồn nêu trên.
 
+
+## 26/11/2026 — B14 Connector nguồn tiếng Việt thứ hai (nhánh riêng)
+
+- Thêm VSEC: đọc một trang danh mục HTML, trích tiêu đề/mô tả IOC/CVE qua core; xuất STIX 2.1 dạng ứng viên chưa duyệt, TLP:GREEN. Live mặc định tắt, không có publish trực tiếp.
+- Tách kiểu dữ liệu, tải HTTP/robots/cache và bộ dựng STIX dùng chung với MST, giữ profile/ID MST. Kiểm thử fixture/mock và validator STIX; không dùng feed thật trong test.
+- Kiểm tra nguồn: robots HTTP 200 rỗng; hai RSS ứng viên HTTP 520; danh mục HTML HTTP 200. [CẦN KIỂM] quyền thu thập/tái sử dụng, quota, độ ổn định layout; chưa chạy CLI live hoặc OpenCTI lab, chưa đo RAM hay chất lượng trích thật.
+
 ## 25/11/2026 — Gộp toàn bộ nhánh vào `main` (PR #47)
 
 - Đã gộp đầy đủ nhánh Portal (`3e69340`), AI X01 (`8a16758`), Ingest Queue (`4655d9a`) và hồ sơ bàn giao 12/11 (`9d87622`) về nhánh `main` (`2e74d8d`).
@@ -65,7 +72,7 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
 | Nộp quyển | 27/02/2027 | Chưa |
 
 ## Đang làm
-- W03-S2 Frontend: chưa triển khai giao diện lọc trạng thái & số tổng hợp (Backend đã có trên `main`).
+- W03-S2 Frontend (B12): đã triển khai trên nhánh `feat/b12-w03-s2-frontend` từ `origin/main`; chờ nghiệm thu độc lập và ghép. `/lo-hong` dùng GET `/api/cves/status-view`, `/lo-hong/mau` dùng fixture và trạng thái trong memory. Lọc trạng thái chỉ cho detail; bộ đếm CVE cần xử lý/KEV quá hạn theo phạm vi lọc cơ sở và ngày UTC, không phải số dòng trang hiện tại. Gateway chỉ mở đúng GET; adapter giữ kiểm schema detail/summary, giới hạn 1 MiB và xử lý lỗi/cursor. Giao diện danh sách VI/EN; nút Làm mới đọc lại snapshot sau khi cập nhật S1. Cổng cục bộ: Python 1484 pass/3 skip có sẵn, gateway 19/19, Vitest 432/432 (2 worker, đủ fixture wire), Ruff/typecheck/lint/build đạt. Chưa kiểm browser/viewport, nguồn CVE thật, OpenCTI, Cloudflare hoặc production.
 - Việc 2: cài OpenCTI trên máy Ubuntu và đo RAM thực tế.
 - F01/#9: gói demo MITRE + bundle STIX mẫu đã kiểm cấu hình ngoại tuyến; chờ chạy và đo trên lab.
 
@@ -346,3 +353,20 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
   semantic TTP, corpus gold/model quality, hostile mutation, crash/power-loss và production chưa xác minh.
 - Local ingest chưa kiểm hostile filesystem mutation, hard RAM/network isolation trên Windows, PDF đối kháng/thật,
   OCR, chất lượng text đa ngôn ngữ, corpus/model, lab hoặc production.
+
+## B10 — Hermes MCP server chỉ đọc (26/11/2026)
+- Đã triển khai `mcp-server/` với FastMCP chính thức, transport stdio, 8 công cụ đọc IOC/CVE/bản nháp/báo cáo/tổng quan/sự kiện. Tái dùng logic chuẩn hóa và tính điểm của portal/core; mặc định fixture tổng hợp, không gọi mạng trong test.
+- Adapter OpenCTI qua pycti bật bằng env, chỉ list; portal GET tùy chọn để đọc tài sản/CVE và hàng chờ W05. Dữ liệu ngoài được bao trong `tai_lieu`, escape ký tự phân tách; lọc TLP:CLEAR/GREEN; không có tool ghi, duyệt, chặn, chạy lệnh hoặc xóa.
+- Còn lại/vướng: chưa kết nối lab/OpenCTI thật, chưa nghiệm thu role agent portal, chưa có stream sự kiện live, chưa tích hợp Hermes/Telegram/cron. Lock MCP tách riêng; CI cần nạp lock ở việc được phép sửa workflow. Lock tạo trên Windows; Ubuntu và tương thích phiên bản OpenCTI chưa kiểm. Fixture/test chỉ chứng minh hợp đồng và ranh giới đọc cục bộ, không chứng minh chất lượng CTI hoặc chống prompt injection của model thật.
+
+## B11 — Bot Telegram Hermes (26/11/2026)
+- Đã thêm bot polling python-telegram-bot trong mcp-server/hermes_bot: allowlist chat và user từ env, reviewer riêng; /ioc, /cve, /nhap, /tomtat gọi tool đọc MCP B10 qua stdio, chỉ fixture tổng hợp. Không có LLM hoặc tool ghi thực tế.
+- /dexuat chan và /dexuat nhap lưu đề xuất pending trong SQLite; callback Duyệt/Từ chối ghi quyết định và người duyệt đúng chat, chuyển trạng thái nguyên tử đúng một lần, không thực thi. Nội dung nguồn là dữ liệu, có kiểm bao/TLP, defang và giới hạn phản hồi. Thêm test Update Telegram giả lập, SQLite tạm và round-trip MCP fixture; lock dependency dùng chung CI B10.
+- Còn lại: nghiệm thu polling Telegram thật, kiểm thành viên chat/quyền chia sẻ, gateway Hermes upstream, MCP live cách ly token, W05, cron 07:00 và trực ca, dữ liệu/model thật. B11 không thực hiện hoặc chứng minh các chức năng này; không thay đổi portal.
+
+## B03 — Connector MST tiếng Việt (26/11/2026)
+- Đã làm: lấy RSS qua fetch có robots/timeout/rate limit/retry/cache, parse fixture và dùng core trích IOC/CVE,
+  xuất Report + observable/Vulnerability STIX 2.1 (TLP:CLEAR tương thích WHITE), ID ổn định và URL nguồn.
+- Chạy ngoại tuyến ra file; pycti chỉ khi live và người vận hành bật publish, đọc secret từ biến môi trường.
+- Còn lại/vướng: RSS thật, robots/điều khoản đầy đủ, pycti/OpenCTI thật, quyền review, lịch chạy, RAM và nhập lặp
+  trên lab chưa kiểm. Mẫu RSS synthetic và mẫu tái dựng rút gọn, không phải bằng chứng feed thật. Chưa lấy toàn văn.

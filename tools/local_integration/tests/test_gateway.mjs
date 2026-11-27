@@ -295,11 +295,16 @@ test("gateway proxies only GET on the exact CVE route and preserves its query st
   const gateway = await startGateway({ apiPort: api.address().port, uiPort: ui.address().port, port: 0, jwt: "gateway-token" });
   try {
     assert.equal((await request(gateway.address().port, "/api/cves?kev=true&limit=25")).status, 200);
+    assert.equal((await request(gateway.address().port, "/api/cves/status-view?status=unset")).status, 200);
     for (const [method, path] of [
+      ["POST", "/api/cves/status-view"], ["PUT", "/api/cves/status-view"], ["GET", "/api/cves/status-view/extra"],
       ["POST", "/api/cves"], ["PUT", "/api/cves"], ["PATCH", "/api/cves"], ["DELETE", "/api/cves"],
       ["GET", "/api/cves/1"], ["GET", "/api/cve"], ["GET", "/api/cves%2f1"],
     ]) assert.equal((await request(gateway.address().port, path, { method })).status, 404, `${method} ${path}`);
-    assert.deepEqual(seen, [{ method: "GET", path: "/api/cves?kev=true&limit=25", token: "gateway-token" }]);
+    assert.deepEqual(seen, [
+      { method: "GET", path: "/api/cves?kev=true&limit=25", token: "gateway-token" },
+      { method: "GET", path: "/api/cves/status-view?status=unset", token: "gateway-token" },
+    ]);
   } finally {
     await close(gateway); await close(api); await close(ui);
   }
