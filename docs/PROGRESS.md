@@ -2,6 +2,14 @@
 
 Cập nhật lần cuối: 27/11/2026
 
+## 27/11/2026 — B27: F20 AI tóm tắt + NLQ (MVP ngoại tuyến, spec chờ duyệt)
+
+- [F20](specs/F20-ai-tom-tat-hoi-dap.md): lát cắt F18 #7 và #9; #8 dùng lại extractor X01. Code mới trong
+  `extractor/phonghoa_extractor/` (`ai_provider.py`, `ai_insights.py`, `nlq.py`) + 34 test ngoại tuyến.
+- Tóm tắt tiếng Việt mỗi claim trích STIX id; NLQ ra bộ lọc whitelist kiểm schema chặt, không SQL/GraphQL tự do.
+  Mặc định template/luật offline; LLM cục bộ tùy chọn qua env, chặn TLP:AMBER/RED với provider không cục bộ.
+- Còn lại: nối portal API/MCP, marking TLP 2.0, đánh giá model thật. Chưa chạy model/OpenCTI thật.
+
 ## 27/11/2026 — B25: F18/F19 (spec chờ duyệt)
 
 - F18: [ma trận 15 tính năng EE](specs/F18-thay-the-tinh-nang-tra-phi.md), thay thế độc lập ngoài OpenCTI CE; P1 7 mục / 116 giờ, tổng 232 giờ ước lượng, chưa triển khai.
