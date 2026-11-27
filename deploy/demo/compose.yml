@@ -77,7 +77,7 @@ services:
       retries: 3
 
   opencti:
-    image: ghcr.io/opencti-platform/opencti/platform:7.260811.0-lts.2@sha256:035a2ef0248116c1b7f249bb27540fe940fca6bb3c781f9010385c26bbdeca3e
+    image: ghcr.io/opencti-platform/opencti/platform:7.261124.0@sha256:5e7301b0215b6ef8febce4cc590a994a9c1b2faa508096c9962776600fbd3fce
     platform: linux/amd64
     restart: unless-stopped
     mem_limit: 3g
@@ -132,7 +132,7 @@ services:
       retries: 20
 
   worker:
-    image: ghcr.io/opencti-platform/opencti/worker:7.260811.0-lts.2@sha256:fe2aca80af54a2f0a35a76142ae0e57ce00afb23259ade34ddecb56ddfcd44bd
+    image: ghcr.io/opencti-platform/opencti/worker:7.261124.0@sha256:d2a2075180574e8fa18172b95c43afd7f9d6feaaa6f65ed959aac033e2509e16
     platform: linux/amd64
     restart: unless-stopped
     mem_limit: 512m

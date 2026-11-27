@@ -78,6 +78,7 @@ class Settings:
     sqlite_timeout: float = 5.0
     jwks_timeout: float = 5.0
     jwks_cache_seconds: int = 300
+    cve_feed_path: Path | None = None
     _local_guard: InitVar[object | None] = None
 
     @classmethod
@@ -108,6 +109,12 @@ class Settings:
             sqlite_timeout = float(values.get("W05_SQLITE_TIMEOUT", "5"))
             jwks_timeout = float(values.get("W05_JWKS_TIMEOUT", "5"))
             jwks_cache_seconds = int(values.get("W05_JWKS_CACHE_SECONDS", "300"))
+            cve_provider = values.get("W03_CVE_PROVIDER", "synthetic")
+            cve_path = values.get("W03_CVE_FEED_PATH")
+            if cve_provider not in ("synthetic", "imported") or (cve_provider == "imported" and not cve_path):
+                raise ValueError("invalid CVE provider")
+            if cve_provider == "synthetic" and cve_path is not None:
+                raise ValueError("unexpected CVE feed path")
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise SettingsError("Thiếu hoặc sai cấu hình W05 API") from exc
         return cls(
@@ -120,6 +127,7 @@ class Settings:
             sqlite_timeout=sqlite_timeout,
             jwks_timeout=jwks_timeout,
             jwks_cache_seconds=jwks_cache_seconds,
+            cve_feed_path=Path(cve_path) if cve_provider == "imported" else None,
         )
 
     @classmethod

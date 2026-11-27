@@ -11,6 +11,7 @@ import {
 } from "@/data/assets";
 import type { TechnologyProvider } from "@/data/technologies";
 import { TechnologyPanel } from "@/components/technology-panel";
+import { AssetsCsvButton } from "@/components/assets-csv-button";
 import en from "@/messages/en.json";
 import vi from "@/messages/vi.json";
 
@@ -229,6 +230,7 @@ export function AssetsApp({
       </p>
 
       <section className="assets-app__workspace" aria-label={messages.workspace}>
+        {technologyProvider && <AssetsCsvButton source={source} technologies={technologyProvider} locale={locale} sample={sourceMode === "sample"} />}
         <div className="assets-app__tabs" role="tablist" aria-label={messages.assetTypes}>
           <button type="button" role="tab" aria-selected={!technologyVisible && type === "domain"} onClick={() => switchType("domain")}>{messages.domain}</button>
           <button type="button" role="tab" aria-selected={!technologyVisible && type === "ip_range"} onClick={() => switchType("ip_range")}>{messages.ipRange}</button>

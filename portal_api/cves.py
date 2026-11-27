@@ -26,6 +26,8 @@ from portal_api.technologies import (
 )
 
 MAX_CANDIDATES = 1000
+MAX_IMPORTED_CANDIDATES = 20000
+MAX_IMPORTED_PRODUCTS = 512
 MAX_PRODUCTS = 20
 MAX_FIXTURE_BYTES = 4 * 1024 * 1024
 MAX_CURSOR_BYTES = 1024
@@ -35,6 +37,18 @@ WIRE_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]
 WIRE_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 NOTICE = "Liên quan theo tên sản phẩm; cần kiểm tra phiên bản/phạm vi bị ảnh hưởng trước khi vá."
 SYNTHETIC_KEV_SOURCE = "CISA KEV synthetic sample"
+KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+KEV_MIRROR_URL = (
+    "https://raw.githubusercontent.com/cisagov/kev-data/main/known_exploited_vulnerabilities.json"
+)
+KEV_MIRROR_DEFAULT_URL = (
+    "https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json"
+)
+KEV_SOURCE_URLS = {
+    "CISA KEV": {KEV_URL},
+    "CISA KEV (GitHub)": {KEV_MIRROR_URL, KEV_MIRROR_DEFAULT_URL},
+}
+NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 
 class InvalidCveQuery(ValueError):
@@ -229,12 +243,7 @@ class CveReadService:
                 "kev_cves": sum(1 for item in ranked if item["kev"]),
             },
             "page": {"next_cursor": next_cursor, "limit": query.limit},
-            "source": {
-                "kind": "synthetic",
-                "dataset_id": dataset_id,
-                "source_as_of": dataset["source_as_of"],
-                "retrieved_at": dataset["retrieved_at"],
-            },
+            "source": _wire_source(dataset, dataset_id),
             "notice": NOTICE,
         }
         if len(_canonical_bytes(result)) > MAX_RESPONSE_BYTES:
@@ -255,20 +264,27 @@ def _validate_dataset(raw: object) -> tuple[dict[str, object], str, str]:
         "candidates",
     }:
         raise CvesUnavailable("invalid dataset")
-    if raw["kind"] != "synthetic" or raw["kev_snapshot_complete"] is not True:
+    imported = raw["kind"] == "imported"
+    complete = raw["kev_snapshot_complete"]
+    if raw["kind"] not in ("synthetic", "imported") or type(complete) is not bool:
+        raise CvesUnavailable("invalid dataset kind")
+    if not imported and not complete:
         raise CvesUnavailable("incomplete synthetic dataset")
     source_as_of = _timestamp(raw["source_as_of"], required=True)
     retrieved_at = _timestamp(raw["retrieved_at"], required=True)
     candidates = raw["candidates"]
-    if not isinstance(candidates, list) or len(candidates) > MAX_CANDIDATES:
+    cap = MAX_IMPORTED_CANDIDATES if imported else MAX_CANDIDATES
+    if not isinstance(candidates, list) or len(candidates) > cap:
         raise CvesUnavailable("invalid candidates")
-    validated = [_candidate(value) for value in candidates]
+    validated = [_candidate(value, imported=imported) for value in candidates]
+    if imported:
+        _validate_kev_catalog(validated, complete)
     ids = [item["cve_id"] for item in validated]
     if len(ids) != len(set(ids)):
         raise CvesUnavailable("duplicate cve")
     dataset = {
-        "kind": "synthetic",
-        "kev_snapshot_complete": True,
+        "kind": raw["kind"],
+        "kev_snapshot_complete": complete,
         "source_as_of": source_as_of,
         "retrieved_at": retrieved_at,
         "candidates": validated,
@@ -280,7 +296,34 @@ def _validate_dataset(raw: object) -> tuple[dict[str, object], str, str]:
     return dataset, fingerprint, dataset_id
 
 
-def _candidate(value: object) -> dict[str, object]:
+def _validate_kev_catalog(candidates: list[dict], complete: bool) -> None:
+    sources = {row["kev"]["source"] for row in candidates}
+    if complete:
+        if len(sources) != 1 or not sources.issubset(KEV_SOURCE_URLS):
+            raise CvesUnavailable("inconsistent KEV catalog")
+        if not any(row["kev"]["known_exploited"] is True for row in candidates):
+            raise CvesUnavailable("empty KEV catalog")
+    elif sources - {None}:
+        raise CvesUnavailable("KEV status must be unknown")
+
+
+def _wire_source(dataset: dict, dataset_id: str) -> dict:
+    source = {
+        "kind": dataset["kind"],
+        "dataset_id": dataset_id,
+        "source_as_of": dataset["source_as_of"],
+        "retrieved_at": dataset["retrieved_at"],
+    }
+    if dataset["kind"] == "imported":
+        if not dataset["kev_snapshot_complete"]:
+            source["kev_catalog"] = "unavailable"
+        else:
+            kev_source = dataset["candidates"][0]["kev"]["source"]
+            source["kev_catalog"] = "github" if kev_source == "CISA KEV (GitHub)" else "cisa"
+    return source
+
+
+def _candidate(value: object, *, imported: bool = False) -> dict[str, object]:
     keys = {
         "cve_id",
         "title",
@@ -291,6 +334,8 @@ def _candidate(value: object) -> dict[str, object]:
         "published_at",
         "advisory_url",
     }
+    if imported:
+        keys.add("provenance")
     if not isinstance(value, dict) or set(value) != keys:
         raise CvesUnavailable("invalid candidate")
     cve_id = _text(value["cve_id"], 64, trim=False)
@@ -298,16 +343,17 @@ def _candidate(value: object) -> dict[str, object]:
         raise CvesUnavailable("invalid cve id")
     title = _text(value["title"], 300)
     products = value["affected_products"]
-    if not isinstance(products, list) or not 1 <= len(products) <= MAX_PRODUCTS:
+    minimum, maximum = (0, MAX_IMPORTED_PRODUCTS) if imported else (1, MAX_PRODUCTS)
+    if not isinstance(products, list) or not minimum <= len(products) <= maximum:
         raise CvesUnavailable("invalid products")
     validated_products = [_product(product) for product in products]
     pairs = [(item["vendor_key"], item["product_key"]) for item in validated_products]
     if len(pairs) != len(set(pairs)):
         raise CvesUnavailable("duplicate product")
-    kev = _kev(value["kev"])
+    kev = _kev(value["kev"], imported=imported)
     epss = _epss(value["epss"])
     cvss = _cvss(value["cvss"])
-    return {
+    result = {
         "cve_id": cve_id,
         "title": title,
         "affected_products": validated_products,
@@ -317,6 +363,37 @@ def _candidate(value: object) -> dict[str, object]:
         "published_at": _timestamp(value["published_at"], required=False),
         "advisory_url": _url(value["advisory_url"]),
     }
+    if imported:
+        result["provenance"] = _imported_provenance(
+            value["provenance"], kev["known_exploited"], kev["source"]
+        )
+    return result
+
+
+def _imported_provenance(value: object, known: bool | None, kev_source: str | None) -> dict[str, object]:
+    if not isinstance(value, dict) or set(value) != {"sources", "kev_date_added"}:
+        raise CvesUnavailable("invalid provenance")
+    added = _date(value["kev_date_added"], required=known is True)
+    if not known and added is not None:
+        raise CvesUnavailable("unexpected KEV date")
+    sources = value["sources"]
+    allowed = {**KEV_SOURCE_URLS, "NVD": {NVD_URL}}
+    if not isinstance(sources, list) or not 1 <= len(sources) <= 2:
+        raise CvesUnavailable("invalid sources")
+    seen = set()
+    for source in sources:
+        if not isinstance(source, dict) or set(source) != {"name", "url", "retrieved_at", "attribution"}:
+            raise CvesUnavailable("invalid source")
+        name = _text(source["name"], 32)
+        if name not in allowed or source["url"] not in allowed[name] or name in seen:
+            raise CvesUnavailable("unexpected source")
+        seen.add(name)
+        _timestamp(source["retrieved_at"], required=True)
+        _text(source["attribution"], 300)
+    expected = {kev_source} if known is True else set()
+    if seen.intersection(KEV_SOURCE_URLS) != expected:
+        raise CvesUnavailable("KEV provenance mismatch")
+    return {"sources": sources, "kev_date_added": added}
 
 
 def _product(value: object) -> dict[str, str]:
@@ -332,18 +409,26 @@ def _product(value: object) -> dict[str, str]:
     }
 
 
-def _kev(value: object) -> dict[str, object]:
+def _kev(value: object, *, imported: bool = False) -> dict[str, object]:
     if not isinstance(value, dict) or set(value) != {"known_exploited", "source", "as_of", "due_date"}:
         raise CvesUnavailable("invalid kev")
     known = value["known_exploited"]
+    if imported and known is None:
+        if any(value[key] is not None for key in ("source", "as_of", "due_date")):
+            raise CvesUnavailable("invalid unknown KEV")
+        return {"known_exploited": None, "source": None, "as_of": None, "due_date": None}
     if type(known) is not bool:
         raise CvesUnavailable("invalid kev")
     due = _date(value["due_date"], required=False)
     if not known and due is not None:
         raise CvesUnavailable("invalid kev due")
+    source = value["source"]
+    allowed = KEV_SOURCE_URLS if imported else {SYNTHETIC_KEV_SOURCE}
+    if not isinstance(source, str) or source not in allowed:
+        raise CvesUnavailable("invalid KEV source")
     return {
         "known_exploited": known,
-        "source": _synthetic_kev_source(value["source"]),
+        "source": source,
         "as_of": _date(value["as_of"], required=True),
         "due_date": due,
     }
@@ -522,12 +607,6 @@ def _text(value: object, maximum: int, *, trim: bool = True) -> str:
     if not 1 <= len(result) <= maximum or (trim and result != value.strip()):
         raise CvesUnavailable("invalid text")
     return result
-
-
-def _synthetic_kev_source(value: object) -> str:
-    if value != SYNTHETIC_KEV_SOURCE:
-        raise CvesUnavailable("invalid synthetic kev source")
-    return SYNTHETIC_KEV_SOURCE
 
 
 def _has_control(value: str) -> bool:

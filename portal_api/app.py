@@ -242,6 +242,12 @@ def create_app(
 ) -> FastAPI:
     """Tạo app; cấu hình đã được Settings kiểm fail-closed trước đó."""
 
+    if settings.cve_feed_path is not None:
+        from portal_api.feeds.import_cves import ImportedCveReadPort
+
+        if cve_port is not None:
+            raise ValueError("CVE provider configured twice")
+        cve_port = ImportedCveReadPort(settings.cve_feed_path)
     app = FastAPI(title="Phong Hỏa W05 API", version="0.1.0")
     jwt_verifier = verifier or AccessJwtVerifier(settings)
     service = ReviewService(settings, store)
