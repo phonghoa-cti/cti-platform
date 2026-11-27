@@ -2,6 +2,20 @@
 
 Cập nhật lần cuối: 27/11/2026
 
+## 27/11/2026 — B31: Smoke lab OpenCTI 7.261124.0 (chưa nghiệm thu live)
+
+- Nhánh `feat/b29-smoke-test` từ `origin/main` cb0e2cd: cổng smoke B29 đếm JSON intent `create_alert`
+  (fixture sinh 1 alert và 1 log), không coi intent log là cảnh báo. Kiểm log worker bằng mức ERROR có cấu trúc;
+  cho tối đa 3 lỗi transport đã nhận diện/5 phút cho cả stack, không dung sai lỗi import hay lỗi chưa rõ.
+- Cổng live đã chạy: stack/HTTP 200, đăng nhập, Vulnerability 1.805, portal API 200 với fixture tổng hợp,
+  playbook 1 alert đạt; Attack-Pattern = 0 và ERROR khi nhập quan hệ STIX vẫn FAIL. Hàng đợi MITRE chưa rỗng,
+  giữ 3 worker; không xóa volume, không công bố dữ liệu hoặc mở cổng ra ngoài loopback.
+- PR #61 (9620f53) kiểm portal_api 479/479 đạt; smoke dùng cùng cổng trên worktree PR, vẫn FAIL ở dữ liệu
+  MITRE và worker. Cần xử lý lỗi tên/phần tử không tìm thấy khi tạo quan hệ, kiểm lại sau khi queue rỗng,
+  rồi mới giảm worker còn 1. Smoke fixture không phải nghiệm thu live toàn bộ hệ thống.
+- Ruff check/format PASS; pytest Python 3.12.13: 1.658 pass, 3 skip tự động của bộ gốc do chưa có snapshot
+  MITRE v20.1 đúng pin, 0 fail; 7 test smoke mới đạt. Không tắt hoặc sửa điều kiện test gốc.
+
 ## 27/11/2026 — B30: F22 nhật ký kiểm toán chuỗi băm + hồ sơ PIR (MVP, spec chờ duyệt)
 
 - Đã làm: [spec F22](specs/F22-nhat-ky-va-pir.md) (F18 dòng 1 và 13); `portal_api/audit_log.py` (SQLite chỉ ghi

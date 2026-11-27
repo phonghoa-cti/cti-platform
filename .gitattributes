@@ -1,3 +1,4 @@
 portal_api/tests/fixtures/w03-cves-synthetic.json text eol=lf
 docs/reports/2026-11-12/** text eol=lf
 docs/reports/2026-11-12-stop/** text eol=lf
+scripts/smoke_opencti.sh text eol=lf

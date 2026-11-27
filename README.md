@@ -40,6 +40,7 @@ Toàn bộ các nhánh phát triển đến mốc tạm dừng 12/11/2026 đã �
   npm test
   npm run typecheck && npm run lint && npm run build
   ```
+- **Smoke test lab OpenCTI (Ubuntu/WSL, stack `deploy/demo` đang chạy):** `make smoke` (hoặc `bash scripts/smoke_opencti.sh` nếu chưa có Make) kiểm stack healthy, HTTP 200 ở loopback, đăng nhập API admin (đọc `.env`, không in secret), số Attack-Pattern/Vulnerability, worker có tối đa 3 ERROR kết nối nhất thời trong 5 phút (0 lỗi import hoặc lỗi chưa phân loại), `portal_api` trả 200 ở `/api/cves` (fixture tổng hợp) và playbook dry-run ra đúng 1 cảnh báo. In PASS/FAIL từng mục, exit ≠ 0 nếu có FAIL. Đổi thư mục stack bằng `DEMO_DIR=...`, Python bằng `PYTHON=...` (mặc định `.venv/bin/python`).
 
 ## Tài liệu đọc tiếp
 1. [AGENTS.md](AGENTS.md) — quy ước cho người và AI agent.

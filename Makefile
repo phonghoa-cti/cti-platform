@@ -6,3 +6,6 @@ lint:
 
 up:
 	docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+
+smoke:
+	bash scripts/smoke_opencti.sh
