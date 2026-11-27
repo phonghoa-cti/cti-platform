@@ -141,24 +141,24 @@ function match(value: unknown, statusView: boolean): CveMatch {
   };
 }
 
-function commonItem(raw: Record<string, unknown>) {
+function commonItem(raw: Record<string, unknown>, unknownKev: boolean) {
   return {
     cveId: cveId(raw.cve_id),
     title: title(raw.title),
-    kev: typeof raw.kev === "boolean" ? raw.kev : (() => { throw new InvalidCveResponse(); })(),
+    kev: unknownKev ? (raw.kev === null ? null : (() => { throw new InvalidCveResponse(); })()) : (typeof raw.kev === "boolean" ? raw.kev : (() => { throw new InvalidCveResponse(); })()),
     epssScore: nullableFinite(raw.epss_score, 1),
     cvssBaseScore: nullableFinite(raw.cvss_base_score, 10),
     priority: integer(raw.priority),
   };
 }
 
-function detailItem(value: unknown, statusView: boolean): CveDetailItem {
+function detailItem(value: unknown, statusView: boolean, unknownKev: boolean): CveDetailItem {
   const raw = object(value);
   exact(raw, [
     "cve_id", "title", "kev", "kev_due_date", "kev_as_of", "epss_score", "epss_percentile", "epss_as_of",
     "cvss_base_score", "cvss_version", "published_at", "advisory_url", "matches", "priority",
   ]);
-  const common = commonItem(raw);
+  const common = commonItem(raw, unknownKev);
   const kevDueDate = raw.kev_due_date === null ? null : date(raw.kev_due_date);
   if (!common.kev && kevDueDate !== null) throw new InvalidCveResponse();
   const epssPercentile = nullableFinite(raw.epss_percentile, 1);
@@ -175,7 +175,7 @@ function detailItem(value: unknown, statusView: boolean): CveDetailItem {
   return {
     ...common,
     kevDueDate,
-    kevAsOf: date(raw.kev_as_of),
+    kevAsOf: unknownKev ? (raw.kev_as_of === null ? null : (() => { throw new InvalidCveResponse(); })()) : date(raw.kev_as_of),
     epssPercentile,
     epssAsOf,
     cvssVersion,
@@ -185,10 +185,10 @@ function detailItem(value: unknown, statusView: boolean): CveDetailItem {
   };
 }
 
-function summaryItem(value: unknown): CveSummaryItem {
+function summaryItem(value: unknown, unknownKev: boolean): CveSummaryItem {
   const raw = object(value);
   exact(raw, ["cve_id", "title", "kev", "epss_score", "cvss_base_score", "priority", "match_count"]);
-  return { ...commonItem(raw), matchCount: integer(raw.match_count) };
+  return { ...commonItem(raw, unknownKev), matchCount: integer(raw.match_count) };
 }
 
 function statusSummary(raw: Record<string, unknown>, detail: boolean): CveStatusSummary {
@@ -215,12 +215,17 @@ function envelope(raw: Record<string, unknown>, statusView: boolean) {
   const cursor = page.next_cursor === null ? null : text(page.next_cursor, 1, 1024);
   if (cursor !== null && !/^[\x20-\x7e]+$/.test(cursor)) throw new InvalidCveResponse();
   const sourceRaw = object(raw.source);
-  exact(sourceRaw, ["kind", "dataset_id", "source_as_of", "retrieved_at"]);
-  if (sourceRaw.kind !== "synthetic") throw new InvalidCveResponse();
+  if (sourceRaw.kind !== "synthetic" && sourceRaw.kind !== "imported") throw new InvalidCveResponse();
+  const hasCatalog = sourceRaw.kind === "imported" && Object.hasOwn(sourceRaw, "kev_catalog");
+  exact(sourceRaw, hasCatalog ? ["kind", "dataset_id", "source_as_of", "retrieved_at", "kev_catalog"] : ["kind", "dataset_id", "source_as_of", "retrieved_at"]);
+  const kevCatalog = sourceRaw.kev_catalog;
+  if (hasCatalog && kevCatalog !== "cisa" && kevCatalog !== "github" && kevCatalog !== "unavailable") throw new InvalidCveResponse();
+  if (kevCatalog === "unavailable" && summary.kev_cves !== 0) throw new InvalidCveResponse();
   const datasetId = text(sourceRaw.dataset_id, 71, 71);
   if (!/^sha256:[0-9a-f]{64}$/.test(datasetId)) throw new InvalidCveResponse();
   const source: CveSource = {
-    kind: "synthetic",
+    kind: sourceRaw.kind,
+    ...(hasCatalog && (kevCatalog === "cisa" || kevCatalog === "github" || kevCatalog === "unavailable") ? { kevCatalog } : {}),
     datasetId,
     sourceAsOf: timestamp(sourceRaw.source_as_of),
     retrievedAt: timestamp(sourceRaw.retrieved_at),
@@ -245,11 +250,12 @@ function parseResponse(value: unknown, statusView: boolean): CveResponse {
   exact(raw, ["view", "items", "summary", "page", "source", "notice"]);
   if (!Array.isArray(raw.items) || raw.items.length > 100) throw new InvalidCveResponse();
   const common = envelope(raw, statusView);
+  const unknownKev = common.source.kevCatalog === "unavailable";
   if (raw.view === "detail") {
-    return { view: "detail", items: uniqueCves(raw.items.map((entry) => detailItem(entry, statusView))), ...common } satisfies CveDetailResponse;
+    return { view: "detail", items: uniqueCves(raw.items.map((entry) => detailItem(entry, statusView, unknownKev))), ...common } satisfies CveDetailResponse;
   }
   if (raw.view === "summary") {
-    return { view: "summary", items: uniqueCves(raw.items.map(summaryItem)), ...common } satisfies CveSummaryResponse;
+    return { view: "summary", items: uniqueCves(raw.items.map((item) => summaryItem(item, unknownKev))), ...common } satisfies CveSummaryResponse;
   }
   throw new InvalidCveResponse();
 }

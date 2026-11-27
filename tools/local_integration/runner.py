@@ -43,6 +43,7 @@ from portal_api.auth import AccessJwtVerifier
 from portal_api.technologies import TechnologyStore
 from portal_api.cves import FixtureCveReadPort
 from portal_api.cves_status import CveStatusStore
+from portal_api.feeds.import_cves import ImportedCveReadPort
 from tools.local_integration.local_settings import make_local_settings
 from tools.local_integration.w02_fixture import build_w02_fixture
 from tools.local_integration.w03_fixture import FIXTURE_PATH as W03_FIXTURE_PATH, build_w03_fixture
@@ -377,6 +378,7 @@ class LocalRun:
         producer_python: Path | None = None,
         ingest_input: Path | None = None,
         created_by_subject: str | None = None,
+        cve_feed_path: Path | None = None,
     ):
         if scenario not in SCENARIOS:
             raise ValueError("scenario không được phép")
@@ -391,6 +393,9 @@ class LocalRun:
             raise ValueError("scenario ingest-browser cần đủ producer/input/creator")
         if scenario not in INGEST_BROWSER_SCENARIOS and any(value is not None for value in ingest_values):
             raise ValueError("producer/input/creator chỉ dành cho scenario ingest-browser")
+        if cve_feed_path is not None and scenario != "w03-it":
+            raise ValueError("CVE feed chỉ dành cho scenario w03-it")
+        self.cve_feed_path = cve_feed_path
         self.scenario = scenario
         self.actor_subject = (
             created_by_subject
@@ -724,6 +729,9 @@ class LocalRun:
                 asset_store, technology_store, lookup_port, cve_port = build_w03_fixture(self.db_path)
                 self.asset_store = asset_store
                 self.technology_store = technology_store
+                if self.cve_feed_path is not None:
+                    cve_port = ImportedCveReadPort(self.cve_feed_path)
+                    cve_port.list_candidates()  # Fail closed trước listener nếu thiếu snapshot.
                 if self.scenario == "w03-unavailable":
                     cve_port = FixtureCveReadPort(self.temp_root / "missing-cves.json")
             elif self.scenario in W03_STATUS_SCENARIOS:
@@ -778,7 +786,7 @@ class LocalRun:
                     "W05_API_PORT": str(self.api_port),
                     "W05_UI_PORT": str(self.ui_port),
                     "W05_GATEWAY_PORT": str(self.gateway_port),
-                    "W05_REQUEST_TIMEOUT_MS": "1000",
+                    "W05_REQUEST_TIMEOUT_MS": "5000" if self.cve_feed_path is not None else "1000",
                 }
             )
             if token is not None:
@@ -936,12 +944,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--scenario", choices=sorted(SCENARIOS), required=True)
     parser.add_argument("--duration-seconds", type=int, default=300)
+    parser.add_argument("--cve-feed", type=Path, help="Snapshot CVE đã nạp (chỉ w03-it)")
+    parser.add_argument("--stop-file", type=Path, help="Marker dừng sớm do launcher sở hữu")
     args = parser.parse_args()
-    with LocalRun(args.scenario, args.duration_seconds) as run:
+    with LocalRun(args.scenario, args.duration_seconds, cve_feed_path=args.cve_feed) as run:
         print(f"W05 local URL: {run.url}; scenario={run.scenario}", flush=True)
         deadline = time.monotonic() + args.duration_seconds
         try:
             while time.monotonic() < deadline:
+                if args.stop_file is not None and args.stop_file.is_file():
+                    break
                 time.sleep(0.2)
         except KeyboardInterrupt:
             pass

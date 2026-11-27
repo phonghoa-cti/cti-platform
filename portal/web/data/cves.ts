@@ -30,7 +30,8 @@ export type CveQuery = {
 };
 
 export type CveSource = {
-  kind: "synthetic";
+  kind: "synthetic" | "imported";
+  kevCatalog?: "cisa" | "github" | "unavailable";
   datasetId: string;
   sourceAsOf: string;
   retrievedAt: string;
@@ -48,9 +49,9 @@ export type CveMatch = {
 export type CveDetailItem = {
   cveId: string;
   title: string;
-  kev: boolean;
+  kev: boolean | null;
   kevDueDate: string | null;
-  kevAsOf: string;
+  kevAsOf: string | null;
   epssScore: number | null;
   epssPercentile: number | null;
   epssAsOf: string | null;
@@ -65,7 +66,7 @@ export type CveDetailItem = {
 export type CveSummaryItem = {
   cveId: string;
   title: string;
-  kev: boolean;
+  kev: boolean | null;
   epssScore: number | null;
   cvssBaseScore: number | null;
   priority: number;
