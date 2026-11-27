@@ -1,6 +1,14 @@
 # Tiến độ (agent cập nhật sau mỗi task)
 
-Cập nhật lần cuối: 25/11/2026
+Cập nhật lần cuối: 27/11/2026
+
+## 27/11/2026 — B25: F18/F19 (spec chờ duyệt)
+
+- F18: [ma trận 15 tính năng EE](specs/F18-thay-the-tinh-nang-tra-phi.md), thay thế độc lập ngoài OpenCTI CE; P1 7 mục / 116 giờ, tổng 232 giờ ước lượng, chưa triển khai.
+- F19: [spec playbook YAML + live stream](specs/F19-playbook-tu-dong.md), fixture-first, cảnh báo portal/Hermes, đề xuất W05, dry-run, audit, không ghi lõi khi chưa được người duyệt, không xóa/chặn tự động. Liên kết F17 (B23) và W03/W04.
+- [ADR 0018](adr/0018-khong-dung-ma-enterprise-opencti.md) đề xuất không dùng/đọc mã EE, không bật EE trong bản bán; test dò chuỗi header EE chỉ là cổng phòng ngừa, không thay rà license/SBOM.
+- Docs công khai ghi SSO qua config và UI đều EE từ 7.260224.0; portal xác thực riêng, CE local auth. Live stream lọc được tài liệu hóa như chức năng thường, cần smoke test trên CE ghim.
+- Nền thực tế origin/main `4d1aeea` (PR #48), khác nền đích PR #56 / 7.261124.0 trong brief. Chưa đồng bộ runtime, chưa xác minh CE stream thật, chưa làm F19/model/feed thật; chủ chốt ưu tiên, tenant, quyền gửi và pháp lý trước code.
 
 ## 25/11/2026 — Gộp toàn bộ nhánh vào `main` (PR #47)
 
