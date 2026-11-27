@@ -1179,3 +1179,22 @@ def test_failed_start_cannot_allocate_resources_again(monkeypatch: pytest.Monkey
         assert not run.temp_root.exists()
     finally:
         recover_resources_created_by_failed_lifecycle_test(run)
+
+
+def test_w03_status_view_gateway_detail_and_leader() -> None:
+    with LocalRun("w03-status-it", duration_seconds=20, start_ui=False) as run:
+        response = httpx.get(f"{run.url}/api/cves/status-view", params={"status": "unset"}, timeout=2)
+        assert response.status_code == 200
+        body = response.json()
+        assert body["view"] == "detail"
+        assert body["summary"]["actionable_cves"] == body["summary"]["matched_cves"]
+        assert body["items"][0]["matches"][0]["status"] is None
+    with LocalRun("w03-status-leader", duration_seconds=20, start_ui=False) as run:
+        url = f"{run.url}/api/cves/status-view"
+        response = httpx.get(url, timeout=2)
+        assert response.status_code == 200
+        body = response.json()
+        assert body["view"] == "summary"
+        assert "status_relations" not in body["summary"]
+        assert "matches" not in body["items"][0]
+        assert httpx.get(url, params={"status": "unset"}, timeout=2).status_code == 403

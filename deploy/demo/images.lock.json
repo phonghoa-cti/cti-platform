@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "verified_at": "2026-11-10T13:15:00Z",
+  "verified_at": "2026-11-27T04:45:00Z",
   "target_platform": "linux/amd64",
   "opencti_release": {
-    "tag": "7.260811.0-lts.2",
-    "opencti_commit": "957087377304ea548fcd9f83a4ee2b025c855d9b",
-    "connectors_commit": "d50686be6f64eb2e91ac38b23c45d0460a210435"
+    "tag": "7.261124.0",
+    "opencti_commit": "5b959ef8275d191412a47c7d86431b86d1b1d3dc",
+    "connectors_commit": "1216584e7d1d7fe4b627601515add271798be2eb"
   },
   "upstream_compose": {
     "repository": "https://github.com/OpenCTI-Platform/docker",
@@ -16,42 +16,42 @@
     {
       "service": "opencti",
       "image": "ghcr.io/opencti-platform/opencti/platform",
-      "tag": "7.260811.0-lts.2",
-      "index_digest": "sha256:035a2ef0248116c1b7f249bb27540fe940fca6bb3c781f9010385c26bbdeca3e",
-      "linux_amd64_digest": "sha256:337eecc16ccbffd8645cc6c8ec8013bfa749e71525ee14101814b393b1ff4660",
-      "source": "https://github.com/OpenCTI-Platform/opencti/releases/tag/7.260811.0-lts.2",
+      "tag": "7.261124.0",
+      "index_digest": "sha256:5e7301b0215b6ef8febce4cc590a994a9c1b2faa508096c9962776600fbd3fce",
+      "linux_amd64_digest": "sha256:67f7e4e67c22b536a002399bc972cbc781863dae1f7f47b13dfe76f9b81e49ad",
+      "source": "https://github.com/OpenCTI-Platform/opencti/releases/tag/7.261124.0",
       "license": "Apache-2.0 for OpenCTI Community Edition",
-      "license_reference": "https://github.com/OpenCTI-Platform/opencti/blob/957087377304ea548fcd9f83a4ee2b025c855d9b/LICENSE"
+      "license_reference": "https://github.com/OpenCTI-Platform/opencti/blob/5b959ef8275d191412a47c7d86431b86d1b1d3dc/LICENSE"
     },
     {
       "service": "worker",
       "image": "ghcr.io/opencti-platform/opencti/worker",
-      "tag": "7.260811.0-lts.2",
-      "index_digest": "sha256:fe2aca80af54a2f0a35a76142ae0e57ce00afb23259ade34ddecb56ddfcd44bd",
-      "linux_amd64_digest": "sha256:2360329ba6878bb3e76511403eb75488247dd83f032e22c7642d7b45e07cf661",
-      "source": "https://github.com/OpenCTI-Platform/opencti/releases/tag/7.260811.0-lts.2",
+      "tag": "7.261124.0",
+      "index_digest": "sha256:d2a2075180574e8fa18172b95c43afd7f9d6feaaa6f65ed959aac033e2509e16",
+      "linux_amd64_digest": "sha256:c4cace244c2ce19426ce3c71b3e061ede74a02b738b61d009c42d3f7ac25a0d9",
+      "source": "https://github.com/OpenCTI-Platform/opencti/releases/tag/7.261124.0",
       "license": "Apache-2.0 for OpenCTI Community Edition",
-      "license_reference": "https://github.com/OpenCTI-Platform/opencti/blob/957087377304ea548fcd9f83a4ee2b025c855d9b/LICENSE"
+      "license_reference": "https://github.com/OpenCTI-Platform/opencti/blob/5b959ef8275d191412a47c7d86431b86d1b1d3dc/LICENSE"
     },
     {
       "service": "connector-mitre",
       "image": "ghcr.io/opencti-platform/opencti/connector-mitre",
-      "tag": "7.260811.0-lts.2",
-      "index_digest": "sha256:dbdafe0afb40c6a8efb4d74211b712213180543949355017c387723c14b8e8dc",
-      "linux_amd64_digest": "sha256:cb23aada8a3a10b9908b62728df0eb0fec393a17202f48c91b6ecac6f2d034df",
-      "source": "https://github.com/OpenCTI-Platform/connectors/releases/tag/7.260811.0-lts.2",
+      "tag": "7.261124.0",
+      "index_digest": "sha256:d80cb96c3184cc4bbfacec8fb1fe726015d44abbe88983ee472ba2d0c9fe49b9",
+      "linux_amd64_digest": "sha256:cdd5ad5f6633553f87023a2e43b92a30d41b5fba0f51f1ef42a00eef7c120653",
+      "source": "https://github.com/OpenCTI-Platform/connectors/releases/tag/7.261124.0",
       "license": "Apache-2.0",
-      "license_reference": "https://github.com/OpenCTI-Platform/connectors/blob/d50686be6f64eb2e91ac38b23c45d0460a210435/LICENSE"
+      "license_reference": "https://github.com/OpenCTI-Platform/connectors/blob/1216584e7d1d7fe4b627601515add271798be2eb/LICENSE"
     },
     {
       "service": "connector-import-file-stix",
       "image": "ghcr.io/opencti-platform/opencti/connector-import-file-stix",
-      "tag": "7.260811.0-lts.2",
-      "index_digest": "sha256:3feced71a5cea614bff5e3915b4d0896710c3c8a7f7aadf047461438b8442cb0",
-      "linux_amd64_digest": "sha256:6a0fb4068409076fe098a27a07ffed4a691ae6df270e161073e33c1abad69d96",
-      "source": "https://github.com/OpenCTI-Platform/connectors/releases/tag/7.260811.0-lts.2",
+      "tag": "7.261124.0",
+      "index_digest": "sha256:3dd571ff082efe8b706520edf37f22d435b5c6f93ea22558f53df93c6c5f9ee8",
+      "linux_amd64_digest": "sha256:9c26c177281d80f748e4822d2165cc88e4d7b3b626051df86321dbfe00617bd0",
+      "source": "https://github.com/OpenCTI-Platform/connectors/releases/tag/7.261124.0",
       "license": "Apache-2.0",
-      "license_reference": "https://github.com/OpenCTI-Platform/connectors/blob/d50686be6f64eb2e91ac38b23c45d0460a210435/LICENSE"
+      "license_reference": "https://github.com/OpenCTI-Platform/connectors/blob/1216584e7d1d7fe4b627601515add271798be2eb/LICENSE"
     },
     {
       "service": "redis",
