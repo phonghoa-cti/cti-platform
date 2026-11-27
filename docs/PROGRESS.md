@@ -338,3 +338,10 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
   semantic TTP, corpus gold/model quality, hostile mutation, crash/power-loss và production chưa xác minh.
 - Local ingest chưa kiểm hostile filesystem mutation, hard RAM/network isolation trên Windows, PDF đối kháng/thật,
   OCR, chất lượng text đa ngôn ngữ, corpus/model, lab hoặc production.
+
+## B03 — Connector MST tiếng Việt (26/11/2026)
+- Đã làm: lấy RSS qua fetch có robots/timeout/rate limit/retry/cache, parse fixture và dùng core trích IOC/CVE,
+  xuất Report + observable/Vulnerability STIX 2.1 (TLP:CLEAR tương thích WHITE), ID ổn định và URL nguồn.
+- Chạy ngoại tuyến ra file; pycti chỉ khi live và người vận hành bật publish, đọc secret từ biến môi trường.
+- Còn lại/vướng: RSS thật, robots/điều khoản đầy đủ, pycti/OpenCTI thật, quyền review, lịch chạy, RAM và nhập lặp
+  trên lab chưa kiểm. Mẫu RSS synthetic và mẫu tái dựng rút gọn, không phải bằng chứng feed thật. Chưa lấy toàn văn.
