@@ -11,6 +11,7 @@ const IOC_API_PATH = "/api/ioc";
 const ASSET_API_PATH = /^\/api\/assets(?:\/[1-9][0-9]*)?$/;
 const TECHNOLOGY_API_PATH = /^\/api\/assets\/technologies(?:\/[1-9][0-9]*)?$/;
 const CVE_API_PATH = "/api/cves";
+const CVE_STATUS_VIEW_PATH = "/api/cves/status-view";
 const CVE_STATUS_API_PATH = /^\/api\/cves\/CVE-[0-9]{4}-[0-9]{4,}\/technologies\/[1-9][0-9]*\/status(?:-history)?$/;
 
 function dynamicHopHeaders(headers) {
@@ -117,7 +118,7 @@ export async function startGateway({ apiPort, uiPort, port, jwt, requestTimeoutM
     const isV1 = V1_API_PATH.test(url.pathname);
     const isAsset = ASSET_API_PATH.test(url.pathname);
     const isTechnology = TECHNOLOGY_API_PATH.test(url.pathname);
-    const isCve = url.pathname === CVE_API_PATH;
+    const isCve = url.pathname === CVE_API_PATH || url.pathname === CVE_STATUS_VIEW_PATH;
     const isStatus = CVE_STATUS_API_PATH.test(url.pathname);
     const isStatusHistory = isStatus && url.pathname.endsWith("/status-history");
     const statusMethodAllowed = isStatusHistory ? request.method === "GET" : ["GET", "PUT"].includes(request.method ?? "");
