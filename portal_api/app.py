@@ -54,6 +54,7 @@ from portal_api.cves_status_view import (
     InvalidCveStatusQuery,
     parse_cve_status_query,
 )
+from portal_api.dissemination import DisseminationStore
 from portal_api.ioc_lookup import (
     InvalidIoc,
     IocLookupPort,
@@ -61,6 +62,7 @@ from portal_api.ioc_lookup import (
     LookupUnavailable,
     PrivateIoc,
 )
+from portal_api.reports_api import is_reports_path, register_report_routes
 from portal_api.schemas import (
     JSON_SAFE_INTEGER,
     SQLITE_MAX_INTEGER,
@@ -84,6 +86,7 @@ from portal_api.schemas import (
     TechnologyUpdateRequest,
     TechnologyView,
 )
+from portal_api.senders import MessageSender
 from portal_api.service import ApiFailure, ReviewService
 from portal_api.settings import Settings
 from portal_api.technologies import (
@@ -232,6 +235,10 @@ def create_app(
     cve_port: CveReadPort | None = None,
     cve_status_store: CveStatusStore | None = None,
     cve_status_view_clock: Any | None = None,
+    dissemination_store: DisseminationStore | None = None,
+    message_senders: dict[str, MessageSender] | None = None,
+    report_tenant_name: str = "Doanh nghiệp",
+    report_clock: Any | None = None,
 ) -> FastAPI:
     """Tạo app; cấu hình đã được Settings kiểm fail-closed trước đó."""
 
@@ -264,6 +271,7 @@ def create_app(
             or _is_lookup_path(request.url.path)
             or _is_cves_path(request.url.path)
             or _is_assets_path(request.url.path)
+            or is_reports_path(request.url.path)
         ):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = JWT_HEADER
@@ -922,6 +930,17 @@ def create_app(
         except (json.JSONDecodeError, UnicodeDecodeError, ValidationError, TypeError, ValueError) as exc:
             raise ApiFailure(422, "invalid_request", "Yêu cầu không hợp lệ") from exc
         return service.decide_v1(parsed_id, principal, body)
+
+    register_report_routes(
+        app,
+        settings=settings,
+        verifier=jwt_verifier,
+        cve_service=cve_service,
+        store=dissemination_store,
+        senders=message_senders or {},
+        tenant_name=report_tenant_name,
+        clock=report_clock,
+    )
 
     default_openapi = app.openapi
 

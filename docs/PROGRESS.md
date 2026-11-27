@@ -2,6 +2,16 @@
 
 Cập nhật lần cuối: 27/11/2026
 
+## 27/11/2026 — B28: F21 báo cáo lỗ hổng tuần + gửi có duyệt (MVP, spec chờ duyệt)
+
+- Đã làm: [spec F21](specs/F21-bao-cao-va-gui.md) (F18 dòng 10–12); `portal_api` có báo cáo HTML tiếng Việt từ
+  read model W03 (CVE khớp tài sản, KEV, phân bố CVSS, nguồn, TLP), mẫu thư tĩnh escape biến, danh sách nhận
+  email/Telegram, outbox preview → duyệt (người khác người tạo, khớp `content_hash`) → gửi một lần, audit, SMTP
+  chỉ từ env. 16 test offline mới với sender giả; viết mới hoàn toàn, không dùng mã EE.
+- Còn lại: giao diện portal, sender Telegram, PDF phía server (hiện in từ trình duyệt), khôi phục lô kẹt
+  `sending`, hủy nhận/xác minh địa chỉ, chạy SMTP thật trên lab.
+- Vướng mắc: chưa chốt thư viện PDF/license, chính sách hai người duyệt khi gửi ra ngoài, mô hình đa tenant.
+
 ## 27/11/2026 — B25: F18/F19 (spec chờ duyệt)
 
 - F18: [ma trận 15 tính năng EE](specs/F18-thay-the-tinh-nang-tra-phi.md), thay thế độc lập ngoài OpenCTI CE; P1 7 mục / 116 giờ, tổng 232 giờ ước lượng, chưa triển khai.
