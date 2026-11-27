@@ -22,12 +22,15 @@ Container OpenCTI có giới hạn 3 GB và Node.js `--max-old-space-size=2048` 
 
 ## Nguồn cấu hình và phiên bản
 
-- OpenCTI/worker: LTS `7.260811.0-lts.2`, source commit
-  `957087377304ea548fcd9f83a4ee2b025c855d9b`.
-- Connector: cùng tag LTS, source commit `d50686be6f64eb2e91ac38b23c45d0460a210435`.
+- OpenCTI/worker: bản phát hành thường (không LTS) `7.261124.0`, source commit
+  `5b959ef8275d191412a47c7d86431b86d1b1d3dc`. Không dùng dòng `-lts`: bản LTS đòi license key LTS
+  riêng (lỗi `LTS_REQUIRED_ACTIVATION` khi chạy thử `7.260811.0-lts.2` trên lab ngày 27/11/2026), xem
+  [Product life cycle](https://docs.opencti.io/latest/administration/product-life-cycle/).
+- Connector: cùng tag, source commit `1216584e7d1d7fe4b627601515add271798be2eb`.
 - Cấu trúc lõi tham khảo từ `OpenCTI-Platform/docker` commit
   `60285adb360e3823a334333ae4744255d8ac1821`, nhưng bỏ các service không thuộc demo và thay mọi image
-  bằng tag + digest trong lock file.
+  bằng tag + digest trong lock file. Commit upstream kế tiếp (`651e5ee`, 24/11/2026) chỉ đổi cấu hình
+  connector (service account), không đổi phần lõi.
 - `rabbitmq.conf` lấy hai giá trị từ file upstream cùng commit. Repo upstream không có file LICENSE tại ref
   này; provenance và SHA-256 được ghi ngay trong file, cần rà điều khoản trước khi phân phối ra ngoài dự án.
 
@@ -113,7 +116,7 @@ Lệnh chỉ parse file cục bộ. Kết quả và negative case được mô t
 5. Tạo tài khoản ImportFileStix riêng, kiểm capability **Upload knowledge files**, ghép `compose.import.yml`,
    rồi analyst tải fixture đã duyệt tại vùng nhập file chung. Vì `CONNECTOR_AUTO=false`, nếu chưa xuất hiện work,
    chọn và chạy ImportFileStix thủ công; chờ work xử lý xong, không dùng bypass validation.
-6. OpenCTI ref `957087377304ea548fcd9f83a4ee2b025c855d9b` tại
+6. OpenCTI ref `5b959ef8275d191412a47c7d86431b86d1b1d3dc` tại
    `opencti-platform/opencti-graphql/config/default.json` mặc định `app.validation_mode="draft"`: analyst có
    quyền phù hợp mở bản nháp, kiểm object/relationship/marking/provenance rồi phê duyệt; chỉ gọi là workbench
    khi lab chọn mode workbench. Quyền review/approve theo mode phải kiểm trên lab, không tự cấp. Ghi người duyệt,
@@ -128,7 +131,7 @@ Lệnh chỉ parse file cục bộ. Kết quả và negative case được mô t
    quan sát được; gói này chưa đạt điều kiện đó.
 
 Luồng draft/import dựa trên [OpenCTI import files](https://docs.opencti.io/latest/usage/import-files/) và
-[connector tại ref đã chọn](https://github.com/OpenCTI-Platform/connectors/blob/d50686be6f64eb2e91ac38b23c45d0460a210435/internal-import-file/import-file-stix/src/connector/connector.py).
+[connector tại ref đã chọn](https://github.com/OpenCTI-Platform/connectors/blob/1216584e7d1d7fe4b627601515add271798be2eb/internal-import-file/import-file-stix/src/connector/connector.py).
 Cấu hình ngoại tuyến chưa chứng minh capability, work, phê duyệt hay object xuất hiện đúng trên lab.
 
 ## Hoàn tác

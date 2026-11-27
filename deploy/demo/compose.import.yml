@@ -1,6 +1,6 @@
 services:
   connector-import-file-stix:
-    image: ghcr.io/opencti-platform/opencti/connector-import-file-stix:7.260811.0-lts.2@sha256:3feced71a5cea614bff5e3915b4d0896710c3c8a7f7aadf047461438b8442cb0
+    image: ghcr.io/opencti-platform/opencti/connector-import-file-stix:7.261124.0@sha256:3dd571ff082efe8b706520edf37f22d435b5c6f93ea22558f53df93c6c5f9ee8
     platform: linux/amd64
     restart: unless-stopped
     mem_limit: 256m
