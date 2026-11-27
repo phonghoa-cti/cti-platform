@@ -16,6 +16,15 @@ Cập nhật lần cuối: 27/11/2026
 - Ruff check/format PASS; pytest Python 3.12.13: 1.658 pass, 3 skip tự động của bộ gốc do chưa có snapshot
   MITRE v20.1 đúng pin, 0 fail; 7 test smoke mới đạt. Không tắt hoặc sửa điều kiện test gốc.
 
+## 27/11/2026 — B30: F22 nhật ký kiểm toán chuỗi băm + hồ sơ PIR (MVP, spec chờ duyệt)
+
+- Đã làm: [spec F22](specs/F22-nhat-ky-va-pir.md) (F18 dòng 1 và 13); `portal_api/audit_log.py` (SQLite chỉ ghi
+  thêm, UTC, hash-chain, `verify_chain`), `pir.py` (CRUD hồ sơ PIR + hàm chấm thuần), `governance_api.py`
+  (`/api/audit`, `/api/audit/verify` chỉ admin; `/api/pir`); F21 duyệt/gửi ghi nhật ký; `GET /api/cves?pir=true`
+  tùy chọn, mặc định không đổi. 13 test offline mới; viết mới hoàn toàn, không dùng mã EE.
+- Còn lại: Settings/env cho đường dẫn SQLite, gom audit W03/W04/W05, xuất CSV, màn hình portal, dùng PIR trong F19.
+- Vướng mắc: nơi lưu hash đầu chuỗi bên ngoài, audit fail-open hay fail-closed, mô hình đa tenant.
+
 ## 27/11/2026 — B28: F21 báo cáo lỗ hổng tuần + gửi có duyệt (MVP, spec chờ duyệt)
 
 - Đã làm: [spec F21](specs/F21-bao-cao-va-gui.md) (F18 dòng 10–12); `portal_api` có báo cáo HTML tiếng Việt từ
