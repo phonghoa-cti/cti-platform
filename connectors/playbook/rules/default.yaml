@@ -1,0 +1,34 @@
+# Luật mẫu trên dữ liệu giả lập; không ghi trực tiếp vào OpenCTI.
+schema_version: 1
+rules:
+  - id: kev-product-review
+    version: 1
+    enabled: true
+    when:
+      event_types: [create, update]
+      entity_types: [vulnerability]
+      labels_any: [kev]
+      tlp_in: ["TLP:CLEAR", "TLP:GREEN"]
+      cve_matches_customer_product: true
+    actions:
+      - type: create_alert
+        severity: high
+        audience: [portal, hermes]
+        template_id: cve-review-v1
+      - type: propose_label
+        label: phonghoa-review
+      - type: log
+  - id: high-score-indicator
+    version: 1
+    enabled: true
+    when:
+      event_types: [create, update]
+      entity_types: [indicator]
+      min_score: 80
+      tlp_in: ["TLP:CLEAR", "TLP:GREEN"]
+    actions:
+      - type: create_alert
+        severity: high
+        audience: [portal, hermes]
+        template_id: indicator-review-v1
+      - type: log
