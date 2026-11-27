@@ -2,6 +2,13 @@
 
 Cập nhật lần cuối: 26/11/2026
 
+
+## 26/11/2026 — B14 Connector nguồn tiếng Việt thứ hai (nhánh riêng)
+
+- Thêm VSEC: đọc một trang danh mục HTML, trích tiêu đề/mô tả IOC/CVE qua core; xuất STIX 2.1 dạng ứng viên chưa duyệt, TLP:GREEN. Live mặc định tắt, không có publish trực tiếp.
+- Tách kiểu dữ liệu, tải HTTP/robots/cache và bộ dựng STIX dùng chung với MST, giữ profile/ID MST. Kiểm thử fixture/mock và validator STIX; không dùng feed thật trong test.
+- Kiểm tra nguồn: robots HTTP 200 rỗng; hai RSS ứng viên HTTP 520; danh mục HTML HTTP 200. [CẦN KIỂM] quyền thu thập/tái sử dụng, quota, độ ổn định layout; chưa chạy CLI live hoặc OpenCTI lab, chưa đo RAM hay chất lượng trích thật.
+
 ## 25/11/2026 — Gộp toàn bộ nhánh vào `main` (PR #47)
 
 - Đã gộp đầy đủ nhánh Portal (`3e69340`), AI X01 (`8a16758`), Ingest Queue (`4655d9a`) và hồ sơ bàn giao 12/11 (`9d87622`) về nhánh `main` (`2e74d8d`).
@@ -348,3 +355,10 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
 - Đã thêm bot polling python-telegram-bot trong mcp-server/hermes_bot: allowlist chat và user từ env, reviewer riêng; /ioc, /cve, /nhap, /tomtat gọi tool đọc MCP B10 qua stdio, chỉ fixture tổng hợp. Không có LLM hoặc tool ghi thực tế.
 - /dexuat chan và /dexuat nhap lưu đề xuất pending trong SQLite; callback Duyệt/Từ chối ghi quyết định và người duyệt đúng chat, chuyển trạng thái nguyên tử đúng một lần, không thực thi. Nội dung nguồn là dữ liệu, có kiểm bao/TLP, defang và giới hạn phản hồi. Thêm test Update Telegram giả lập, SQLite tạm và round-trip MCP fixture; lock dependency dùng chung CI B10.
 - Còn lại: nghiệm thu polling Telegram thật, kiểm thành viên chat/quyền chia sẻ, gateway Hermes upstream, MCP live cách ly token, W05, cron 07:00 và trực ca, dữ liệu/model thật. B11 không thực hiện hoặc chứng minh các chức năng này; không thay đổi portal.
+
+## B03 — Connector MST tiếng Việt (26/11/2026)
+- Đã làm: lấy RSS qua fetch có robots/timeout/rate limit/retry/cache, parse fixture và dùng core trích IOC/CVE,
+  xuất Report + observable/Vulnerability STIX 2.1 (TLP:CLEAR tương thích WHITE), ID ổn định và URL nguồn.
+- Chạy ngoại tuyến ra file; pycti chỉ khi live và người vận hành bật publish, đọc secret từ biến môi trường.
+- Còn lại/vướng: RSS thật, robots/điều khoản đầy đủ, pycti/OpenCTI thật, quyền review, lịch chạy, RAM và nhập lặp
+  trên lab chưa kiểm. Mẫu RSS synthetic và mẫu tái dựng rút gọn, không phải bằng chứng feed thật. Chưa lấy toàn văn.
