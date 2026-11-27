@@ -68,3 +68,40 @@ uv run @deps python -m pytest
 ```
 
 Test dùng fixture và mock, có kiểm tra handshake MCP qua stdio thật (tiến trình con), không dùng OpenCTI/portal thật. CI hiện chưa nạp lock MCP; cần điều phối cập nhật lệnh cài dependency CI ở việc riêng trước khi merge, không bỏ qua test.
+
+
+## B11 — Bot Telegram (lát cắt Hermes)
+
+Bot dùng python-telegram-bot (polling: chủ động lấy tin từ Telegram), gọi B10 bằng MCP stdio trong tiến trình Python riêng. Hiện **chỉ fixture tổng hợp**, không kết nối OpenCTI/portal thật, không có token OpenCTI trong bot. Đây là bot Python độc lập theo brief B11, chưa phải tích hợp gateway của Hermes Agent upstream, cron, W05 hoặc LLM. Mỗi lệnh đọc gọi một tool cố định (timeout 25 giây); không có diễn giải lệnh tự nhiên hoặc tool thực thi.
+
+### Cấu hình chạy thử (chỉ khi nhóm có bot Telegram riêng)
+
+1. Tạo bot bằng BotFather; giữ token ngoài Git. Tự đặt các biến env theo .env.example (file mẫu chỉ chứa tên biến, không tự nạp file .env).
+2. HERMES_TELEGRAM_CHAT_IDS: danh sách chat ID số, phân cách dấu phẩy; không có allowlist thì bot không chạy. HERMES_TELEGRAM_USER_IDS: danh sách user ID dương được phép ra lệnh. Nếu chỉ có chat riêng ID dương và bỏ trống user list, dùng chính các ID chat riêng; chat nhóm ID âm bắt buộc khai báo user list.
+3. HERMES_TELEGRAM_REVIEWER_IDS: các user ID có quyền quyết định, là tập con của user list; bỏ trống nghĩa là không ai có quyền duyệt. Nút chỉ hoạt động trong chat gốc của đề xuất. Nếu cần hai người khác nhau, dùng nhóm riêng chỉ có người được phép đọc dữ liệu; trong chat riêng chỉ chủ chat đã được cấp vai reviewer mới quyết định được. B11 không áp dụng tách nhiệm vụ người đề xuất/người duyệt.
+4. HERMES_TELEGRAM_DB: đường dẫn tuyệt đối tới file .sqlite trong thư mục riêng đã tồn tại, ngoài repo; chỉ cấp quyền đọc/ghi cho tài khoản chạy bot và quản trị được phép. PHONGHOA_MCP_SOURCE bỏ trống hoặc fixture; từ chối opencti. HERMES_TELEGRAM_TOKEN lấy từ env.
+5. Từ gốc repo, dùng PowerShell (Python 3.12, uv):
+   ```powershell
+   $env:PYTHONPATH = "$PWD\mcp-server;$PWD\core;$PWD\extractor;$PWD"
+   uv run --no-project --python 3.12 --with-requirements requirements-api.lock --with-requirements mcp-server/requirements.lock python -m hermes_bot
+   ```
+   Lệnh bắt đầu polling thật, chỉ chạy nếu đã được phép kết nối Telegram. Dừng bằng Ctrl+C. Khởi động bỏ update tồn từ trước, không tự phát lại lệnh; đề xuất đã lưu vẫn nằm trong SQLite.
+
+| Lệnh | Kết quả |
+|---|---|
+| /start | Hướng dẫn tiếng Việt |
+| /ioc hxxp://sample[.]example | Tra IOC (dấu hiệu có thể liên quan nguy cơ); lấy điểm và nguồn từ MCP, không tự suy điểm |
+| /cve nginx | CVE liên quan tên công nghệ, chưa khẳng định phiên bản bị ảnh hưởng |
+| /cve | CVE trong danh mục KEV liên quan tài sản mẫu |
+| /nhap | Chỉ đọc danh sách bản nháp đang chờ |
+| /tomtat | Tổng quan; /tomtat tuan đọc tóm tắt tuần |
+| /dexuat chan sample[.]example Kiểm tra | Tạo đề xuất chặn cục bộ |
+| /dexuat nhap hxxps://sample[.]example/report | Tạo đề xuất đọc/trích báo cáo cục bộ; không tải URL, không tạo draft W05 |
+
+Nút Duyệt/Từ chối ghi ID người quyết định, thời điểm UTC và trạng thái cuối trong SQLite; cập nhật có điều kiện theo ID + chat gốc + pending, chống nhấn lại và tranh chấp. Trạng thái approved không phải đã chặn, đã nhập hay đã thực thi. Nếu gửi tin Telegram lỗi sau khi SQLite ghi thành công, không tự chạy lại; quản trị kiểm SQLite trước khi gửi yêu cầu mới. Không có tác vụ nền đọc hàng approved để thực thi.
+
+Dữ liệu MCP được kiểm bao tai_lieu, trạng thái, giới hạn kích thước và nhãn TLP hạn chế; B10 lọc CLEAR/GREEN. Bot hiển thị văn bản thuần, vô hiệu hóa xem trước link, defang IOC và escape dấu thẻ, không chạy chỉ thị lấy từ dữ liệu, không gửi dữ liệu tới LLM. Không đưa dữ liệu AMBER/RED, thông tin mật hay tài sản thật vào bot demo. Allowlist kiểm người gửi, **không** ngăn thành viên khác trong một chat nhóm nhìn thấy nội dung; chỉ dùng nhóm kín đã kiểm thành viên và quyền chia sẻ TLP. Telegram là dịch vụ bên ngoài, không phải kho bí mật. Dữ liệu chưa tìm thấy không chứng minh an toàn.
+
+### Test B11
+
+Dùng prefix uv ngoại tuyến ở mục Kiểm thử B10 (lock hiện đã chứa python-telegram-bot); chạy thêm `python -m pytest mcp-server/tests/test_hermes_bot.py`. Test tạo đối tượng Update thật từ payload Telegram tổng hợp, giả lập các phương thức Bot và reader, lưu SQLite tạm; có round-trip stdio B10 thật với fixture, không gọi mạng Telegram, LLM hoặc OpenCTI. Chưa kiểm polling thật, thành viên nhóm thật, lịch 07:00, điều tra chủ động hay W05; không tuyên bố nghiệm thu toàn bộ A01.
