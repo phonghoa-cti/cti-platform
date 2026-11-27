@@ -2,6 +2,13 @@
 
 Cập nhật lần cuối: 27/11/2026
 
+## 27/11/2026 — B26: F19 playbook MVP ngoại tuyến
+
+- Nhánh `feat/b26-playbook` từ B25; `connectors/playbook/` có nguồn SSE fixture/HTTPS lọc, cấu hình YAML giới hạn cú pháp (không cần dependency mới), hai luật mẫu, dry-run mặc định, SQLite cursor/receipt/version/audit/outbox/pending-label theo scope.
+- Dùng CveReadService W03 và W04 read-only để đối chiếu KEV theo sản phẩm, không tự suy phiên bản bị ảnh hưởng. Chỉ CLEAR/GREEN sinh intent; không có LLM, gửi tin, ghi trực tiếp OpenCTI, chặn/xóa hay thực thi đề xuất.
+- Projection outbox đọc nội bộ và hàng nháp label riêng chưa nối portal/MCP/Hermes/W05. Fixture giả lập và mock HTTP kiểm schema/score/TLP, replay/xung đột, rollback, scope và 100 event.
+- Chưa kiểm runtime CE/tag/permission/marking thực, reconnect/backoff, retention/reconciliation và stale toàn luồng, review/expiry/publish, RBAC API hay notifier. Chỉ nghiệm thu ngoại tuyến; không bật live hoặc cấp DB cho khách.
+
 ## 27/11/2026 — B25: F18/F19 (spec chờ duyệt)
 
 - F18: [ma trận 15 tính năng EE](specs/F18-thay-the-tinh-nang-tra-phi.md), thay thế độc lập ngoài OpenCTI CE; P1 7 mục / 116 giờ, tổng 232 giờ ước lượng, chưa triển khai.
