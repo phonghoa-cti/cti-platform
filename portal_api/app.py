@@ -20,6 +20,7 @@ from portal_api.assets import (
     AssetsUnavailable,
     InvalidAsset,
 )
+from portal_api.audit_log import AuditLog
 from portal_api.auth import (
     AccessJwtVerifier,
     AuthenticationError,
@@ -55,6 +56,7 @@ from portal_api.cves_status_view import (
     parse_cve_status_query,
 )
 from portal_api.dissemination import DisseminationStore
+from portal_api.governance_api import is_governance_path, register_governance_routes
 from portal_api.ioc_lookup import (
     InvalidIoc,
     IocLookupPort,
@@ -62,6 +64,7 @@ from portal_api.ioc_lookup import (
     LookupUnavailable,
     PrivateIoc,
 )
+from portal_api.pir import PirStore, score_cves
 from portal_api.reports_api import is_reports_path, register_report_routes
 from portal_api.schemas import (
     JSON_SAFE_INTEGER,
@@ -224,6 +227,22 @@ async def _read_v1_json(request: Request) -> Any:
     return await _read_limited_json(request, V1_BODY_LIMIT)
 
 
+def _parse_pir_flag(request: Request) -> bool:
+    """``pir=true`` bật sắp xếp theo PIR; mặc định giữ nguyên hành vi W03."""
+    raw = request.query_params.get("pir")
+    if raw is not None and raw not in {"true", "false"}:
+        raise ApiFailure(422, "invalid_cve_query", "Query lỗ hổng không hợp lệ")
+    return raw == "true"
+
+
+def _apply_pir(result: dict[str, object], pir_store: PirStore | None) -> dict[str, object]:
+    """Sắp lại trang hiện tại theo hồ sơ PIR; chưa có hồ sơ thì trả nguyên kết quả."""
+    profile = None if pir_store is None else pir_store.get()
+    if profile is None:
+        return {**result, "pir_applied": False}
+    return {**result, "items": score_cves(result["items"], profile), "pir_applied": True}
+
+
 def create_app(
     settings: Settings,
     store: Any,
@@ -239,6 +258,8 @@ def create_app(
     message_senders: dict[str, MessageSender] | None = None,
     report_tenant_name: str = "Doanh nghiệp",
     report_clock: Any | None = None,
+    audit_log: AuditLog | None = None,
+    pir_store: PirStore | None = None,
 ) -> FastAPI:
     """Tạo app; cấu hình đã được Settings kiểm fail-closed trước đó."""
 
@@ -278,6 +299,7 @@ def create_app(
             or _is_cves_path(request.url.path)
             or _is_assets_path(request.url.path)
             or is_reports_path(request.url.path)
+            or is_governance_path(request.url.path)
         ):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = JWT_HEADER
@@ -490,10 +512,12 @@ def create_app(
             raise ApiFailure(422, "invalid_cve_query", "Query lỗ hổng không hợp lệ") from exc
         if view == "summary" and query.asset_id is not None:
             raise ApiFailure(403, "forbidden", "Tài khoản chưa được cấp quyền lọc tài sản")
+        use_pir = _parse_pir_flag(request)
         if cve_service is None:
             raise ApiFailure(503, "cves_unavailable", "Dịch vụ lỗ hổng tạm thời không sẵn sàng")
         try:
-            return cve_service.read(query, view)
+            result = cve_service.read(query, view)
+            return _apply_pir(result, pir_store) if use_pir else result
         except InvalidCveQuery as exc:
             raise ApiFailure(422, "invalid_cve_query", "Query lỗ hổng không hợp lệ") from exc
         except CveTechnologyNotFound as exc:
@@ -946,6 +970,10 @@ def create_app(
         senders=message_senders or {},
         tenant_name=report_tenant_name,
         clock=report_clock,
+        audit_log=audit_log,
+    )
+    register_governance_routes(
+        app, settings=settings, verifier=jwt_verifier, audit_log=audit_log, pir_store=pir_store
     )
 
     default_openapi = app.openapi
