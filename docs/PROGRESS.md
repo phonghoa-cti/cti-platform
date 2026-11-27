@@ -10,6 +10,13 @@ Cập nhật lần cuối: 27/11/2026
   Mặc định template/luật offline; LLM cục bộ tùy chọn qua env, chặn TLP:AMBER/RED với provider không cục bộ.
 - Còn lại: nối portal API/MCP, marking TLP 2.0, đánh giá model thật. Chưa chạy model/OpenCTI thật.
 
+## 27/11/2026 — B26: F19 playbook MVP ngoại tuyến
+
+- Nhánh `feat/b26-playbook` từ B25; `connectors/playbook/` có nguồn SSE fixture/HTTPS lọc, cấu hình YAML giới hạn cú pháp (không cần dependency mới), hai luật mẫu, dry-run mặc định, SQLite cursor/receipt/version/audit/outbox/pending-label theo scope.
+- Dùng CveReadService W03 và W04 read-only để đối chiếu KEV theo sản phẩm, không tự suy phiên bản bị ảnh hưởng. Chỉ CLEAR/GREEN sinh intent; không có LLM, gửi tin, ghi trực tiếp OpenCTI, chặn/xóa hay thực thi đề xuất.
+- Projection outbox đọc nội bộ và hàng nháp label riêng chưa nối portal/MCP/Hermes/W05. Fixture giả lập và mock HTTP kiểm schema/score/TLP, replay/xung đột, rollback, scope và 100 event.
+- Chưa kiểm runtime CE/tag/permission/marking thực, reconnect/backoff, retention/reconciliation và stale toàn luồng, review/expiry/publish, RBAC API hay notifier. Chỉ nghiệm thu ngoại tuyến; không bật live hoặc cấp DB cho khách.
+
 ## 27/11/2026 — B25: F18/F19 (spec chờ duyệt)
 
 - F18: [ma trận 15 tính năng EE](specs/F18-thay-the-tinh-nang-tra-phi.md), thay thế độc lập ngoài OpenCTI CE; P1 7 mục / 116 giờ, tổng 232 giờ ước lượng, chưa triển khai.
@@ -17,6 +24,40 @@ Cập nhật lần cuối: 27/11/2026
 - [ADR 0018](adr/0018-khong-dung-ma-enterprise-opencti.md) đề xuất không dùng/đọc mã EE, không bật EE trong bản bán; test dò chuỗi header EE chỉ là cổng phòng ngừa, không thay rà license/SBOM.
 - Docs công khai ghi SSO qua config và UI đều EE từ 7.260224.0; portal xác thực riêng, CE local auth. Live stream lọc được tài liệu hóa như chức năng thường, cần smoke test trên CE ghim.
 - Nền thực tế origin/main `4d1aeea` (PR #48), khác nền đích PR #56 / 7.261124.0 trong brief. Chưa đồng bộ runtime, chưa xác minh CE stream thật, chưa làm F19/model/feed thật; chủ chốt ưu tiên, tenant, quyền gửi và pháp lý trước code.
+
+Cập nhật lần cuối: 26/11/2026
+
+## 26/11/2026 — B24R1: NVD độc lập, KEV dự phòng chính thức
+
+- Sửa nguyên nhân B24: trước đây lỗi tải KEV phát sinh trước vòng phân trang NVD, khiến toàn bộ import hủy dù NVD có thể trả kết quả. B24R1 dùng User-Agent nhận diện repo và Accept JSON, thử CISA trực tiếp, rồi URL cố định CISAGov/kev-data nhánh main theo brief; nếu không thành công thử default branch develop của cùng repo (đã kiểm metadata GitHub). Không mở rộng tùy ý URL, không theo redirect, giữ TLS, không gửi NVD key sang KEV/mirror.
+- Nếu cả các nguồn KEV lỗi, cảnh báo và vẫn nhập NVD; snapshot imported có kev_snapshot_complete=false, trạng thái KEV và as_of của từng CVE là null (chưa xác minh), không phải false. Wire source.kev_catalog là cisa/github/unavailable; giữ contract synthetic cũ. UI ghi rõ nguồn, tự bỏ lọc Chỉ KEV khi unavailable, không hiển thị 0 như kết luận KEV. NVD có ngân sách fetch riêng 420 giây, page size 1.000 và cap 48 MiB/page; giữ pace 6,1 giây. NVD lỗi/phân trang không nhất quán vẫn không ghi snapshot dở.
+- Live Windows: CISA HTTP 403; mirror URL main trả dữ liệu hợp lệ. Nạp thành công 1.805 KEV + 3.987 NVD (cửa sổ công bố 7 ngày), 9 trùng giữa nguồn, tổng 5.783 CVE riêng biệt; 3.925 chưa có cặp tên sản phẩm, không tạo match. CLI 21,0 giây; snapshot 5.136.578 byte, thu nhận 2026-11-26T15:23:56Z; không commit file data/cve-feed.json (đã gitignore).
+- Kiểm stack loopback với snapshot thật: /lo-hong HTTP 200, /api/cves?kev=true&limit=10 HTTP 200, kind imported, kev_catalog github; 9 CVE khớp tài sản demo. Chromium headless dump DOM xác nhận nhãn CISA KEV (GitHub) + NVD và cả 9 mã trong bảng. Ví dụ thấy trên trang: CVE-2018-13379 (KEV 2021-11-03), CVE-2019-5591 (2021-11-03), CVE-2019-6693 (2025-06-25). Tài sản/role vẫn giả lập; chưa kiểm OpenCTI, dữ liệu doanh nghiệp hoặc production.
+- Test offline thêm nhánh KEV mất/NVD vẫn nạp, mirror provenance và UI tự bỏ lọc khi KEV mất; không gọi mạng trong test. Kết quả live này thay cho blocker ở mục B24 lịch sử bên dưới.
+
+## 26/11/2026 — B24: Nguồn CVE thật trực tiếp, không cần OpenCTI
+
+- Nhánh riêng: feat/b24-real-cve-feed. CLI nạp toàn bộ catalog CISA KEV và NVD API 2.0 theo ngày công bố (7–30 ngày), phân trang, giới hạn kích thước/thời gian, pace NVD 6,1 giây giữa các request, retry có backoff, TLS và không redirect. Key NVD tùy chọn từ biến môi trường, không ghi log.
+- Kho snapshot JSON chuẩn hóa độc lập, mặc định data/cve-feed.json (data/ đã gitignore). Một dòng logic mỗi CVE ID; ghi nguồn/URL, thời gian bắt đầu lượt thu nhận UTC, ghi công/notice và ngày KEV thêm. Chỉ thay file atomically khi cả hai nguồn hợp lệ; không đánh dấu KEV false nếu thiếu catalog. Snapshot được thay theo cửa sổ ngày, không phải lịch sử tích lũy.
+- W03 giữ fixture và giới hạn cũ mặc định; mode imported có giới hạn riêng (20.000 bản ghi, 512 cặp sản phẩm/bản ghi, 64 MiB). Response/cursor/quyền và cap wire 1 MiB giữ nguyên; metadata nguồn kind=imported trên /lo-hong. Không đổi /lo-hong/mau. Ghép exact casefold vendor + product; CPE NVD chỉ lấy vulnerable=true và tên, đổi dấu gạch dưới thành khoảng trắng; không có mapping alias, suy luận AND/OR hoặc kiểm phiên bản. NVD chưa enrich CPE vẫn lưu nhưng không tạo match; EPSS không thu thập, CVSS 3.1/4.0 nếu có. Thiếu điểm hiển thị thiếu, không suy đoán.
+- Chạy từ root (PowerShell): đặt $env:PYTHONPATH='core;extractor;.'; dùng .venv/Scripts/python.exe -m portal_api.feeds.import_cves --kev --nvd-days 7. NVD_API_KEY không bắt buộc. Build portal/web, chạy .venv/Scripts/python.exe -m tools.local_integration.runner --scenario w03-it --cve-feed data/cve-feed.json rồi mở URL loopback + /lo-hong. Tài sản/role của harness vẫn tổng hợp. Chế độ API cấu hình W03_CVE_PROVIDER=imported và W03_CVE_FEED_PATH; mặc định synthetic (fixture vẫn opt-in bằng injection, không có fallback âm thầm).
+- Kiểm offline: fixture dạng nguồn thật, test phân trang/dedup, nguồn/metadata, lỗi giữa lượt, redirect/domain/key/size, cấu hình; stack loopback HTTP 200 /lo-hong và /api/cves với một CVE fixture khớp. Không gọi mạng trong test.
+- **Chưa nghiệm thu LIVE:** lượt nạp trên Windows trả HTTP 403 từ www.cisa.gov (exit 1, không tạo snapshot). NVD kiểm riêng trả HTTP 200, totalResults=4254 cho 7 ngày, 1 bản ghi trả về trong trang kiểm kết nối; KHÔNG phải số nhập. 0 bản ghi thật được nạp; chưa có 3 ví dụ KEV thật hoặc portal CVE thật. Không dùng mirror ngoài danh sách host hoặc bỏ TLS; chờ nguồn CISA truy cập hợp lệ rồi chạy lại CLI và demo lựa chọn 6. Không kết luận doanh nghiệp đã bị tấn công từ CVE trùng tên.
+
+## 26/11/2026 — B13: W01 Tổng quan và W04 xuất CSV
+
+- Thêm `/tong-quan` và `/tong-quan/mau`, nối từ Hàng chờ duyệt; giao diện SOC VI/EN, bốn KPI, ứng viên cần chú ý, CVE ưu tiên, IOC khớp tài sản và tình trạng nguồn. Chỉ đọc GET `/api/cves` theo quyền hiện hành; trang mẫu dùng provider CVE và fixture IOC W04 có sẵn, loại IOC allowlist. Không dùng fixture thay API khi lỗi.
+- W01 chưa đủ tiêu chí toàn phần: chưa có API tổng quan/nguồn thống kê IOC theo thời gian, cảnh báo Wazuh, top ATT&CK/mã độc hoặc trạng thái xử lý tổng hợp; hiển thị chưa có nguồn/chưa xác định thay vì số 0, không tự suy ra mức đe dọa hay tạo cảnh báo thật. CVE chỉ khớp tên sản phẩm, chưa đánh giá phiên bản. Không có hành động ghi, không thay API hoặc quyền.
+- W04 thêm nút CSV gộp tên miền, dải IP, công nghệ từ ba phép đọc hiện hành; không tải nếu thiếu một nhóm do lỗi. UTF-8 BOM, CRLF, escape dấu nháy kép và tiền tố apostrophe cho ô nguy hiểm (= + - @, kể cả khoảng trắng đầu). Không thêm dependency, không ghi DB, không xuất trường định danh người tạo.
+- Cổng cục bộ: Ruff check/format đạt; pytest 1.484 pass, 3 skip sẵn có; Vitest 427/427 pass (14 test mới, 7 wire test cũ được kích hoạt bằng 12 fixture capture), typecheck/lint/build đều đạt. Browser headless qua gateway + API/SQLite giả lập: W01 desktop 1440 và mobile 360 không tràn, mẫu không gọi API; CSV mẫu 3 dòng và CSV API 2 dòng đúng dữ liệu fixture/BOM, chỉ GET, bộ đếm DB/audit không đổi.
+- Chờ nghiệm thu độc lập. Chưa có nguồn OpenCTI/Wazuh/feed thật, chưa đo cache <2 giây hoặc kiểm lab/production; còn thiếu các tiêu chí W01 phụ thuộc nguồn nêu trên.
+
+
+## 26/11/2026 — B14 Connector nguồn tiếng Việt thứ hai (nhánh riêng)
+
+- Thêm VSEC: đọc một trang danh mục HTML, trích tiêu đề/mô tả IOC/CVE qua core; xuất STIX 2.1 dạng ứng viên chưa duyệt, TLP:GREEN. Live mặc định tắt, không có publish trực tiếp.
+- Tách kiểu dữ liệu, tải HTTP/robots/cache và bộ dựng STIX dùng chung với MST, giữ profile/ID MST. Kiểm thử fixture/mock và validator STIX; không dùng feed thật trong test.
+- Kiểm tra nguồn: robots HTTP 200 rỗng; hai RSS ứng viên HTTP 520; danh mục HTML HTTP 200. [CẦN KIỂM] quyền thu thập/tái sử dụng, quota, độ ổn định layout; chưa chạy CLI live hoặc OpenCTI lab, chưa đo RAM hay chất lượng trích thật.
 
 ## 25/11/2026 — Gộp toàn bộ nhánh vào `main` (PR #47)
 
@@ -73,7 +114,7 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
 | Nộp quyển | 27/02/2027 | Chưa |
 
 ## Đang làm
-- W03-S2 Frontend: chưa triển khai giao diện lọc trạng thái & số tổng hợp (Backend đã có trên `main`).
+- W03-S2 Frontend (B12): đã triển khai trên nhánh `feat/b12-w03-s2-frontend` từ `origin/main`; chờ nghiệm thu độc lập và ghép. `/lo-hong` dùng GET `/api/cves/status-view`, `/lo-hong/mau` dùng fixture và trạng thái trong memory. Lọc trạng thái chỉ cho detail; bộ đếm CVE cần xử lý/KEV quá hạn theo phạm vi lọc cơ sở và ngày UTC, không phải số dòng trang hiện tại. Gateway chỉ mở đúng GET; adapter giữ kiểm schema detail/summary, giới hạn 1 MiB và xử lý lỗi/cursor. Giao diện danh sách VI/EN; nút Làm mới đọc lại snapshot sau khi cập nhật S1. Cổng cục bộ: Python 1484 pass/3 skip có sẵn, gateway 19/19, Vitest 432/432 (2 worker, đủ fixture wire), Ruff/typecheck/lint/build đạt. Chưa kiểm browser/viewport, nguồn CVE thật, OpenCTI, Cloudflare hoặc production.
 - Việc 2: cài OpenCTI trên máy Ubuntu và đo RAM thực tế.
 - F01/#9: gói demo MITRE + bundle STIX mẫu đã kiểm cấu hình ngoại tuyến; chờ chạy và đo trên lab.
 
@@ -354,3 +395,20 @@ feed/OpenCTI/lab/production vẫn chưa được kiểm.
   semantic TTP, corpus gold/model quality, hostile mutation, crash/power-loss và production chưa xác minh.
 - Local ingest chưa kiểm hostile filesystem mutation, hard RAM/network isolation trên Windows, PDF đối kháng/thật,
   OCR, chất lượng text đa ngôn ngữ, corpus/model, lab hoặc production.
+
+## B10 — Hermes MCP server chỉ đọc (26/11/2026)
+- Đã triển khai `mcp-server/` với FastMCP chính thức, transport stdio, 8 công cụ đọc IOC/CVE/bản nháp/báo cáo/tổng quan/sự kiện. Tái dùng logic chuẩn hóa và tính điểm của portal/core; mặc định fixture tổng hợp, không gọi mạng trong test.
+- Adapter OpenCTI qua pycti bật bằng env, chỉ list; portal GET tùy chọn để đọc tài sản/CVE và hàng chờ W05. Dữ liệu ngoài được bao trong `tai_lieu`, escape ký tự phân tách; lọc TLP:CLEAR/GREEN; không có tool ghi, duyệt, chặn, chạy lệnh hoặc xóa.
+- Còn lại/vướng: chưa kết nối lab/OpenCTI thật, chưa nghiệm thu role agent portal, chưa có stream sự kiện live, chưa tích hợp Hermes/Telegram/cron. Lock MCP tách riêng; CI cần nạp lock ở việc được phép sửa workflow. Lock tạo trên Windows; Ubuntu và tương thích phiên bản OpenCTI chưa kiểm. Fixture/test chỉ chứng minh hợp đồng và ranh giới đọc cục bộ, không chứng minh chất lượng CTI hoặc chống prompt injection của model thật.
+
+## B11 — Bot Telegram Hermes (26/11/2026)
+- Đã thêm bot polling python-telegram-bot trong mcp-server/hermes_bot: allowlist chat và user từ env, reviewer riêng; /ioc, /cve, /nhap, /tomtat gọi tool đọc MCP B10 qua stdio, chỉ fixture tổng hợp. Không có LLM hoặc tool ghi thực tế.
+- /dexuat chan và /dexuat nhap lưu đề xuất pending trong SQLite; callback Duyệt/Từ chối ghi quyết định và người duyệt đúng chat, chuyển trạng thái nguyên tử đúng một lần, không thực thi. Nội dung nguồn là dữ liệu, có kiểm bao/TLP, defang và giới hạn phản hồi. Thêm test Update Telegram giả lập, SQLite tạm và round-trip MCP fixture; lock dependency dùng chung CI B10.
+- Còn lại: nghiệm thu polling Telegram thật, kiểm thành viên chat/quyền chia sẻ, gateway Hermes upstream, MCP live cách ly token, W05, cron 07:00 và trực ca, dữ liệu/model thật. B11 không thực hiện hoặc chứng minh các chức năng này; không thay đổi portal.
+
+## B03 — Connector MST tiếng Việt (26/11/2026)
+- Đã làm: lấy RSS qua fetch có robots/timeout/rate limit/retry/cache, parse fixture và dùng core trích IOC/CVE,
+  xuất Report + observable/Vulnerability STIX 2.1 (TLP:CLEAR tương thích WHITE), ID ổn định và URL nguồn.
+- Chạy ngoại tuyến ra file; pycti chỉ khi live và người vận hành bật publish, đọc secret từ biến môi trường.
+- Còn lại/vướng: RSS thật, robots/điều khoản đầy đủ, pycti/OpenCTI thật, quyền review, lịch chạy, RAM và nhập lặp
+  trên lab chưa kiểm. Mẫu RSS synthetic và mẫu tái dựng rút gọn, không phải bằng chứng feed thật. Chưa lấy toàn văn.

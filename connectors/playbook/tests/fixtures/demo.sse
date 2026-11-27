@@ -1,0 +1,15 @@
+: synthetic stream
+
+id: 1-0
+event: create
+data: {"data":{"type":"indicator","id":"indicator--00000000-0000-4000-8000-000000000001","modified":"2026-11-27T00:00:00Z","object_marking_refs":["mark-clear"],"x_opencti_score":80}}
+
+id: 2-0
+event: create
+data: {"data":{"type":"indicator","id":"indicator--00000000-0000-4000-8000-000000000002","modified":"2026-11-27T00:00:00Z","object_marking_refs":["mark-red"],"x_opencti_score":99}}
+
+id: 3-0
+event: create
+data: {"data":{"type":"vulnerability","id":"vulnerability--00000000-0000-4000-8000-000000000003","modified":"2026-11-27T00:00:00Z","object_marking_refs":["mark-green"],"name":"CVE-2026-1001","labels":["kev"]}}
+
+: end synthetic fixture

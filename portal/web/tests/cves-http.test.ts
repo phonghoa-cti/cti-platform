@@ -71,6 +71,11 @@ function error(status: number, code: string) {
 }
 
 describe("W03 CVE strict parser", () => {
+  it("recognizes explicitly imported source and rejects unknown kinds", () => {
+    expect(parseCveResponse({ ...detail, source: { ...detail.source, kind: "imported" } }).source.kind).toBe("imported");
+    expect(() => parseCveResponse({ ...detail, source: { ...detail.source, kind: "unknown" } })).toThrow();
+  });
+
   it("parses exact detail and preserves score zero separately from null", () => {
     const parsed = parseCveResponse(detailFixture);
     expect(parsed.view).toBe("detail");

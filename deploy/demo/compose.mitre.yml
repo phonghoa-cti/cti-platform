@@ -1,6 +1,6 @@
 services:
   connector-mitre:
-    image: ghcr.io/opencti-platform/opencti/connector-mitre:7.260811.0-lts.2@sha256:dbdafe0afb40c6a8efb4d74211b712213180543949355017c387723c14b8e8dc
+    image: ghcr.io/opencti-platform/opencti/connector-mitre:7.261124.0@sha256:d80cb96c3184cc4bbfacec8fb1fe726015d44abbe88983ee472ba2d0c9fe49b9
     platform: linux/amd64
     restart: unless-stopped
     mem_limit: 256m

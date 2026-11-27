@@ -23,6 +23,7 @@ from portal_api.cves import (
     _rank_matches,
     _summary_item,
     _validate_dataset,
+    _wire_source,
 )
 from portal_api.cves_status import CveStatusStore, StatusUnavailable, _record_from_row
 from portal_api.technologies import (
@@ -147,12 +148,7 @@ class CveStatusViewService:
             "items": items,
             "summary": summary,
             "page": {"next_cursor": next_cursor, "limit": query.limit},
-            "source": {
-                "kind": "synthetic",
-                "dataset_id": dataset_id,
-                "source_as_of": dataset["source_as_of"],
-                "retrieved_at": dataset["retrieved_at"],
-            },
+            "source": _wire_source(dataset, dataset_id),
             "notice": NOTICE,
         }
         if len(_canonical_bytes(result)) > MAX_RESPONSE_BYTES:

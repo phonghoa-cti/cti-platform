@@ -8,7 +8,7 @@ Các module:
 """
 
 from phonghoa_core.allowlist import Allowlist
-from phonghoa_core.extract import extract_iocs
+from phonghoa_core.extract import extract_cves, extract_iocs
 from phonghoa_core.ioc import Ioc, IocType, defang, normalize, refang
 from phonghoa_core.scoring import ScoreInput, ScoreResult, score
 
@@ -19,6 +19,7 @@ __all__ = [
     "ScoreInput",
     "ScoreResult",
     "defang",
+    "extract_cves",
     "extract_iocs",
     "normalize",
     "refang",
